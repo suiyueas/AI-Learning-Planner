@@ -1,0 +1,36 @@
+# ===== 敏感配置（禁止提交） =====
+# 环境变量文件（含数据库密码、AI API 密钥等），覆盖 .env / .env.local / .env.development 等全部变体
+.env
+*.env
+.env.*
+!.env.example
+
+# ===== Node.js =====
+node_modules/
+dist/
+.npm-cache/
+npm-debug.log*
+
+# ===== Java / Spring Boot =====
+springboot/target/
+springboot/effective-pom/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ===== 日志与临时文件 =====
+*.log
+logs/
+temp/
+.DS_Store
+Thumbs.db
+
+# ===== 运行时数据 =====
+# 运行时上传目录（应用启动时自动重建，含用户上传文件，不入库）
+springboot/uploads/

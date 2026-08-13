@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI学习规划师 · 功能架构设计书</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== 全局重置 & 设计变量 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0b0b1a;
+            --bg-surface: #12122a;
+            --bg-elevated: #1a1a3e;
+            --bg-card: rgba(18, 18, 42, 0.75);
+            --border-subtle: rgba(255, 255, 255, 0.07);
+            --border-accent: rgba(0, 245, 212, 0.25);
+            --text-primary: #f0f0ff;
+            --text-secondary: #a0a0c8;
+            --text-muted: #606090;
+            --accent-cyan: #00f5d4;
+            --accent-purple: #7b61ff;
+            --accent-pink: #ff006e;
+            --accent-orange: #ffbe0b;
+            --accent-blue: #3a86ff;
+            --glow-cyan: 0 0 30px rgba(0, 245, 212, 0.15);
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* 背景微光 */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(0, 245, 212, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(123, 97, 255, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 0, 110, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== 导航栏 ===== */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 11, 26, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 0;
+        }
+
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--accent-cyan);
+            background: rgba(0, 245, 212, 0.08);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            color: #0b0b1a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            padding: 40px 0 60px;
+            position: relative;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-cyan);
+            background: rgba(0, 245, 212, 0.08);
+            padding: 4px 16px 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 245, 212, 0.15);
+            margin-bottom: 20px;
+        }
+
+        .hero-badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.4rem, 5vw, 3.8rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 520px;
+            margin-bottom: 28px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .stat-item .number {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            line-height: 1;
+        }
+
+        .stat-item .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 4px;
+        }
+
+        /* Hero 右侧装饰 */
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-orb {
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 245, 212, 0.2), rgba(123, 97, 255, 0.1), transparent 70%);
+            border-radius: 50%;
+            filter: blur(40px);
+            position: absolute;
+        }
+
+        .hero-code-block {
+            position: relative;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .hero-code-block .line {
+            display: flex;
+            gap: 12px;
+        }
+
+        .hero-code-block .line .num {
+            color: var(--text-muted);
+            user-select: none;
+            width: 24px;
+            text-align: right;
+        }
+
+        .hero-code-block .kw {
+            color: var(--accent-purple);
+        }
+        .hero-code-block .fn {
+            color: var(--accent-cyan);
+        }
+        .hero-code-block .str {
+            color: var(--accent-orange);
+        }
+        .hero-code-block .cmt {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ===== 通用章节 ===== */
+        .section {
+            padding: 56px 0;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .section-header {
+            margin-bottom: 32px;
+        }
+
+        .section-tag {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin-top: 8px;
+        }
+
+        /* ===== 功能模块网格 ===== */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 16px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px 22px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-3px);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .feature-card .badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-p0 {
+            background: rgba(58, 134, 255, 0.2);
+            color: var(--accent-blue);
+        }
+        .badge-p1 {
+            background: rgba(255, 190, 11, 0.15);
+            color: var(--accent-orange);
+        }
+        .badge-p2 {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+        .badge-core {
+            background: rgba(255, 0, 110, 0.2);
+            color: var(--accent-pink);
+        }
+        .badge-new {
+            background: rgba(0, 245, 212, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .feature-card .icon {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .feature-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .feature-card .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 10px;
+        }
+
+        .feature-card .tags span {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        /* ===== Agent 架构 ===== */
+        .agent-orchestrator {
+            background: var(--bg-card);
+            border: 1px solid var(--border-accent);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .agent-orchestrator .avatar {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .agent-orchestrator .info h4 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .agent-orchestrator .info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .agent-orchestrator .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .agent-orchestrator .tags span {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            background: rgba(0, 245, 212, 0.08);
+            color: var(--accent-cyan);
+            padding: 2px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 245, 212, 0.1);
+        }
+
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .agent-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+
+        .agent-card .icon {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+
+        .agent-card h5 {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .agent-card p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== ReAct 循环 ===== */
+        .react-loop {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 20px 0 10px;
+        }
+
+        .react-step {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 24px;
+            text-align: center;
+            min-width: 120px;
+            transition: var(--transition);
+        }
+
+        .react-step.active {
+            border-color: var(--accent-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .react-step .step-icon {
+            font-size: 1.8rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .react-step .step-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .react-step .step-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .react-arrow {
+            font-size: 1.4rem;
+            color: var(--accent-cyan);
+            opacity: 0.6;
+        }
+
+        .react-terminate {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-top: 8px;
+        }
+
+        /* ===== MCP 工具 ===== */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .tool-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            cursor: default;
+            text-align: center;
+        }
+
+        .tool-item:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(0, 245, 212, 0.04);
+        }
+
+        .tool-item .tool-icon {
+            font-size: 1.2rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .tool-item .tool-desc {
+            font-family: var(--font-sans);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ===== 数据存储 ===== */
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .storage-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px 22px;
+            transition: var(--transition);
+        }
+
+        .storage-card:hover {
+            border-color: var(--border-accent);
+        }
+
+        .storage-card .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .storage-card .header .icon {
+            font-size: 1.6rem;
+        }
+
+        .storage-card .header h4 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .storage-card .header .count {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            background: rgba(0, 245, 212, 0.08);
+            padding: 1px 10px;
+            border-radius: 12px;
+        }
+
+        .storage-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .storage-list .row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            padding: 2px 0;
+            font-family: var(--font-mono);
+        }
+
+        .storage-list .row .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            flex-shrink: 0;
+        }
+
+        .storage-list .row .tag {
+            font-size: 0.55rem;
+            background: rgba(255, 0, 110, 0.15);
+            color: var(--accent-pink);
+            padding: 0 8px;
+            border-radius: 8px;
+            margin-left: auto;
+        }
+
+        .storage-list .row .tag.orange {
+            background: rgba(255, 190, 11, 0.15);
+            color: var(--accent-orange);
+        }
+
+        /* ===== 对话预览 ===== */
+        .chat-preview {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .chat-preview .header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-elevated);
+        }
+
+        .chat-preview .header .avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .chat-preview .header .name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .chat-preview .header .status {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+        }
+
+        .chat-preview .messages {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .chat-msg {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+        }
+
+        .chat-msg.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .chat-msg .msg-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            background: var(--bg-elevated);
+        }
+
+        .chat-msg.user .msg-avatar {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
+        }
+
+        .chat-msg .bubble {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .chat-msg.user .bubble {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            color: #0b0b1a;
+            border: none;
+        }
+
+        .chat-msg .bubble strong {
+            color: var(--text-primary);
+        }
+
+        .chat-msg.user .bubble strong {
+            color: #0b0b1a;
+        }
+
+        .chat-preview .input-bar {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            gap: 10px;
+            background: var(--bg-elevated);
+        }
+
+        .chat-preview .input-bar input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .chat-preview .input-bar input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .chat-preview .input-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .chat-preview .input-bar button {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #0b0b1a;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chat-preview .input-bar button:hover {
+            transform: scale(1.02);
+        }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            border-top: 1px solid var(--border-subtle);
+            padding: 32px 0 24px;
+            margin-top: 16px;
+        }
+
+        .footer .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .footer .brand .icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .footer .info {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .footer .links {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .footer .links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer .links a:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 900px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .hero-visual {
+                order: -1;
+            }
+            .hero-code-block {
+                max-width: 100%;
+            }
+            .hero-stats {
+                gap: 24px;
+                flex-wrap: wrap;
+            }
+            .feature-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+            .agent-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            .storage-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .navbar .container {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .nav-links {
+                justify-content: center;
+            }
+            .nav-actions {
+                justify-content: center;
+            }
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .agent-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .tool-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+            .react-loop {
+                gap: 8px;
+            }
+            .react-step {
+                padding: 12px 16px;
+                min-width: 80px;
+            }
+            .react-arrow {
+                font-size: 1rem;
+            }
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .hero-stats {
+                gap: 16px;
+            }
+            .stat-item .number {
+                font-size: 1.5rem;
+            }
+            .chat-msg {
+                max-width: 95%;
+            }
+        }
+
+        /* ===== 工具类 ===== */
+        .text-cyan {
+            color: var(--accent-cyan);
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .mt-16 {
+            margin-top: 16px;
+        }
+        .mt-24 {
+            margin-top: 24px;
+        }
+        .mb-8 {
+            margin-bottom: 8px;
+        }
+        .gap-8 {
+            gap: 8px;
+        }
+        .flex-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .w-full {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 导航栏 ===== -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="#" class="logo">
+                <span class="logo-icon">🧠</span>
+                <span>AI学习规划师</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features" class="active">功能模块</a></li>
+                <li><a href="#agents">智能体</a></li>
+                <li><a href="#tools">MCP工具</a></li>
+                <li><a href="#storage">数据存储</a></li>
+                <li><a href="#chat">AI对话</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn btn-outline">登录</button>
+                <button class="btn btn-primary">开始学习</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== Hero ===== -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-grid">
+                <div>
+                    <div class="hero-badge">
+                        <span class="hero-badge-dot"></span>
+                        Spring AI + MCP + ReAct Agent
+                    </div>
+                    <h1>
+                        <span class="gradient">AI 学习规划师</span><br>
+                        智能学习新纪元
+                    </h1>
+                    <p>
+                        基于大模型的自主智能体，通过精准诊断、动态规划、引导式教学，
+                        为你打造千人千面的个性化学习路径。覆盖学习全生命周期的智能陪伴。
+                    </p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+                        <button class="btn btn-primary" style="padding: 10px 28px;">🚀 开始学习之旅</button>
+                        <button class="btn btn-outline" style="padding: 10px 28px;">📖 查看文档</button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-item"><div class="number">13</div><div class="label">功能模块</div></div>
+                        <div class="stat-item"><div class="number">7</div><div class="label">子Agent协同</div></div>
+                        <div class="stat-item"><div class="number">12</div><div class="label">MCP工具</div></div>
+                        <div class="stat-item"><div class="number">4</div><div class="label">大模型支持</div></div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-orb"></div>
+                    <div class="hero-code-block">
+                        <div class="line"><span class="num">1</span><span class="kw">@McpTool</span>(name = <span class="str">"query_knowledge_graph"</span>)</div>
+                        <div class="line"><span class="num">2</span><span class="kw">public</span> GraphResult <span class="fn">queryGraph</span>(</div>
+                        <div class="line"><span class="num">3</span>&nbsp;&nbsp;@ToolParam String nodeId,</div>
+                        <div class="line"><span class="num">4</span>&nbsp;&nbsp;@ToolParam Integer depth) {</div>
+                        <div class="line"><span class="num">5</span>&nbsp;&nbsp;<span class="cmt">// 自主推理 → 工具调用 → 观察迭代</span></div>
+                        <div class="line"><span class="num">6</span>&nbsp;&nbsp;<span class="kw">return</span> knowledgeService.query(nodeId, depth);</div>
+                        <div class="line"><span class="num">7</span>}</div>
+                        <div class="line" style="margin-top:6px;color:var(--accent-cyan);">── ReAct 循环 · 30轮迭代 · 死循环防治 ──</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 功能模块 ===== -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">// 功能模块</div>
+                <h2 class="section-title">13大核心功能模块</h2>
+                <p class="section-desc">从用户画像到学习干预，覆盖学习全生命周期的完整功能矩阵</p>
+            </div>
+            <div class="feature-grid">
+                <!-- M1 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">👤</span>
+                    <h4>M1 · 用户管理与画像</h4>
+                    <p>注册/登录（BCrypt）、个人信息维护、学习风格自动构建、画像每日异步更新</p>
+                    <div class="tags"><span>BCrypt</span><span>画像构建</span><span>异步更新</span></div>
+                </div>
+                <!-- M2 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">📊</span>
+                    <h4>M2 · 智能能力测评</h4>
+                    <p>客观题+主观题测评、主观题AI评分、掌握度（0-100%）+ 能力雷达图</p>
+                    <div class="tags"><span>AI评分</span><span>雷达图</span><span>掌握度</span></div>
+                </div>
+                <!-- M3 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">🎯</span>
+                    <h4>M3 · 学习目标设定</h4>
+                    <p>自然语言目标解析（领域/时间/成果）、置信度 &lt; 70% 时引导补充信息</p>
+                    <div class="tags"><span>NLP解析</span><span>智能引导</span></div>
+                </div>
+                <!-- M4 核心 -->
+                <div class="feature-card" style="border-color: rgba(255,0,110,0.3);">
+                    <span class="badge badge-core">核心</span>
+                    <span class="icon">🗺️</span>
+                    <h4>M4 · 个性化学习路径生成</h4>
+                    <p>用户画像 + 知识图谱 + 目标 → 动态节点序列、拓扑排序、已掌握节点（&gt;80%）跳过</p>
+                    <div class="tags"><span>拓扑排序</span><span>动态生成</span><span>智能跳过</span></div>
+                </div>
+                <!-- M5 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">📚</span>
+                    <h4>M5 · 资源智能推荐</h4>
+                    <p>协同过滤（40%）+ 热度（30%）+ 难度（30%）、每知识点 ≥ 3 个资源</p>
+                    <div class="tags"><span>协同过滤</span><span>智能排序</span></div>
+                </div>
+                <!-- M6 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">💬</span>
+                    <h4>M6 · 互动答疑（苏格拉底式）</h4>
+                    <p>多轮对话、不直接给答案、反问引导、连续3次无法回答 → 给部分提示</p>
+                    <div class="tags"><span>苏格拉底式</span><span>RAG</span><span>多轮对话</span></div>
+                </div>
+                <!-- M7 -->
+                <div class="feature-card">
+                    <span class="badge badge-p0">P0</span>
+                    <span class="icon">📈</span>
+                    <h4>M7 · 学习进度追踪与看板</h4>
+                    <p>标记完成 + 自评掌握度 + 学习时长、完成百分比、节点状态图、能力曲线</p>
+                    <div class="tags"><span>看板</span><span>能力曲线</span></div>
+                </div>
+                <!-- M8 -->
+                <div class="feature-card">
+                    <span class="badge badge-p1">P1</span>
+                    <span class="icon">🔄</span>
+                    <h4>M8 · 动态路径调整</h4>
+                    <p>正确率 &lt; 60% → 插入前置复习节点、正确率 &gt; 90% 且耗时低 → 跳过</p>
+                    <div class="tags"><span>自适应</span><span>智能调整</span></div>
+                </div>
+                <!-- M9 -->
+                <div class="feature-card">
+                    <span class="badge badge-p1">P1</span>
+                    <span class="icon">✏️</span>
+                    <h4>M9 · 自动习题生成</h4>
+                    <p>基于当前节点 + 错题历史 → 针对性练习、客观题规则批改、开放题AI评分</p>
+                    <div class="tags"><span>自动生成</span><span>AI批改</span></div>
+                </div>
+                <!-- M10 -->
+                <div class="feature-card">
+                    <span class="badge badge-p1">P1</span>
+                    <span class="icon">📋</span>
+                    <h4>M10 · 智能学情报告</h4>
+                    <p>每周/每月自动生成、学习时长/进度/薄弱点、建议由AI生成、PDF导出</p>
+                    <div class="tags"><span>自动报告</span><span>PDF导出</span></div>
+                </div>
+                <!-- M11 -->
+                <div class="feature-card">
+                    <span class="badge badge-p2">P2</span>
+                    <span class="icon">🕸️</span>
+                    <h4>M11 · 知识图谱可视化</h4>
+                    <p>力导向图、颜色标识状态、点击跳转、支持缩放、拖拽</p>
+                    <div class="tags"><span>力导向图</span><span>交互式</span></div>
+                </div>
+                <!-- M12 新增 -->
+                <div class="feature-card" style="border-color: rgba(0,245,212,0.2);">
+                    <span class="badge badge-new">新增</span>
+                    <span class="icon">🔔</span>
+                    <h4>M12 · 学习干预与激励</h4>
+                    <p>连续3次错误 → 鼓励+推荐前置、当日 &lt; 10分钟 → 推送提醒、每周 ≤ 3次</p>
+                    <div class="tags"><span>主动干预</span><span>智能提醒</span></div>
+                </div>
+                <!-- M13 新增 -->
+                <div class="feature-card" style="border-color: rgba(255,190,11,0.2);">
+                    <span class="badge badge-new">新增</span>
+                    <span class="icon">🏆</span>
+                    <h4>M13 · 学习成就与打卡</h4>
+                    <p>20%节点→「初露锋芒」、连续7天→「持之以恒」、掌握度≥90%达5个→「学霸」</p>
+                    <div class="tags"><span>徽章系统</span><span>打卡</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 智能体架构 ===== -->
+    <section class="section" id="agents">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">// 智能体架构</div>
+                <h2 class="section-title">7子Agent协同作战</h2>
+                <p class="section-desc">主控Agent统一调度，各专业Agent各司其职，实现复杂任务的自主规划与执行</p>
+            </div>
+
+            <!-- 主控Agent -->
+            <div class="agent-orchestrator">
+                <div class="avatar">🧠</div>
+                <div class="info">
+                    <h4>主控Agent (Orchestrator)</h4>
+                    <p>意图识别 · 任务分解 · 子Agent调度 · 上下文管理 · ReAct循环引擎</p>
+                    <div class="tags">
+                        <span>ReAct</span><span>长链推理</span><span>死循环防治</span><span>30轮迭代</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 子Agent -->
+            <div class="agent-grid">
+                <div class="agent-card"><div class="icon">🔍</div><h5>诊断Agent</h5><p>能力测评 · 画像构建</p></div>
+                <div class="agent-card"><div class="icon">🗺️</div><h5>规划Agent</h5><p>路径生成 · 动态调整</p></div>
+                <div class="agent-card"><div class="icon">💬</div><h5>答疑Agent</h5><p>苏格拉底式 · RAG</p></div>
+                <div class="agent-card"><div class="icon">📊</div><h5>报告Agent</h5><p>学情分析 · PDF导出</p></div>
+                <div class="agent-card"><div class="icon">🌐</div><h5>搜索Agent</h5><p>联网搜索 · 补充资料</p></div>
+                <div class="agent-card"><div class="icon">🔔</div><h5>干预Agent</h5><p>行为监测 · 主动干预</p></div>
+                <div class="agent-card"><div class="icon">🏆</div><h5>激励Agent</h5><p>成就解锁 · 打卡管理</p></div>
+            </div>
+
+            <!-- ReAct循环 -->
+            <div style="margin-top: 24px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px 24px;">
+                <div style="text-align:center;font-weight:600;font-size:1rem;margin-bottom:4px;">🔄 ReAct 推理-行动-观察闭环</div>
+                <div class="react-loop">
+                    <div class="react-step active"><span class="step-icon">🧠</span><div class="step-label">推理 (Think)</div><div class="step-desc">当前状态？下一步？</div></div>
+                    <span class="react-arrow">→</span>
+                    <div class="react-step"><span class="step-icon">⚡</span><div class="step-label">行动 (Act)</div><div class="step-desc">调用工具、执行操作</div></div>
+                    <span class="react-arrow">→</span>
+                    <div class="react-step"><span class="step-icon">👁️</span><div class="step-label">观察 (Observe)</div><div class="step-desc">分析结果、迭代更新</div></div>
+                    <span class="react-arrow">↻</span>
+                </div>
+                <div class="react-terminate">终止条件：正常完成 · 最大迭代（30轮）· 重复检测（相似度＞90%）· 超时（30秒）</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== MCP工具 ===== -->
+    <section class="section" id="tools">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">// MCP工具生态</div>
+                <h2 class="section-title">12个MCP工具</h2>
+                <p class="section-desc">模型上下文协议，动态发现与调用外部工具，支撑智能体的全面能力</p>
+            </div>
+            <div class="tool-grid">
+                <div class="tool-item"><span class="tool-icon">🔍</span>query_knowledge_graph<div class="tool-desc">知识图谱查询</div></div>
+                <div class="tool-item"><span class="tool-icon">📚</span>search_resources<div class="tool-desc">资源检索</div></div>
+                <div class="tool-item"><span class="tool-icon">👤</span>get_user_profile<div class="tool-desc">获取用户画像</div></div>
+                <div class="tool-item"><span class="tool-icon">🌐</span>web_search<div class="tool-desc">联网搜索</div></div>
+                <div class="tool-item"><span class="tool-icon">📄</span>web_fetch<div class="tool-desc">网页抓取</div></div>
+                <div class="tool-item"><span class="tool-icon">📧</span>send_email<div class="tool-desc">发送邮件</div></div>
+                <div class="tool-item"><span class="tool-icon">📑</span>generate_pdf_report<div class="tool-desc">生成PDF报告</div></div>
+                <div class="tool-item"><span class="tool-icon">📁</span>file_operation<div class="tool-desc">文件操作</div></div>
+                <div class="tool-item"><span class="tool-icon">✅</span>todo_manager<div class="tool-desc">待办管理</div></div>
+                <div class="tool-item"><span class="tool-icon">🔔</span>intervention_trigger<div class="tool-desc">干预触发</div></div>
+                <div class="tool-item"><span class="tool-icon">🏆</span>achievement_unlock<div class="tool-desc">成就解锁</div></div>
+                <div class="tool-item"><span class="tool-icon">🛑</span>terminate<div class="tool-desc">任务终止</div></div>
+            </div>
+            <!-- 调用流程 -->
+            <div style="margin-top:20px;display:flex;align-items:center;justify-content:center;gap:6px 16px;flex-wrap:wrap;font-size:0.8rem;color:var(--text-muted);font-family:var(--font-mono);background:var(--bg-card);border-radius:var(--radius-md);padding:12px 20px;border:1px solid var(--border-subtle);">
+                <span>1️⃣ Agent推理</span><span style="color:var(--accent-cyan);">→</span>
+                <span>2️⃣ 查找工具</span><span style="color:var(--accent-cyan);">→</span>
+                <span>3️⃣ 生成参数</span><span style="color:var(--accent-cyan);">→</span>
+                <span>4️⃣ MCP调用</span><span style="color:var(--accent-cyan);">→</span>
+                <span>5️⃣ 执行返回</span><span style="color:var(--accent-cyan);">→</span>
+                <span>6️⃣ 结果分析</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 数据存储 ===== -->
+    <section class="section" id="storage">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">// 数据存储架构</div>
+                <h2 class="section-title">MySQL + ES 混合存储</h2>
+                <p class="section-desc">MySQL保障ACID事务，Elasticsearch承担向量检索与全文搜索，Redis作为高速缓存</p>
+            </div>
+            <div class="storage-grid">
+                <!-- MySQL -->
+                <div class="storage-card">
+                    <div class="header">
+                        <span class="icon">🗄️</span>
+                        <h4>MySQL</h4>
+                        <span class="count">9 张表</span>
+                    </div>
+                    <div class="storage-list">
+                        <div class="row"><span class="dot"></span>user — 用户基础信息</div>
+                        <div class="row"><span class="dot"></span>user_profile — 用户画像</div>
+                        <div class="row"><span class="dot"></span>knowledge_node — 知识图谱节点</div>
+                        <div class="row"><span class="dot"></span>learning_path — 学习路径</div>
+                        <div class="row"><span class="dot"></span>learning_path_node — 路径节点</div>
+                        <div class="row"><span class="dot"></span>resource — 学习资源</div>
+                        <div class="row"><span class="dot"></span>chat_history — 对话历史</div>
+                        <div class="row"><span class="dot"></span>intervention — 干预记录 <span class="tag">新增</span></div>
+                        <div class="row"><span class="dot"></span>achievement — 成就记录 <span class="tag orange">新增</span></div>
+                    </div>
+                </div>
+                <!-- Elasticsearch -->
+                <div class="storage-card">
+                    <div class="header">
+                        <span class="icon">🔍</span>
+                        <h4>Elasticsearch</h4>
+                        <span class="count">8 个索引</span>
+                    </div>
+                    <div class="storage-list">
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>users — 用户信息+画像</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>knowledge_nodes — 含1536维向量</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>learning_paths — 学习路径</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>learning_records — 按时间分索引</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>resources — 全文搜索</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>chat_histories — 对话历史</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>interventions — 干预记录</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-orange);"></span>achievements — 成就记录</div>
+                    </div>
+                </div>
+                <!-- Redis -->
+                <div class="storage-card">
+                    <div class="header">
+                        <span class="icon">⚡</span>
+                        <h4>Redis</h4>
+                        <span class="count">缓存 &amp; 队列</span>
+                    </div>
+                    <div class="storage-list">
+                        <div class="row"><span class="dot" style="background:var(--accent-pink);"></span>Session — 用户登录态与对话上下文</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-pink);"></span>Hot Cache — 热点知识图谱</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-pink);"></span>Task Queue — 异步任务队列</div>
+                        <div class="row"><span class="dot" style="background:var(--accent-pink);"></span>Rate Limiter — API频控计数</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 一致性 -->
+            <div style="margin-top:16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;">
+                <div><span style="color:var(--accent-blue);font-weight:600;">MySQL 层</span><br><span style="font-size:0.8rem;color:var(--text-secondary);">@Transactional 事务注解保证 ACID</span></div>
+                <div><span style="color:var(--accent-orange);font-weight:600;">ES 层</span><br><span style="font-size:0.8rem;color:var(--text-secondary);">乐观锁 _version + @EventListener 异步同步 + Spring Retry 重试</span></div>
+                <div><span style="color:var(--accent-cyan);font-weight:600;">关键操作</span><br><span style="font-size:0.8rem;color:var(--text-secondary);">用户注册强制 refresh=true，保证立即可见</span></div>
+                <div><span style="color:var(--accent-purple);font-weight:600;">跨索引更新</span><br><span style="font-size:0.8rem;color:var(--text-secondary);">使用 update_by_query 批量处理</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== AI对话 ===== -->
+    <section class="section" id="chat">
+        <div class="container">
+            <div class="section-header text-center">
+                <div class="section-tag">// 智能对话</div>
+                <h2 class="section-title">苏格拉底式AI答疑</h2>
+                <p class="section-desc" style="margin-left:auto;margin-right:auto;">不直接给答案，通过反问引导你独立思考，培养真正的学习能力</p>
+            </div>
+
+            <div class="chat-preview">
+                <div class="header">
+                    <span class="avatar">🤖</span>
+                    <span class="name">AI学习规划师</span>
+                    <span class="status">● 在线</span>
+                </div>
+                <div class="messages">
+                    <div class="chat-msg">
+                        <span class="msg-avatar">🤖</span>
+                        <div class="bubble">你好！我是你的AI学习规划师。我注意到你正在学习数据分析基础。有什么问题我可以帮你解答吗？</div>
+                    </div>
+                    <div class="chat-msg user">
+                        <span class="msg-avatar">👤</span>
+                        <div class="bubble">我不太理解什么是数据透视表，能直接告诉我怎么用吗？</div>
+                    </div>
+                    <div class="chat-msg">
+                        <span class="msg-avatar">🤖</span>
+                        <div class="bubble">
+                            很好的问题！在直接告诉你答案之前，我想先了解一下：<br><br>
+                            1. 你之前用过Excel的排序和筛选功能吗？<br>
+                            2. 你知道什么是"汇总"操作吗？<br>
+                            3. 你遇到过需要按类别统计数据的情况吗？<br><br>
+                            帮我回答这几个问题，我就能用你已经掌握的知识来解释数据透视表了。
+                        </div>
+                    </div>
+                    <div class="chat-msg user">
+                        <span class="msg-avatar">👤</span>
+                        <div class="bubble">排序和筛选用过，汇总就是求和吧，我确实需要按月份统计销售数据。</div>
+                    </div>
+                    <div class="chat-msg">
+                        <span class="msg-avatar">🤖</span>
+                        <div class="bubble">
+                            太棒了！你已经理解了核心概念。<br><br>
+                            想象一下：你有一张销售表，需要按<strong>月份</strong>统计<strong>总销售额</strong>。<br><br>
+                            如果手动做，你需要：<br>
+                            1. 先按月份排序<br>
+                            2. 然后对每个月的数据求和<br>
+                            3. 最后整理成新表格<br><br>
+                            <strong>数据透视表就是自动帮你完成这3步的工具！</strong><br><br>
+                            你现在能告诉我，如果还要按"产品类别"分组统计，应该怎么操作呢？
+                        </div>
+                    </div>
+                </div>
+                <div class="input-bar">
+                    <input type="text" placeholder="输入你的问题..." />
+                    <button>发送</button>
+                </div>
+            </div>
+
+            <!-- 对话特点 -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px;">
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;">
+                    <div style="font-size:1.8rem;">🤔</div>
+                    <div style="font-weight:600;font-size:0.9rem;">引导式提问</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">不直接给答案，通过提问引导思考</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;">
+                    <div style="font-size:1.8rem;">🔗</div>
+                    <div style="font-weight:600;font-size:0.9rem;">知识关联</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">基于已掌握的知识构建新理解</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;">
+                    <div style="font-size:1.8rem;">💡</div>
+                    <div style="font-weight:600;font-size:0.9rem;">适度提示</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">连续3次无法回答时给出部分提示</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 大模型支持 ===== -->
+    <section class="section" id="models" style="border-bottom:1px solid var(--border-subtle);">
+        <div class="container">
+            <div class="section-header text-center">
+                <div class="section-tag">// 大模型支持</div>
+                <h2 class="section-title">多模型动态切换</h2>
+                <p class="section-desc" style="margin-left:auto;margin-right:auto;">通过环境变量 MODEL_PROVIDER 切换，无需修改业务代码，支持自动降级</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;border-top:3px solid var(--accent-purple);">
+                    <div style="font-size:2rem;">☁️</div>
+                    <div style="font-weight:600;">Qwen-Max</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">阿里云 · 中文理解优秀</div>
+                    <div style="color:var(--accent-orange);font-size:0.8rem;">⭐⭐⭐⭐⭐</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;border-top:3px solid var(--accent-blue);">
+                    <div style="font-size:2rem;">🚀</div>
+                    <div style="font-weight:600;">DeepSeek-V4</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">深度求索 · 高性价比</div>
+                    <div style="color:var(--accent-orange);font-size:0.8rem;">⭐⭐⭐⭐⭐</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;border-top:3px solid var(--accent-orange);">
+                    <div style="font-size:2rem;">📱</div>
+                    <div style="font-weight:600;">MiMo-V2.5</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">小米 · 复杂推理</div>
+                    <div style="color:var(--accent-orange);font-size:0.8rem;">⭐⭐⭐⭐</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;text-align:center;border-top:3px solid var(--accent-cyan);">
+                    <div style="font-size:2rem;">💻</div>
+                    <div style="font-weight:600;">Ollama</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">本地 · 开发/离线</div>
+                    <div style="color:var(--accent-orange);font-size:0.8rem;">⭐⭐⭐</div>
+                </div>
+            </div>
+            <div style="margin-top:12px;text-align:center;font-size:0.8rem;color:var(--text-muted);font-family:var(--font-mono);background:var(--bg-card);border-radius:var(--radius-md);padding:8px 16px;border:1px solid var(--border-subtle);">
+                <span style="color:var(--accent-cyan);">✨</span> 统一接入 · OpenAI 兼容协议 / Ollama HTTP · 环境变量驱动切换
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 页脚 ===== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="brand">
+                <span class="icon">🧠</span>
+                <span>AI学习规划师</span>
+            </div>
+            <div class="info">© 2026 · Spring AI + MCP + Agent v2.0</div>
+            <div class="links">
+                <a href="#features">功能模块</a>
+                <a href="#agents">智能体</a>
+                <a href="#tools">MCP工具</a>
+                <a href="#storage">数据存储</a>
+                <a href="#chat">AI对话</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ===== 导航高亮 =====
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-links a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const top = section.offsetTop - 100;
+                if (window.scrollY >= top) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+            });
+        });
+
+        // ===== ReAct 循环动画 =====
+        const steps = document.querySelectorAll('.react-step');
+        let idx = 0;
+        setInterval(() => {
+            steps.forEach(s => s.classList.remove('active'));
+            steps[idx].classList.add('active');
+            idx = (idx + 1) % steps.length;
+        }, 2200);
+
+        // ===== 对话输入模拟 =====
+        const chatInput = document.querySelector('.chat-preview .input-bar input');
+        const chatBtn = document.querySelector('.chat-preview .input-bar button');
+        const chatMessages = document.querySelector('.chat-preview .messages');
+
+        if (chatBtn && chatInput) {
+            const sendMessage = () => {
+                const text = chatInput.value.trim();
+                if (!text) return;
+                // 添加用户消息
+                const userMsg = document.createElement('div');
+                userMsg.className = 'chat-msg user';
+                userMsg.innerHTML = `
+                    <span class="msg-avatar">👤</span>
+                    <div class="bubble">${text}</div>
+                `;
+                chatMessages.appendChild(userMsg);
+                chatInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // 模拟AI回复
+                setTimeout(() => {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'chat-msg';
+                    aiMsg.innerHTML = `
+                        <span class="msg-avatar">🤖</span>
+                        <div class="bubble">这是个好问题！让我用引导的方式帮你思考… 你能先说说你对这个概念目前的理解吗？</div>
+                    `;
+                    chatMessages.appendChild(aiMsg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 800);
+            };
+
+            chatBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+    </script>
+
+</body>
+</html>

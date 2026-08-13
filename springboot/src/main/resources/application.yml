@@ -1,0 +1,293 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  main:
+    banner-mode: off
+
+  application:
+    name: ai-learning-planner
+
+  # 开发环境排除 Elasticsearch（生产环境通过 application-prod.yml 启用）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRestClientAutoConfiguration
+      - org.springframework.ai.vectorstore.elasticsearch.autoconfigure.ElasticsearchVectorStoreAutoConfiguration
+
+  # Servlet multipart 配置
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # JPA + MySQL 配置（密码等敏感项由 .env 提供，默认值为空）
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ai_learning_planner}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Redis 配置
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
+
+  # 缓存配置
+  cache:
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+
+  # AI 模型配置 - 多模型支持
+  ai:
+    # 默认使用 DeepSeek 作为 AI 工具执行的模型
+    model:
+      provider: deepseek
+
+    # DeepSeek V4 Flash（核心工作模型 - 用于文档摘要/知识点提取/测验题生成/翻译等工具）
+    deepseek:
+      enabled: true
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.7
+          max-tokens: 4096
+      embedding:
+        enabled: ${DEEPSEEK_EMBEDDING_ENABLED:true}
+        dimensions: ${DEEPSEEK_EMBEDDING_DIMENSIONS:1536}
+
+    # OpenAI 兼容格式（用于 DeepSeek 等兼容 API）
+    openai:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        enabled: true
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.7
+          max-tokens: 4096
+
+    # Qwen-Max
+    qwen:
+      enabled: true
+      api-key: ${QWEN_API_KEY:}
+      base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+      embedding:
+        enabled: ${QWEN_EMBEDDING_ENABLED:false}
+        dimensions: ${QWEN_EMBEDDING_DIMENSIONS:1536}
+
+    # 小米 MiMo-V2.5-Pro
+    mimo:
+      enabled: true
+      api-key: ${MIMO_API_KEY:}
+      base-url: ${MIMO_BASE_URL:https://api.xiaomimimo.com/v1}
+
+    # MCP 服务端配置
+    mcp:
+      server:
+        enabled: true
+        name: learning-planner-mcp
+        version: 1.0.0
+
+
+# 应用配置
+app:
+  # 默认管理员初始化开关（false 时禁用默认 admin 账户创建/补齐，生产环境可通过 INIT_DEFAULT_ADMIN 覆盖）
+  init:
+    default-admin-enabled: ${INIT_DEFAULT_ADMIN:true}
+
+  agent:
+    max-iterations: 30
+    loop-detection-window: 5
+    similarity-threshold: 0.9
+    timeout-seconds: 30
+
+  # ===== 长链推理与动态调整（高级推理引擎） =====
+  reasoning:
+    max-steps: 30                 # 推理最大步数
+    topology: linear              # 计划拓扑：linear | tree(ToT) | graph(GoT)
+    evaluate-prune-threshold: 0.3 # 步骤评分低于该值触发剪枝回退
+    reflection-interval: 3        # 每 N 次工具调用强制反思
+    replan-consecutive-failures: 2# 工具连续失败 N 次触发动态重规划
+    context-total-tokens: 30720   # 上下文窗口容量（Token）
+    context-compress-threshold: 0.7  # 使用率超该值触发摘要压缩
+    context-replan-threshold: 0.85   # 使用率超该值强制重规划
+    hidden-cot-topk: 3            # Hidden CoT 历史经验注入数量
+
+  # ===== MCP 高级特性（高可用客户端） =====
+  mcp:
+    retry-initial-delay-ms: 500   # 指数退避初始延迟
+    retry-multiplier: 2.0         # 退避倍数
+    retry-max-attempts: 3         # 最大重试次数
+    read-timeout-ms: 15000        # 读超时（毫秒）
+    write-timeout-ms: 30000       # 写超时（毫秒），读超时 < 写超时
+    hitl-default-timeout-ms: 120000 # 人工审批默认等待超时
+
+    # ===== AI 赋能工具层（文档摘要/知识点提取/测验题/翻译/学习助手） =====
+    ai:
+      enabled: true              # 是否启用 AI 工具层（false 时所有 AI 工具直接走降级方案）
+      default-model: deepseek    # AI 工具使用的模型（deepseek / qwen / xiaomi，对应 MultiModelConfig Bean）
+      timeout: 30000             # AI 调用超时（毫秒），底层超时由模型配置控制，此处用于监控与日志
+      fallback:
+        summary-max-length: 500  # 降级时摘要最大截取长度（字符）
+  rag:
+    top-k: 10
+    similarity-threshold: 0.7
+  intervention:
+    check-cron: "0 0 20 * * ?"
+    max-interventions-per-week: 3
+  achievement:
+    continuous-learning-days: 7
+    mastered-knowledge-count: 5
+
+# OpenAPI/Swagger 接口文档
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
+# JWT 配置（密钥由 .env 提供）
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400}
+
+# 日志配置（学者视角优化版）
+# 核心启动信息保持 INFO 级别，冗余日志降低或关闭
+logging:
+  level:
+    # ========== 核心日志（保持 INFO） ==========
+    com.ai.learning.planner: INFO
+    com.ai.learning.planner.runner: INFO
+
+    # ========== Spring Framework（按需调整） ==========
+    # 关闭 Spring Data Redis 仓库扫描警告
+    org.springframework.data.repository.config: WARN
+    org.springframework.data.redis: WARN
+
+    # 关闭 Hibernate 方言警告
+    org.hibernate.orm.deprecation: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type: WARN
+
+    # 关闭 Spring Security 默认密码输出
+    org.springframework.security.config.annotation.authentication.configurers.userdetails: WARN
+    org.springframework.security.core.userdetails: WARN
+
+    # ========== Tomcat/容器 ==========
+    org.apache.catalina: WARN
+    org.apache.tomcat: WARN
+
+    # ========== Spring Web ==========
+    org.springframework.web: WARN
+
+    # ========== HikariCP 连接池 ==========
+    com.zaxxer.hikari: WARN
+
+    # ========== Spring JDBC ==========
+    org.springframework.jdbc: WARN
+
+    # ========== 应用内部日志优化 ==========
+    # ToolExecutionService 的 ? 占位符日志降级
+    com.ai.learning.planner.service.ToolExecutionService: WARN
+
+    # 缓存预热日志降级为 DEBUG（日常不显示）
+    com.ai.learning.planner.runner.CacheWarmupRunner: DEBUG
+    com.ai.learning.planner.service.ConfigDataCacheService: DEBUG
+
+    # ========== 第三方库 ==========
+    org.springframework.ai: WARN
+
+    # Pattern layout for cleaner output
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      # 健康检查详情仅认证后可看，避免公开探测数据库/Redis 等组件状态
+      show-details: when-authorized
+
+# Tavily 联网搜索 API（密钥由 .env 提供，未配置时搜索请求会失败但不影响启动）
+tavily:
+  api-key: ${TAVILY_API_KEY:}
+  base-url: https://api.tavily.com
+  max-results: 5
+  search-depth: basic
+
+# 文件上传配置
+file:
+  upload:
+    root: ./uploads
+    avatar-path: ./uploads/avatar
+    knowledge-path: ./uploads/knowledges
+    mcp-path: ./uploads/mcp
+    max-file-size: 10485760
+    allowed-extensions:
+      avatar: .jpg,.jpeg,.png,.gif,.webp
+      knowledge: .pdf,.docx,.doc,.md,.txt,.pptx,.xlsx
+      mcp: .json,.yaml,.yml,.xml,.js,.ts
+
+# ===== 安全防护配置（外部化，调整无需重新编译） =====
+security:
+  # 输入检测配置
+  input:
+    max-length: 10000
+    enable-encoding-detection: true
+    enable-unicode-normalization: true
+
+  # 会话风险追踪配置
+  session:
+    risk-threshold: 0.7
+    high-risk-score: 0.4
+    medium-risk-score: 0.2
+    reset-after-turns: 10
+    max-turns: 50
+    session-timeout: 3600
+
+  # 熔断器配置
+  circuit-breaker:
+    max-requests-per-minute: 100
+    max-high-risk-per-minute: 5
+    open-threshold: 10
+    reset-minutes: 5
+    cleanup-after-seconds: 300
+
+  # 审计日志配置
+  audit:
+    enabled: true
+    log-level: INFO
+    retention-days: 180
+    max-content-length: 1000

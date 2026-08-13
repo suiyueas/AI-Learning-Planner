@@ -1,0 +1,3 @@
+# 启动早期扩展点注册（EnvironmentPostProcessor 是 Boot 3 仍支持的 spring.factories 注册项）
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.ai.learning.planner.config.DotenvEnvironmentPostProcessor

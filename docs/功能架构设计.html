@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI学习规划师 · 功能架构设计书（完整数据层）</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Noto Serif SC', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        accent: { DEFAULT: '#7c3aed', hover: '#6d28d9', subtle: 'rgba(124,58,237,0.08)' },
+                        surface: { primary: '#f5f5f8', secondary: '#ffffff', tertiary: '#eeeef3' },
+                        border: { DEFAULT: '#e0e0e8', hover: '#c8c8d4' },
+                        text: { primary: '#1a1a2e', secondary: '#5a5a72', muted: '#9090a8' },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        :root {
+            --purple: #7c3aed;
+            --purple-subtle: rgba(124, 58, 237, 0.08);
+            --emerald: #0d9488;
+            --emerald-subtle: rgba(13, 148, 136, 0.08);
+            --rose: #e11d48;
+            --rose-subtle: rgba(225, 29, 72, 0.08);
+            --sky: #0284c7;
+            --sky-subtle: rgba(2, 132, 199, 0.08);
+            --amber: #d97706;
+            --amber-subtle: rgba(217, 119, 6, 0.08);
+            --blue: #2563eb;
+            --blue-subtle: rgba(37, 99, 235, 0.08);
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #f5f5f8;
+            color: #1a1a2e;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Inter', 'Noto Serif SC', system-ui, sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid #e0e0e8;
+            border-radius: 1rem;
+            transition: all 200ms ease;
+        }
+        .glass-card:hover {
+            border-color: #c8c8d4;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+        .pillar-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .section-divider {
+            height: 1px;
+            background: #e0e0e8;
+            margin: 3rem 0;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        table th {
+            background: #f5f5f8;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 2px solid #e0e0e8;
+            color: #5a5a72;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eeeef3;
+            color: #1a1a2e;
+            font-size: 12.5px;
+        }
+        table tbody tr:hover {
+            background: rgba(124, 58, 237, 0.03);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.01em;
+        }
+        .badge-new {
+            background: #7c3aed;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .arch-diagram {
+            background: #1a1a2e;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            padding: 2rem;
+            border-radius: 1rem;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: #eeeef3;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .react-loop {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+        .react-loop .step {
+            background: #1a1a2e;
+            color: #e2e8f0;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .react-loop .arrow {
+            color: #7c3aed;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .react-loop .step.purple {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .react-loop .step.emerald {
+            background: #0d9488;
+            color: #fff;
+        }
+        .react-loop .step.sky {
+            background: #0284c7;
+            color: #fff;
+        }
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem;
+        }
+        .tool-grid .tool-item {
+            background: var(--purple-subtle);
+            border-radius: 0.5rem;
+            padding: 0.4rem 0.7rem;
+            font-size: 11.5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #1a1a2e;
+            border: 1px solid #e0e0e8;
+            transition: all 0.15s;
+        }
+        .tool-grid .tool-item:hover {
+            background: #7c3aed;
+            color: #fff;
+            border-color: #7c3aed;
+        }
+        .db-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .db-grid .db-item {
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.15s;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(4px);
+            border: 1px solid #e0e0e8;
+        }
+        .db-grid .db-item:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .db-grid .db-item .db-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .db-grid .db-item .db-desc {
+            font-size: 0.78rem;
+            color: #5a5a72;
+            margin-top: 0.2rem;
+        }
+        .db-grid .db-item .db-index-list {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #1a1a2e;
+            margin-top: 0.4rem;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.4rem 0.6rem;
+            border-radius: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .db-grid .db-item .db-index-list .row {
+            padding: 0.1rem 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 11px;
+        }
+        .db-grid .db-item .db-index-list .row:last-child {
+            border-bottom: none;
+        }
+        .db-grid .db-item .db-index-list .row .highlight {
+            font-weight: 600;
+        }
+        .db-grid .db-item .db-index-list .row .tag {
+            font-size: 9px;
+            background: #e0e0e8;
+            padding: 0 6px;
+            border-radius: 8px;
+            margin-left: 4px;
+        }
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            .hero-title {
+                font-size: 2rem !important;
+            }
+            .tool-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            .db-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── HERO ─────────────────────────────── -->
+    <header class="relative overflow-hidden" style="background: #1a1a2e;">
+        <div class="max-w-6xl mx-auto px-6 py-16 md:py-24 relative z-10">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background: #7c3aed;">🧠</div>
+                <span class="text-purple-400 font-semibold text-sm tracking-wide uppercase">AI Learning Planner</span>
+            </div>
+            <h1 class="hero-title text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-4" style="letter-spacing: -0.02em;">
+                AI 学习规划师<br><span class="text-purple-400">功能架构设计书</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 max-w-2xl leading-relaxed">
+                基于 <strong class="text-white">Spring AI + MCP + ReAct Agent</strong> 的智能学习平台 —— 精准诊断、动态规划、引导式教学，覆盖学习全周期的自主智能体。
+            </p>
+            <div class="flex flex-wrap gap-3 mt-8">
+                <span class="px-4 py-2 rounded-full text-sm font-medium border border-gray-600 text-gray-300">诊断 → 规划 → 学习 → 报告 闭环</span>
+                <span class="px-4 py-2 rounded-full text-sm font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">13 大功能模块</span>
+                <span class="px-4 py-2 rounded-full text-sm font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">7 子Agent协同</span>
+                <span class="px-4 py-2 rounded-full text-sm font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">8 个ES索引 + 9 张MySQL表</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 md:px-6 py-10">
+
+        <!-- ─── 技术基底 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--purple-subtle);"><i data-lucide="cpu" class="w-4 h-4 text-purple-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">技术基底</h2>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div class="glass-card p-5 text-center border-t-4 border-purple-500">
+                    <div class="text-2xl mb-2">☕</div>
+                    <div class="font-semibold text-sm">Spring Boot 3.5</div>
+                    <div class="text-xs text-text-muted mt-1">Java 21 + Spring AI 1.1.7</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-sky-500">
+                    <div class="text-2xl mb-2">🎨</div>
+                    <div class="font-semibold text-sm">Vue 3 + Vite</div>
+                    <div class="text-xs text-text-muted mt-1">Element Plus + Pinia</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-emerald-500">
+                    <div class="text-2xl mb-2">🧠</div>
+                    <div class="font-semibold text-sm">多模型动态切换</div>
+                    <div class="text-xs text-text-muted mt-1">Qwen / DeepSeek / MiMo / Ollama</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-amber-500">
+                    <div class="text-2xl mb-2">🔌</div>
+                    <div class="font-semibold text-sm">MCP 协议</div>
+                    <div class="text-xs text-text-muted mt-1">STDIO / SSE / Streamable</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-rose-500">
+                    <div class="text-2xl mb-2">📐</div>
+                    <div class="font-semibold text-sm">Elasticsearch 8.x</div>
+                    <div class="text-xs text-text-muted mt-1">向量检索 + 全文搜索</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-sky-500">
+                    <div class="text-2xl mb-2">⚡</div>
+                    <div class="font-semibold text-sm">Redis + SSE</div>
+                    <div class="text-xs text-text-muted mt-1">对话记忆 · 流式输出</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── 核心智能增强支柱 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--purple-subtle);"><i data-lucide="sparkles" class="w-4 h-4 text-purple-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">核心智能增强支柱</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="glass-card p-6 hover:shadow-lg transition">
+                    <div class="pillar-icon mb-4" style="background: var(--purple-subtle);">🧩</div>
+                    <h3 class="font-bold text-lg mb-2">自主规划</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">ReAct 推理-行动循环，将模糊目标自主拆解为可执行子任务序列，动态调整策略。</p>
+                    <div class="mt-3 flex flex-wrap gap-1">
+                        <span class="badge bg-purple-100 text-purple-700">ReAct 引擎</span>
+                        <span class="badge bg-purple-100 text-purple-700">长链推理</span>
+                    </div>
+                </div>
+                <div class="glass-card p-6 hover:shadow-lg transition">
+                    <div class="pillar-icon mb-4" style="background: var(--sky-subtle);">🔔</div>
+                    <h3 class="font-bold text-lg mb-2">多Agent协同</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">主控Agent调度7个子Agent（诊断/规划/答疑/报告/搜索/干预/激励），各司其职。</p>
+                    <div class="mt-3 flex flex-wrap gap-1">
+                        <span class="badge bg-sky-100 text-sky-700">Orchestrator</span>
+                        <span class="badge bg-sky-100 text-sky-700">7 子Agent</span>
+                    </div>
+                </div>
+                <div class="glass-card p-6 hover:shadow-lg transition">
+                    <div class="pillar-icon mb-4" style="background: var(--emerald-subtle);">👥</div>
+                    <h3 class="font-bold text-lg mb-2">RAG + ES 向量</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">混合检索（BM25 + 向量）+ 重排序 + 答案验证，消除幻觉，精准召回。</p>
+                    <div class="mt-3 flex flex-wrap gap-1">
+                        <span class="badge bg-emerald-100 text-emerald-700">Elasticsearch</span>
+                        <span class="badge bg-emerald-100 text-emerald-700">HyDE</span>
+                    </div>
+                </div>
+                <div class="glass-card p-6 hover:shadow-lg transition">
+                    <div class="pillar-icon mb-4" style="background: var(--rose-subtle);">🎯</div>
+                    <h3 class="font-bold text-lg mb-2">MCP 工具生态</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">模型上下文协议，动态发现与调用 10+ 外部工具（知识图谱/资源/邮件/PDF等）。</p>
+                    <div class="mt-3 flex flex-wrap gap-1">
+                        <span class="badge bg-rose-100 text-rose-700">MCP Client</span>
+                        <span class="badge bg-rose-100 text-rose-700">工具编排</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 功能模块全景 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--emerald-subtle);"><i data-lucide="grid" class="w-4 h-4 text-emerald-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">功能模块全景 · 13 大模块</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- M1 ~ M13 保持与之前一致，此处省略详细展开以节省空间 -->
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #7c3aed;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M1 · 用户管理与画像</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 注册/登录（BCrypt） · 个人信息维护</li>
+                        <li>· 学习风格自动构建 · 画像每日异步更新</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #0d9488;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M2 · 智能能力测评</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 客观题+主观题测评 · 主观题 AI 评分</li>
+                        <li>· 掌握度（0-100%）+ 能力雷达图</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #0284c7;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M3 · 学习目标设定</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 自然语言目标解析（领域/时间/成果）</li>
+                        <li>· 置信度 &lt; 70% 时引导补充信息</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #e11d48; background: #fef2f2;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base flex items-center gap-2">M4 · 路径生成 <span class="badge-new">核心</span></h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 用户画像 + 知识图谱 + 目标 → 动态节点序列</li>
+                        <li>· 拓扑排序 · 已掌握节点（&gt;80%）跳过</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #d97706;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M5 · 资源推荐</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 协同过滤（40%）+ 热度（30%）+ 难度（30%）</li>
+                        <li>· 每知识点 ≥ 3 个资源 · 支持反馈优化</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #0891b2;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M6 · 互动答疑（苏格拉底式）</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 多轮对话 · 不直接给答案 · 反问引导</li>
+                        <li>· 连续 3 次无法回答 → 给部分提示</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #059669;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M7 · 进度追踪与看板</h3>
+                        <span class="text-xs text-text-muted font-mono">P0</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 标记完成 + 自评掌握度 + 学习时长</li>
+                        <li>· 完成百分比 · 节点状态图 · 能力曲线</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #ca8a04;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M8 · 动态路径调整</h3>
+                        <span class="text-xs text-text-muted font-mono">P1</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 正确率 &lt; 60% → 插入前置复习节点</li>
+                        <li>· 正确率 &gt; 90% 且耗时低于平均 → 跳过</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #dc2626;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M9 · 自动习题生成</h3>
+                        <span class="text-xs text-text-muted font-mono">P1</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 基于当前节点 + 错题历史 → 针对性练习</li>
+                        <li>· 客观题规则批改 · 开放题 AI 评分</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #2563eb;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M10 · 智能学情报告</h3>
+                        <span class="text-xs text-text-muted font-mono">P1</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 每周/每月自动生成 · 学习时长/进度/薄弱点</li>
+                        <li>· 建议由 AI 生成 · PDF 导出</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #0891b2;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base">M11 · 知识图谱可视化</h3>
+                        <span class="text-xs text-text-muted font-mono">P2</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 力导向图 · 颜色标识状态 · 点击跳转</li>
+                        <li>· 支持缩放、拖拽</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #e11d48; background: #fef2f2;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base flex items-center gap-2">M12 · 学习干预 <span class="badge-new">新增</span></h3>
+                        <span class="text-xs text-text-muted font-mono">P1</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 连续 3 次错误 → 鼓励 + 推荐前置</li>
+                        <li>· 当日 &lt; 10 分钟 → 推送提醒 · 每周 ≤ 3 次</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-4 border-l-4 hover:shadow-md transition" style="border-left-color: #d97706; background: #fffbeb;">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-base flex items-center gap-2">M13 · 成就与打卡 <span class="badge-new">新增</span></h3>
+                        <span class="text-xs text-text-muted font-mono">P2</span>
+                    </div>
+                    <ul class="text-xs text-text-secondary space-y-0.5">
+                        <li>· 20% 节点 →「初露锋芒」· 连续7天 →「持之以恒」</li>
+                        <li>· 掌握度 ≥ 90% 达5个 →「学霸」</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 超级智能体模块 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--purple-subtle);"><i data-lucide="brain" class="w-4 h-4 text-purple-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">超级智能体模块 · 自主规划核心</h2>
+            </div>
+
+            <div class="glass-card p-6 mb-6">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">🧠 设计理念</h3>
+                <p class="text-sm text-text-secondary leading-relaxed">将传统「问答式AI」升级为「代理式AI（Agentic AI）」，模拟人类解决问题的思维方式：<strong>理解目标 → 分解任务 → 执行操作 → 观察结果 → 调整策略</strong>。通过 ReAct（Reasoning + Acting）模式实现「边思考边行动」的闭环。</p>
+            </div>
+
+            <!-- ReAct 循环可视化 -->
+            <div class="glass-card p-6 mb-6">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">🔄 ReAct 推理-行动-观察闭环</h3>
+                <div class="react-loop">
+                    <span class="step purple">推理 (Think)</span>
+                    <span class="arrow">→</span>
+                    <span class="step emerald">行动 (Act)</span>
+                    <span class="arrow">→</span>
+                    <span class="step sky">观察 (Observe)</span>
+                    <span class="arrow">↻</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-sm text-text-secondary">
+                    <div class="p-3 rounded-lg" style="background: var(--purple-subtle);">
+                        <span class="font-semibold text-purple-700">推理</span><br>当前状态？下一步？
+                    </div>
+                    <div class="p-3 rounded-lg" style="background: var(--emerald-subtle);">
+                        <span class="font-semibold text-emerald-700">行动</span><br>调用工具、查询数据、执行
+                    </div>
+                    <div class="p-3 rounded-lg" style="background: var(--sky-subtle);">
+                        <span class="font-semibold text-sky-700">观察</span><br>分析结果，迭代更新
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-text-muted">终止条件：正常完成 · 最大迭代（30轮）· 重复检测（相似度＞90%）· 超时（30秒）</div>
+            </div>
+
+            <!-- 子Agent矩阵 -->
+            <div class="glass-card p-6">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">🤝 多智能体协同 · 7 子Agent</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="p-3 rounded-lg text-center" style="background: var(--purple-subtle);">
+                        <div class="font-bold text-purple-700 text-sm">主控Agent</div>
+                        <div class="text-xs text-text-secondary">意图识别 · 调度</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: var(--sky-subtle);">
+                        <div class="font-bold text-sky-700 text-sm">诊断Agent</div>
+                        <div class="text-xs text-text-secondary">测评 · 画像</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: var(--emerald-subtle);">
+                        <div class="font-bold text-emerald-700 text-sm">规划Agent</div>
+                        <div class="text-xs text-text-secondary">路径 · 调整</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: var(--amber-subtle);">
+                        <div class="font-bold text-amber-700 text-sm">答疑Agent</div>
+                        <div class="text-xs text-text-secondary">引导 · RAG</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: var(--rose-subtle);">
+                        <div class="font-bold text-rose-700 text-sm">报告Agent</div>
+                        <div class="text-xs text-text-secondary">分析 · PDF</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: #f0f9ff;">
+                        <div class="font-bold text-sky-700 text-sm">搜索Agent</div>
+                        <div class="text-xs text-text-secondary">联网 · 补充</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: #fef2f2; border: 1px solid #fecaca;">
+                        <div class="font-bold text-rose-700 text-sm">干预Agent</div>
+                        <div class="text-xs text-text-secondary">监测 · 主动</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: #fffbeb; border: 1px solid #fde68a;">
+                        <div class="font-bold text-amber-700 text-sm">激励Agent</div>
+                        <div class="text-xs text-text-secondary">成就 · 打卡</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── MCP 工具生态 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--sky-subtle);"><i data-lucide="wrench" class="w-4 h-4 text-sky-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">MCP 工具生态 · 12 工具</h2>
+            </div>
+            <div class="glass-card p-5">
+                <div class="tool-grid">
+                    <span class="tool-item">query_knowledge_graph</span>
+                    <span class="tool-item">search_resources</span>
+                    <span class="tool-item">get_user_profile</span>
+                    <span class="tool-item">web_search</span>
+                    <span class="tool-item">web_fetch</span>
+                    <span class="tool-item">send_email</span>
+                    <span class="tool-item">generate_pdf_report</span>
+                    <span class="tool-item">file_operation</span>
+                    <span class="tool-item">todo_manager</span>
+                    <span class="tool-item">intervention_trigger</span>
+                    <span class="tool-item">achievement_unlock</span>
+                    <span class="tool-item">terminate</span>
+                </div>
+                <div class="mt-3 text-xs text-text-muted text-center">所有工具通过 MCP 协议动态发现与调用，支持组合编排</div>
+            </div>
+            <div class="mt-4 p-4 rounded-lg bg-gray-900 text-gray-200 font-mono text-xs leading-relaxed overflow-x-auto">
+                <span class="text-purple-400">1. Agent 推理</span> → 决定调用工具<br>
+                <span class="text-purple-400">2. 查找工具</span> → 从 MCP 注册表匹配<br>
+                <span class="text-purple-400">3. 生成参数</span> → LLM 填充调用参数<br>
+                <span class="text-purple-400">4. MCP 调用</span> → 通过 STREAMABLE/SSE 发送请求<br>
+                <span class="text-purple-400">5. 执行返回</span> → MCP Server 执行并返回结果<br>
+                <span class="text-purple-400">6. 结果分析</span> → Agent 观察并决定下一步
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 系统架构 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--emerald-subtle);"><i data-lucide="layers" class="w-4 h-4 text-emerald-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">系统架构设计</h2>
+            </div>
+            <div class="arch-diagram">
+                ┌─────────────────────────────────────────────────────────────┐
+                │                        客户端（Web）                         │
+                │               Vue3 + SSE/WebSocket + REST API               │
+                ├─────────────────────────────────────────────────────────────┤
+                │                    网关与安全层                               │
+                │         前置拦截器 · 安全守卫 · CORS · 日志                   │
+                ├─────────────────────────────────────────────────────────────┤
+                │                       应用层                                  │
+                │              AI学习规划师 · AI超级智能体                      │
+                ├─────────────────────────────────────────────────────────────┤
+                │                   Spring AI 核心服务层                        │
+                │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
+                │  │ChatMemory│ │   RAG    │ │  Tools   │ │MCP Client    │    │
+                │  │ (Redis)  │ │(ES向量)  │ │(Function)│ │(外部工具)     │    │
+                │  └──────────┘ └──────────┘ └──────────┘ └──────────────┘    │
+                ├─────────────────────────────────────────────────────────────┤
+                │                    智能体编排层                               │
+                │  主控Agent · 诊断Agent · 规划Agent · 答疑Agent · 报告Agent   │
+                │  · 搜索Agent · 干预Agent · 激励Agent                         │
+                ├─────────────────────────────────────────────────────────────┤
+                │                      基础设施层                               │
+                │   MySQL (9张表) · Elasticsearch (8索引) · Redis · 大模型API   │
+                └─────────────────────────────────────────────────────────────┘
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 数据存储架构（完整版） ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--amber-subtle);"><i data-lucide="database" class="w-4 h-4 text-amber-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">数据存储架构 · 完整数据模型</h2>
+            </div>
+
+            <div class="glass-card p-5 mb-6" style="background: #fffbeb; border: 1px solid #fde68a;">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">💡</span>
+                    <div>
+                        <span class="font-bold">设计决策：</span>
+                        <span class="text-sm text-text-secondary">本项目采用 <strong>MySQL + Elasticsearch 混合存储</strong> 架构。MySQL 负责核心业务数据的 ACID 事务与关系约束；Elasticsearch 承担向量检索、全文搜索与日志分析，满足海量数据下的高性能查询。Redis 作为缓存与任务队列，加速热点访问并解耦异步任务。</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="db-grid">
+                <!-- MySQL 主表 -->
+                <div class="db-item" style="border-left-color: #2563eb; grid-column: span 2;">
+                    <div class="db-title">
+                        <span class="text-blue-600">🗄️</span> MySQL 核心业务表（9 张）
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">ACID 事务保障</span>
+                    </div>
+                    <div class="db-desc">存储用户、知识图谱、学习路径等核心业务实体，利用外键与事务保证数据完整性。</div>
+                    <div class="db-index-list" style="background: rgba(255, 255, 255, 0.6); max-height: 240px;">
+                        <div class="row"><span class="highlight text-blue-600">user</span> — id, username, password_hash, email, created_at</div>
+                        <div class="row"><span class="highlight text-blue-600">user_profile</span> — user_id, learning_style, level, active_hours, target_field</div>
+                        <div class="row"><span class="highlight text-blue-600">knowledge_node</span> — id, name, description, difficulty, estimated_hours, prerequisites(JSON)</div>
+                        <div class="row"><span class="highlight text-blue-600">learning_path</span> — id, user_id, name, version, status, created_at</div>
+                        <div class="row"><span class="highlight text-blue-600">learning_path_node</span> — id, path_id, node_id, sequence_order, status, mastery</div>
+                        <div class="row"><span class="highlight text-blue-600">resource</span> — id, title, type, url, node_id, avg_rating</div>
+                        <div class="row"><span class="highlight text-blue-600">chat_history</span> — id, session_id, user_id, role, content, created_at</div>
+                        <div class="row"><span class="highlight text-blue-600">intervention</span> — id, user_id, type, trigger, content, created_at <span class="tag">新增</span></div>
+                        <div class="row"><span class="highlight text-blue-600">achievement</span> — id, user_id, badge, unlocked_at <span class="tag">新增</span></div>
+                    </div>
+                </div>
+
+                <!-- Elasticsearch 索引 -->
+                <div class="db-item" style="border-left-color: #d97706; grid-column: span 2;">
+                    <div class="db-title">
+                        <span class="text-amber-600">🔍</span> Elasticsearch 索引（8 个）
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">全文 · 向量 · 日志</span>
+                    </div>
+                    <div class="db-desc">承载 RAG 向量检索、全文搜索以及学习日志聚合分析，支撑智能问答与数据洞察。</div>
+                    <div class="db-index-list" style="background: rgba(255, 255, 255, 0.5); max-height: 240px;">
+                        <div class="row"><span class="highlight text-amber-600">users</span> — 用户基础信息 + 画像（合并宽表）</div>
+                        <div class="row"><span class="highlight text-amber-600">knowledge_nodes</span> — 知识图谱节点，含 1536 维 dense_vector</div>
+                        <div class="row"><span class="highlight text-amber-600">learning_paths</span> — 用户学习路径，node_sequence 嵌套对象</div>
+                        <div class="row"><span class="highlight text-amber-600">learning_records</span> — 学习记录，按时间分索引（如 records-2026.07）</div>
+                        <div class="row"><span class="highlight text-amber-600">resources</span> — 学习资源，支持全文搜索</div>
+                        <div class="row"><span class="highlight text-amber-600">chat_histories</span> — 对话历史，按 session_id 路由</div>
+                        <div class="row"><span class="highlight text-amber-600">interventions</span> — 学习干预记录 <span class="tag">新增</span></div>
+                        <div class="row"><span class="highlight text-amber-600">achievements</span> — 学习成就与打卡 <span class="tag">新增</span></div>
+                    </div>
+                </div>
+
+                <!-- Redis 缓存 -->
+                <div class="db-item" style="border-left-color: #e11d48;">
+                    <div class="db-title">
+                        <span class="text-rose-600">⚡</span> Redis 缓存与队列
+                        <span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">会话 · 热点 · 任务</span>
+                    </div>
+                    <div class="db-desc">内存级高速缓存，用于缓解 MySQL/ES 查询压力、管理用户会话与异步任务。</div>
+                    <div class="db-index-list" style="background: rgba(255,255,255,0.5);">
+                        <div class="row"><span class="highlight text-rose-600">Session</span> — 用户登录态与对话上下文</div>
+                        <div class="row"><span class="highlight text-rose-600">Hot Cache</span> — 热点知识图谱、常用资源列表</div>
+                        <div class="row"><span class="highlight text-rose-600">Task Queue</span> — 干预检测、报告生成等异步任务</div>
+                        <div class="row"><span class="highlight text-rose-600">Rate Limiter</span> — 大模型 API 调用频控计数</div>
+                    </div>
+                </div>
+
+                <!-- 事务与一致性 -->
+                <div class="db-item" style="border-left-color: #0d9488;">
+                    <div class="db-title">
+                        <span class="text-emerald-600">🔄</span> 事务与一致性保障
+                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">MySQL 强一致 · ES 最终一致</span>
+                    </div>
+                    <div class="db-desc">分层处理不同场景下的一致性需求，确保业务可靠性与查询性能的平衡。</div>
+                    <div class="db-index-list" style="background: rgba(255,255,255,0.5);">
+                        <div class="row"><span class="highlight text-emerald-600">MySQL 层：</span> @Transactional 事务注解保证 ACID</div>
+                        <div class="row"><span class="highlight text-emerald-600">ES 层：</span> 乐观锁 _version + @EventListener 异步同步 + Spring Retry 重试</div>
+                        <div class="row"><span class="highlight text-emerald-600">关键操作：</span> 用户注册强制 refresh=true，保证立即可见</div>
+                        <div class="row"><span class="highlight text-emerald-600">跨索引更新：</span> 使用 update_by_query 批量处理</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 大模型接入 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--purple-subtle);"><i data-lucide="bot" class="w-4 h-4 text-purple-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">大模型动态切换</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="glass-card p-5 text-center border-t-4 border-purple-500">
+                    <div class="text-2xl mb-2">☁️</div>
+                    <div class="font-semibold">Qwen-Max</div>
+                    <div class="text-xs text-text-muted">阿里云 · 中文理解优秀</div>
+                    <div class="mt-2 text-xs text-text-muted">⭐⭐⭐⭐⭐</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-sky-500">
+                    <div class="text-2xl mb-2">🚀</div>
+                    <div class="font-semibold">DeepSeek-V4-Flush</div>
+                    <div class="text-xs text-text-muted">深度求索 · 高性价比</div>
+                    <div class="mt-2 text-xs text-text-muted">⭐⭐⭐⭐⭐</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-amber-500">
+                    <div class="text-2xl mb-2">📱</div>
+                    <div class="font-semibold">MiMo-V2.5-Pro</div>
+                    <div class="text-xs text-text-muted">小米 · 复杂推理</div>
+                    <div class="mt-2 text-xs text-text-muted">⭐⭐⭐⭐</div>
+                </div>
+                <div class="glass-card p-5 text-center border-t-4 border-emerald-500">
+                    <div class="text-2xl mb-2">💻</div>
+                    <div class="font-semibold">Ollama</div>
+                    <div class="text-xs text-text-muted">本地 · 开发/离线</div>
+                    <div class="mt-2 text-xs text-text-muted">⭐⭐⭐</div>
+                </div>
+            </div>
+            <div class="mt-4 p-4 rounded-lg text-sm" style="background: var(--purple-subtle); border: 1px solid #c4b5fd;">
+                <span class="font-semibold">✨ 统一接入：</span> 所有模型均通过 OpenAI 兼容协议或 Ollama HTTP 接入，通过 <code class="bg-white/60 px-2 py-0.5 rounded">MODEL_PROVIDER</code> 环境变量动态切换，无需修改业务代码。
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 技术决策摘要 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--amber-subtle);"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">关键技术决策</h2>
+            </div>
+            <div class="space-y-3">
+                <div class="glass-card p-4 flex gap-4 items-start hover:shadow-md transition">
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-blue-100 text-blue-700 flex-shrink-0">1</span>
+                    <div>
+                        <h4 class="font-semibold text-sm">MySQL 关系型存储（强一致性）</h4>
+                        <p class="text-xs text-text-secondary">存储用户、知识图谱、学习路径等 9 张核心业务表，利用外键与事务注解 <code>@Transactional</code> 保证 ACID，适用于对数据一致性要求高的业务场景。</p>
+                    </div>
+                </div>
+                <div class="glass-card p-4 flex gap-4 items-start hover:shadow-md transition">
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-700 flex-shrink-0">2</span>
+                    <div>
+                        <h4 class="font-semibold text-sm">Elasticsearch 向量 + 全文检索（8 索引）</h4>
+                        <p class="text-xs text-text-secondary">承担 RAG 向量检索、全文搜索与日志分析，利用 <code>dense_vector</code> 实现 kNN 语义检索，混合 BM25 与向量加权，支撑智能问答与数据洞察。按时间分索引（如 learning_records）便于数据滚动。</p>
+                    </div>
+                </div>
+                <div class="glass-card p-4 flex gap-4 items-start hover:shadow-md transition">
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-purple-100 text-purple-700 flex-shrink-0">3</span>
+                    <div>
+                        <h4 class="font-semibold text-sm">ReAct + 分层智能体架构</h4>
+                        <p class="text-xs text-text-secondary">主控Agent + 7个子Agent，ReAct循环引擎内置推理-行动-观察闭环，配合终止工具、重复检测、最大迭代（30轮）等机制防治死循环。</p>
+                    </div>
+                </div>
+                <div class="glass-card p-4 flex gap-4 items-start hover:shadow-md transition">
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-rose-100 text-rose-700 flex-shrink-0">4</span>
+                    <div>
+                        <h4 class="font-semibold text-sm">最终一致性 + 版本控制（跨库）</h4>
+                        <p class="text-xs text-text-secondary">MySQL 强事务保障主数据，ES 采用乐观锁 <code>_version</code> + <code>@EventListener</code> 异步同步 + Spring Retry 重试，关键操作强制 <code>refresh=true</code>，确保跨库数据的最终一致性。</p>
+                    </div>
+                </div>
+                <div class="glass-card p-4 flex gap-4 items-start hover:shadow-md transition">
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">5</span>
+                    <div>
+                        <h4 class="font-semibold text-sm">多模型动态切换与降级</h4>
+                        <p class="text-xs text-text-secondary">通过环境变量 <code>MODEL_PROVIDER</code> 在 Qwen、DeepSeek、MiMo、Ollama 间切换，若主模型不可用自动降级到备用模型，保证高可用。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- ─── 项目特色亮点 ─────────────────────────────── -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--rose-subtle);"><i data-lucide="sparkle" class="w-4 h-4 text-rose-600"></i></div>
+                <h2 class="text-2xl font-bold" style="letter-spacing: -0.02em;">项目特色亮点</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">🧠</span>
+                    <div>
+                        <h4 class="font-bold text-sm">自主智能体</h4>
+                        <p class="text-xs text-text-secondary">基于 ReAct 模式实现自主规划，具备任务分解、工具调用、动态调整能力</p>
+                    </div>
+                </div>
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">🔌</span>
+                    <div>
+                        <h4 class="font-bold text-sm">MCP 工具生态</h4>
+                        <p class="text-xs text-text-secondary">集成 12 个工具（邮件/PDF/搜索/干预/成就），智能体能力全面</p>
+                    </div>
+                </div>
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">🗄️</span>
+                    <div>
+                        <h4 class="font-bold text-sm">MySQL + ES 混合存储</h4>
+                        <p class="text-xs text-text-secondary">9 张 MySQL 表保障事务强一致性，8 个 ES 索引提供向量检索与全文搜索</p>
+                    </div>
+                </div>
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">🔄</span>
+                    <div>
+                        <h4 class="font-bold text-sm">完整业务闭环</h4>
+                        <p class="text-xs text-text-secondary">测评 → 规划 → 学习 → 答疑 → 报告，新增干预与激励，覆盖全生命周期</p>
+                    </div>
+                </div>
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">🤖</span>
+                    <div>
+                        <h4 class="font-bold text-sm">多模型动态切换</h4>
+                        <p class="text-xs text-text-secondary">同时支持 Qwen-Max、DeepSeek-V4、MiMo、Ollama，按需切换</p>
+                    </div>
+                </div>
+                <div class="glass-card p-5 flex items-start gap-3 hover:shadow-lg transition">
+                    <span class="text-2xl">📦</span>
+                    <div>
+                        <h4 class="font-bold text-sm">工程化落地</h4>
+                        <p class="text-xs text-text-secondary">完整需求文档、架构图、代码结构，可直接运行展示</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ─── FOOTER ─────────────────────────────── -->
+    <footer style="background: #1a1a2e; color: #9090a8;">
+        <div class="max-w-6xl mx-auto px-6 py-10">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background: #7c3aed;">🧠</div>
+                    <span class="font-semibold text-gray-300">AI学习规划师</span>
+                </div>
+                <div class="text-sm text-text-muted">
+                    功能架构设计书 · Spring AI + MCP + Agent v2.0 · 2026
+                </div>
+                <div class="flex gap-4 text-xs text-text-muted">
+                    <span>13 大功能模块</span>
+                    <span>·</span>
+                    <span>9 张MySQL表</span>
+                    <span>·</span>
+                    <span>8 个ES索引</span>
+                    <span>·</span>
+                    <span>7 子Agent</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

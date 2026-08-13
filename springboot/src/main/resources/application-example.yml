@@ -1,0 +1,270 @@
+# ============================================================
+# AI 学习规划师 - 配置示例模板
+# ============================================================
+# 使用方式：
+#   1. 复制本文件为 application.yml（或使用 application.yml 并按需调整）
+#   2. 所有敏感配置（API Key、数据库密码、JWT 密钥）均通过环境变量注入，
+#      禁止将真实密钥写入本文件或提交到代码仓库
+#   3. 环境变量模板见 springboot/.env.example
+#
+# 配置说明：
+#   - ${ENV_NAME:default} 语法：优先读取环境变量 ENV_NAME，未设置时使用 default
+#   - 生产环境建议使用 application-prod.yml 覆盖本文件中的开发默认值
+# ============================================================
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  main:
+    banner-mode: off
+
+  application:
+    name: ai-learning-planner
+
+  # 开发环境排除 Elasticsearch（生产环境通过 application-prod.yml 启用）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRestClientAutoConfiguration
+      - org.springframework.ai.vectorstore.elasticsearch.autoconfigure.ElasticsearchVectorStoreAutoConfiguration
+
+  # Servlet multipart 配置（上传大小限制）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # JPA + MySQL 配置（敏感项由环境变量提供）
+  datasource:
+    # 示例：jdbc:mysql://localhost:3306/ai_learning_planner?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ai_learning_planner}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    # ⚠️ 生产环境必须设置 MYSQL_PASSWORD 环境变量，禁止留空
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      # update: 自动建表/更新表结构；生产环境建议 validate
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  # Redis 配置（缓存与会话）
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    # ⚠️ 生产环境必须设置 REDIS_PASSWORD 环境变量
+    password: ${REDIS_PASSWORD:}
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
+
+  # 缓存配置
+  cache:
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+
+  # AI 模型配置 - 多模型支持
+  ai:
+    # 默认使用 DeepSeek 作为 AI 工具执行的模型
+    model:
+      provider: deepseek
+
+    # DeepSeek（核心工作模型 - 文档摘要/知识点提取/测验题生成/翻译等工具）
+    deepseek:
+      enabled: true
+      # ⚠️ 必须设置 DEEPSEEK_API_KEY 环境变量
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.7
+          max-tokens: 4096
+
+    # OpenAI 兼容格式（用于 DeepSeek 等兼容 API）
+    openai:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        enabled: true
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.7
+          max-tokens: 4096
+
+    # Qwen-Max（可选，需设置 QWEN_API_KEY 环境变量）
+    qwen:
+      enabled: true
+      api-key: ${QWEN_API_KEY:}
+      base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+
+    # 小米 MiMo（可选，需设置 MIMO_API_KEY 环境变量）
+    mimo:
+      enabled: true
+      api-key: ${MIMO_API_KEY:}
+      base-url: ${MIMO_BASE_URL:https://api.xiaomimimo.com/v1}
+
+    # MCP 服务端配置
+    mcp:
+      server:
+        enabled: true
+        name: learning-planner-mcp
+        version: 1.0.0
+
+
+# 应用配置
+app:
+  # 默认管理员初始化开关（生产环境建议设为 false，通过 INIT_DEFAULT_ADMIN 控制）
+  init:
+    default-admin-enabled: ${INIT_DEFAULT_ADMIN:true}
+
+  agent:
+    max-iterations: 30
+    loop-detection-window: 5
+    similarity-threshold: 0.9
+    timeout-seconds: 30
+
+  # 长链推理与动态调整（高级推理引擎）
+  reasoning:
+    max-steps: 30
+    topology: linear
+    evaluate-prune-threshold: 0.3
+    reflection-interval: 3
+    replan-consecutive-failures: 2
+    context-total-tokens: 30720
+    context-compress-threshold: 0.7
+    context-replan-threshold: 0.85
+    hidden-cot-topk: 3
+
+  # MCP 高级特性（高可用客户端）
+  mcp:
+    retry-initial-delay-ms: 500
+    retry-multiplier: 2.0
+    retry-max-attempts: 3
+    read-timeout-ms: 15000
+    write-timeout-ms: 30000
+    hitl-default-timeout-ms: 120000
+
+    # AI 赋能工具层（文档摘要/知识点提取/测验题/翻译/学习助手）
+    ai:
+      enabled: true
+      default-model: deepseek
+      timeout: 30000
+      fallback:
+        summary-max-length: 500
+
+  rag:
+    top-k: 10
+    similarity-threshold: 0.7
+
+  intervention:
+    check-cron: "0 0 20 * * ?"
+    max-interventions-per-week: 3
+
+  achievement:
+    continuous-learning-days: 7
+    mastered-knowledge-count: 5
+
+# OpenAPI/Swagger 接口文档
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
+# JWT 配置
+jwt:
+  # ⚠️ 必须设置 JWT_SECRET 环境变量（Base64 编码，至少 44 字符），生产环境禁止使用默认空值
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400}
+
+# 日志配置
+logging:
+  level:
+    com.ai.learning.planner: INFO
+    org.springframework.data.repository.config: WARN
+    org.springframework.data.redis: WARN
+    org.hibernate: WARN
+    org.springframework.ai: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %cyan(%logger{36}) - %msg%n"
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Tavily 联网搜索 API（可选，未配置时搜索请求会失败但不影响启动）
+tavily:
+  # ⚠️ 启用联网搜索需设置 TAVILY_API_KEY 环境变量
+  api-key: ${TAVILY_API_KEY:}
+  base-url: https://api.tavily.com
+  max-results: 5
+  search-depth: basic
+
+# 文件上传配置
+file:
+  upload:
+    root: ./uploads
+    avatar-path: ./uploads/avatar
+    knowledge-path: ./uploads/knowledges
+    mcp-path: ./uploads/mcp
+    max-file-size: 10485760
+    allowed-extensions:
+      avatar: .jpg,.jpeg,.png,.gif,.webp,.svg
+      knowledge: .pdf,.docx,.doc,.md,.txt,.pptx,.xlsx
+      mcp: .json,.yaml,.yml,.xml,.js,.ts
+
+# ===== 安全防护配置（阈值外部化，调整无需重新编译） =====
+security:
+  # 输入检测配置
+  input:
+    max-length: 10000
+    enable-encoding-detection: true
+    enable-unicode-normalization: true
+
+  # 会话风险追踪配置
+  session:
+    risk-threshold: 0.7
+    high-risk-score: 0.4
+    medium-risk-score: 0.2
+    reset-after-turns: 10
+    max-turns: 50
+    session-timeout: 3600
+
+  # 熔断器配置
+  circuit-breaker:
+    max-requests-per-minute: 100
+    max-high-risk-per-minute: 5
+    open-threshold: 10
+    reset-minutes: 5
+    cleanup-after-seconds: 300
+
+  # 审计日志配置
+  audit:
+    enabled: true
+    log-level: INFO
+    retention-days: 180
+    max-content-length: 1000

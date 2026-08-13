@@ -1,0 +1,1040 @@
+// ============================================
+// 全局样式 · 科技动态版
+// 深邃宇宙 + 极光流线
+// ============================================
+
+@use 'sass:color';
+@use './variables' as *;
+@import './interactions.css';
+
+// ============================================
+// 白色背景防残留规则
+// 确保 Element Plus 弹窗等组件不会显示白色背景
+// ============================================
+
+// 确保所有滚动容器有深色背景
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-picker-panel,
+.el-date-picker,
+.el-time-panel,
+.el-popover,
+.el-tooltip__popper,
+.el-popper {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+// el-select 下拉面板深色主题
+.el-select-dropdown {
+  background: rgba(18, 18, 42, 0.98) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-ctrl) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px !important;
+}
+.el-select-dropdown__item {
+  color: #d8dce8 !important;
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin: 2px 0;
+  &:hover {
+    background: rgba(124, 107, 245, 0.15) !important;
+    color: #ffffff !important;
+  }
+  &.selected {
+    color: #00f5d4 !important;
+    background: rgba(0, 245, 212, 0.08) !important;
+    font-weight: 600;
+  }
+  &.hover {
+    background: rgba(100, 100, 180, 0.12) !important;
+  }
+}
+
+// 强制深色背景覆盖，防止任何白色残留
+html,
+body,
+#app {
+  background-color: #0a0a1a !important;
+}
+
+// ============================================
+// 基础重置
+// ============================================
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: linear-gradient(135deg, #080C1A 0%, #121A2F 100%);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 背景微光效果
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 80% 20%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 85, 255, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+// ============================================
+// 链接
+// ============================================
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+
+  &:hover {
+    color: var(--accent-secondary);
+  }
+}
+
+// ============================================
+// 标题
+// ============================================
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+// ============================================
+// 段落（高对比度版本）
+// ============================================
+p, .description, .card-text {
+  color: var(--text-body) !important;
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.02em; /* 轻微字间距提升深色模式可读性 */
+}
+
+// ============================================
+// 代码
+// ============================================
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+code {
+  background: rgba(0, 229, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  color: var(--accent-primary);
+}
+
+pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  overflow-x: auto;
+
+  code {
+    background: none;
+    padding: 0;
+    border: none;
+    color: inherit;
+  }
+}
+
+// ============================================
+// 图片
+// ============================================
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// ============================================
+// 列表
+// ============================================
+ul, ol {
+  list-style: none;
+}
+
+// ============================================
+// 表格
+// ============================================
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+// ============================================
+// 按钮重置
+// ============================================
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+// ============================================
+// 输入框重置
+// ============================================
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+  }
+}
+
+// ============================================
+// 选择文本颜色
+// ============================================
+::selection {
+  background: rgba(0, 229, 255, 0.2);
+  color: var(--text-primary);
+}
+
+// ============================================
+// 滚动条
+// ============================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.15);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(0, 229, 255, 0.3);
+  }
+}
+
+// ============================================
+// 核心动效关键帧
+// ============================================
+
+// 淡入
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// 淡入上移
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 淡入下移
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 滑入左
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// 滑入右
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// 脉冲
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// 浮动
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+// 呼吸光晕（核心AI感）
+@keyframes breathingGlow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.25);
+  }
+}
+
+// 极光流动
+@keyframes auroraFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+// 旋转
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// 微晶格悬浮
+@keyframes microSuspension {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+// 扫光效果（鼠标跟随）
+@keyframes sweepGlow {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+// 数字滚动增量
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ============================================
+// 工具类
+// ============================================
+.fade-in { animation: fadeIn 0.6s ease; }
+.fade-in-up { animation: fadeInUp 0.6s ease; }
+.slide-in-left { animation: slideInLeft 0.6s ease; }
+.slide-in-right { animation: slideInRight 0.6s ease; }
+
+// 文字渐变（青蓝渐变）
+.gradient-text {
+  background: linear-gradient(135deg, #00E5FF 0%, #0055FF 50%, #A855F7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// 核心数据大号显示（高对比度版本）
+.stat-number, .stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--data-highlight);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: var(--data-glow);
+  text-shadow: var(--text-shadow-glow);
+}
+
+// 数据发光效果
+.data-glow {
+  filter: var(--data-glow);
+  text-shadow: var(--text-shadow-glow);
+}
+
+// 玻璃态卡片（全局复用，深色科技风）
+.glass-card {
+  background: rgba(10, 15, 30, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.12), 0 8px 40px rgba(0, 229, 255, 0.2);
+    border-color: rgba(0, 229, 255, 0.25);
+  }
+}
+
+// 分割线
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-lg) 0;
+}
+
+// ============================================
+// AI标签（替代暖色标签）
+// ============================================
+.tag-ai {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(168, 85, 247, 0.12));
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+// ============================================
+// 通用组件样式
+// ============================================
+
+// 背景光晕效果
+.background-glow {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: -1;
+
+  &.top-right {
+    top: -200px;
+    right: -200px;
+    background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+  }
+
+  &.bottom-left {
+    bottom: -200px;
+    left: -200px;
+    background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+  }
+}
+
+// 发光按钮
+.glow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-normal);
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 85, 255, 0.15));
+    border-color: rgba(0, 229, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 霓虹徽章
+.neon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: var(--transition-fast);
+
+  &--primary {
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--accent-primary);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+  }
+
+  &--purple {
+    background: rgba(168, 85, 247, 0.1);
+    color: var(--accent-purple);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+  }
+
+  &--emerald {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-emerald);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+}
+
+// 脉冲加载
+.loading-pulse {
+  display: inline-flex;
+  gap: 4px;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: pulse 1.4s ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+}
+
+// 状态指示器
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &--online {
+    background: var(--accent-emerald);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    animation: pulse 2s infinite;
+  }
+
+  &--offline { background: var(--text-muted); }
+
+  &--warning {
+    background: var(--accent-amber);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  }
+
+  &--error {
+    background: var(--accent-pink);
+    box-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+  }
+}
+
+// 进度条
+.progress-bar {
+  height: 8px;
+  background: rgba(0, 229, 255, 0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  &__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-emerald));
+    border-radius: var(--radius-full);
+    transition: width 1s ease;
+  }
+}
+
+// 卡片网格
+.card-grid {
+  display: grid;
+  gap: var(--space-lg);
+
+  &--2 { grid-template-columns: repeat(2, 1fr); }
+  &--3 { grid-template-columns: repeat(3, 1fr); }
+  &--4 { grid-template-columns: repeat(4, 1fr); }
+  &--auto {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+// ============================================
+// Element Plus 主题覆盖（科技动态版）
+// ============================================
+:root {
+  // 主色调
+  --el-color-primary: #00E5FF;
+  --el-color-primary-light-3: #33EBFF;
+  --el-color-primary-light-5: #66F0FF;
+  --el-color-primary-light-7: #99F5FF;
+  --el-color-primary-light-8: #B3F8FF;
+  --el-color-primary-light-9: #CCFAFF;
+  --el-color-primary-dark-2: #00B8CC;
+
+  // 成功色
+  --el-color-success: #10B981;
+  --el-color-success-light-3: #34D399;
+  --el-color-success-light-5: #6EE7B7;
+  --el-color-success-light-7: #A7F3D0;
+  --el-color-success-light-8: #D1FAE5;
+  --el-color-success-light-9: #ECFDF5;
+  --el-color-success-dark-2: #059669;
+
+  // 警告色
+  --el-color-warning: #F59E0B;
+  --el-color-warning-light-3: #FBBF24;
+  --el-color-warning-light-5: #FCD34D;
+  --el-color-warning-light-7: #FDE68A;
+  --el-color-warning-light-8: #FEF3C7;
+  --el-color-warning-light-9: #FFFBEB;
+  --el-color-warning-dark-2: #D97706;
+
+  // 危险色
+  --el-color-danger: #EF4444;
+  --el-color-danger-light-3: #F87171;
+  --el-color-danger-light-5: #FCA5A5;
+  --el-color-danger-light-7: #FECACA;
+  --el-color-danger-light-8: #FEE2E2;
+  --el-color-danger-light-9: #FEF2F2;
+  --el-color-danger-dark-2: #DC2626;
+
+  // 信息色
+  --el-color-info: #3B82F6;
+  --el-color-info-light-3: #60A5FA;
+  --el-color-info-light-5: #93C5FD;
+  --el-color-info-light-7: #BFDBFE;
+  --el-color-info-light-8: #DBEAFE;
+  --el-color-info-light-9: #EFF6FF;
+  --el-color-info-dark-2: #2563EB;
+
+  // 背景色（高对比度版本）
+  --el-bg-color: #0A0E1A;
+  --el-bg-color-page: #05080F;
+  --el-bg-color-overlay: #121830;
+
+  // 文字色（高对比度版本）
+  --el-text-color-primary: #FFFFFF;
+  --el-text-color-regular: #F1F5F9;  // 冰白色
+  --el-text-color-secondary: #E2E8F0;  // 非常亮的银灰
+  --el-text-color-placeholder: #94A3B8;
+  --el-text-color-disabled: #64748B;
+
+  // 边框
+  --el-border-color: rgba(0, 229, 255, 0.1);
+  --el-border-color-light: rgba(0, 229, 255, 0.06);
+  --el-border-color-lighter: rgba(0, 229, 255, 0.04);
+  --el-border-color-extra-light: rgba(0, 229, 255, 0.02);
+  --el-border-color-dark: rgba(0, 229, 255, 0.2);
+
+  // 填充色
+  --el-fill-color: #161D35;
+  --el-fill-color-light: rgba(22, 29, 53, 0.8);
+  --el-fill-color-lighter: rgba(22, 29, 53, 0.6);
+  --el-fill-color-extra-light: rgba(22, 29, 53, 0.4);
+  --el-fill-color-dark: #1E2742;
+  --el-fill-color-blank: transparent;
+
+  // 遮罩
+  --el-mask-color: rgba(8, 12, 26, 0.8);
+  --el-mask-color-extra-light: rgba(8, 12, 26, 0.5);
+
+  // 阴影
+  --el-box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+  --el-box-shadow-light: 0 2px 8px 0 rgba(0, 0, 0, 0.2);
+  --el-box-shadow-lighter: 0 2px 4px 0 rgba(0, 0, 0, 0.15);
+  --el-box-shadow-dark: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
+
+  // 圆角
+  --el-border-radius-base: 12px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 9999px;
+  --el-border-radius-circle: 50%;
+}
+
+// ============================================
+// Element Plus 组件样式覆盖
+// ============================================
+
+// 按钮
+.el-button {
+  &--primary {
+    background: var(--btn-gradient);
+    border: 1px solid transparent;
+    color: #ffffff;
+
+    &:hover {
+      background: linear-gradient(135deg, #8a7af7 0%, #6a5adf 100%);
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 18px rgba(124, 107, 245, 0.35);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &--default {
+    background: var(--bg-ctrl);
+    border-color: var(--border-ctrl);
+    color: var(--text-ctrl);
+
+    &:hover {
+      border-color: var(--border-ctrl-hover);
+      color: #ffffff;
+      background: rgba(124, 107, 245, 0.12);
+    }
+  }
+}
+
+// 卡片
+.el-card {
+  background: rgba(100, 100, 180, 0.04);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    box-shadow: 0 8px 40px rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.2);
+  }
+}
+
+// 输入框
+.el-input {
+  &__wrapper {
+    background: var(--bg-ctrl);
+    border: 1px solid var(--border-ctrl);
+    box-shadow: none;
+
+    &:hover {
+      border-color: rgba(124, 107, 245, 0.55);
+    }
+
+    &.is-focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+    }
+  }
+
+  // 占位符与输入文字亮度（全局覆盖）
+  &__inner {
+    color: var(--text-input);
+    caret-color: var(--title-status);
+  }
+  &.is-disabled .el-input__inner {
+    color: var(--text-sub);
+  }
+}
+
+// 占位符颜色（Element Plus 变量）
+:root {
+  --el-text-color-placeholder: #6a7090;
+  --el-text-color-regular: #e0dce8;
+  --el-text-color-secondary: #a0a8c8;
+  --el-border-color: #4a5070;
+  --el-border-color-light: #3a4060;
+  --el-border-color-hover: #7c6bf5;
+  --el-fill-color: #1e2638;
+  --el-fill-color-light: rgba(30, 38, 56, 0.8);
+  --el-fill-color-dark: #242e44;
+}
+
+// 表格
+.el-table {
+  background: var(--bg-surface);
+
+  th.el-table__cell {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+  }
+
+  td.el-table__cell {
+    border-bottom-color: var(--border-subtle);
+  }
+
+  &--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+    background: rgba(0, 229, 255, 0.03);
+  }
+}
+
+// 菜单
+.el-menu {
+  background: transparent;
+  border-right: none;
+
+  &-item {
+    color: var(--text-secondary);
+
+    &:hover {
+      background: rgba(0, 229, 255, 0.05);
+      color: var(--accent-primary);
+    }
+
+    &.is-active {
+      color: var(--accent-primary);
+      background: rgba(0, 229, 255, 0.08);
+    }
+  }
+}
+
+// 对话框
+.el-dialog {
+  background: #111127;
+  border: 1px solid rgba(100, 100, 180, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+
+  &__header {
+    padding: 20px 24px 0;
+    color: #e8e8ff;
+    font-weight: 600;
+  }
+
+  &__title {
+    color: #e8e8ff;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &__body {
+    color: #c0c0e0;
+    padding: 16px 24px;
+  }
+
+  &__footer {
+    padding: 0 24px 20px;
+  }
+
+  &__headerbtn {
+    .el-dialog__close {
+      color: #9090b8;
+      font-size: 18px;
+
+      &:hover {
+        color: #e8e8ff;
+      }
+    }
+  }
+}
+
+// 标签页
+.el-tabs {
+  &__nav-wrap::after {
+    background: var(--border-subtle);
+  }
+
+  &__item {
+    color: var(--text-sub);
+    font-weight: 500;
+
+    &.is-active {
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+}
+
+// 消息提示弹窗
+.el-message {
+  background: #1a1a3e;
+  border: 1px solid rgba(100, 100, 180, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  min-width: 280px;
+
+  &__icon {
+    font-size: 18px;
+  }
+
+  &__content {
+    color: #e8e8ff;
+    font-size: 14px;
+  }
+
+  &__close-btn {
+    color: #9090b8;
+    font-size: 16px;
+
+    &:hover {
+      color: #e8e8ff;
+    }
+  }
+
+  &.el-message--success {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), #1a1a3e 60%);
+
+    .el-message__icon {
+      color: #10b981;
+    }
+  }
+
+  &.el-message--warning {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), #1a1a3e 60%);
+
+    .el-message__icon {
+      color: #f59e0b;
+    }
+  }
+
+  &.el-message--error {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), #1a1a3e 60%);
+
+    .el-message__icon {
+      color: #ef4444;
+    }
+  }
+
+  &.el-message--info {
+    border-color: rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), #1a1a3e 60%);
+
+    .el-message__icon {
+      color: #3b82f6;
+    }
+  }
+}
+
+// 确认对话框（ElMessageBox.confirm）
+.el-message-box {
+  background: #111127;
+  border: 1px solid rgba(100, 100, 180, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+
+  &__header {
+    padding: 16px 20px 8px;
+  }
+
+  &__title {
+    color: #e8e8ff;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &__content {
+    color: #c0c0e0;
+    font-size: 14px;
+    padding: 8px 20px 16px;
+    line-height: 1.6;
+  }
+
+  &__btns {
+    padding: 0 20px 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__status {
+    color: #f59e0b;
+    font-size: 24px;
+  }
+
+  .el-button {
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 18px;
+
+    &--primary {
+      background: linear-gradient(135deg, #00f5d4, #0055FF);
+      border: none;
+      color: #fff;
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(0, 245, 212, 0.3);
+        transform: translateY(-1px);
+      }
+    }
+
+    &--default {
+      background: rgba(100, 100, 180, 0.06);
+      border: 1px solid rgba(100, 100, 180, 0.15);
+      color: #c0c0e0;
+
+      &:hover {
+        border-color: rgba(0, 245, 212, 0.3);
+        color: #00f5d4;
+      }
+    }
+  }
+
+  // 关闭按钮
+  &__headerbtn {
+    .el-message-box__close {
+      color: #9090b8;
+      font-size: 16px;
+
+      &:hover {
+        color: #e8e8ff;
+      }
+    }
+  }
+}
+
+// 通知弹窗
+.el-notification {
+  background: #111127;
+  border: 1px solid rgba(100, 100, 180, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  &__title {
+    color: #e8e8ff;
+    font-weight: 600;
+  }
+
+  &__content {
+    color: #c0c0e0;
+  }
+
+  &__closeBtn {
+    color: #9090b8;
+
+    &:hover {
+      color: #e8e8ff;
+    }
+  }
+}
