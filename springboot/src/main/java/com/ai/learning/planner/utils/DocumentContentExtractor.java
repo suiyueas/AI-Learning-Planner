@@ -159,8 +159,8 @@ public class DocumentContentExtractor {
     /** DOC 旧格式文本提取（POI HWPF） */
     private String extractDoc(Path file) throws Exception {
         try (InputStream in = new BufferedInputStream(new FileInputStream(file.toFile()));
-             HWPFDocument doc = new HWPFDocument(in)) {
-            WordExtractor extractor = new WordExtractor(doc);
+             HWPFDocument doc = new HWPFDocument(in);
+             WordExtractor extractor = new WordExtractor(doc)) {
             return extractor.getText();
         }
     }

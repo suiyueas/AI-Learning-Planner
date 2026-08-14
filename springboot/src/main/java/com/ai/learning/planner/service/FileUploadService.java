@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -190,7 +191,10 @@ public class FileUploadService {
                 Files.createDirectories(dirPath);
             }
             Path filePath = dirPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath);
+            // MultipartFile 流需显式关闭，Files.copy 不会自动释放传入的流
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, filePath);
+            }
             return filePath.toAbsolutePath().toString();
         } catch (IOException e) {
             log.error("文件保存失败: dir={}, filename={}", targetDir, filename, e);
