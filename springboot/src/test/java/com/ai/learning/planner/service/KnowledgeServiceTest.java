@@ -2,6 +2,7 @@ package com.ai.learning.planner.service;
 
 import com.ai.learning.planner.entity.KnowledgeNode;
 import com.ai.learning.planner.repository.KnowledgeChunkRepository;
+import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
 import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class KnowledgeServiceTest {
     private KnowledgeChunkRepository knowledgeChunkRepository;
 
     @Mock
+    private KnowledgeDocumentRepository knowledgeDocumentRepository;
+
+    @Mock
     private ConfigDataCacheService configDataCacheService;
 
     @Mock
@@ -44,7 +48,10 @@ class KnowledgeServiceTest {
 
     @BeforeEach
     void setUp() {
-        knowledgeService = new KnowledgeService(knowledgeNodeRepository, knowledgeChunkRepository, new ObjectMapper(), configDataCacheService);
+        knowledgeService = new KnowledgeService(knowledgeNodeRepository, knowledgeChunkRepository,
+                knowledgeDocumentRepository, new ObjectMapper(), configDataCacheService);
+        ReflectionTestUtils.setField(knowledgeService, "defaultTopK", 10);
+        ReflectionTestUtils.setField(knowledgeService, "similarityThreshold", 0.7);
     }
 
     private KnowledgeNode buildNode(String id, String name) {
@@ -147,5 +154,20 @@ class KnowledgeServiceTest {
 
         assertEquals(1, result.size());
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
+    }
+
+    @Test
+    void searchSimilar_appliesThresholdAndTopKCap() {
+        ReflectionTestUtils.setField(knowledgeService, "vectorStore", vectorStore);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(new Document("doc")));
+
+        knowledgeService.searchSimilar("Java", 50); // 超过 defaultTopK=10，应被截断
+
+        org.mockito.ArgumentCaptor<SearchRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore).similaritySearch(captor.capture());
+        SearchRequest request = captor.getValue();
+        assertEquals(10, request.getTopK());
+        assertEquals(0.7, request.getSimilarityThreshold());
     }
 }

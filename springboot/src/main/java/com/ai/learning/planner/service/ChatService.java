@@ -125,10 +125,16 @@ public class ChatService {
                         Map<String, Object> source = new HashMap<>();
                         source.put("id", "src_" + i);
                         source.put("docName", doc.getMetadata() != null ?
-                                doc.getMetadata().getOrDefault("title", doc.getMetadata().getOrDefault("source", "未知文档")) : "未知文档");
+                                doc.getMetadata().getOrDefault("docTitle",
+                                        doc.getMetadata().getOrDefault("title",
+                                                doc.getMetadata().getOrDefault("source", "未知文档"))) : "未知文档");
+                        source.put("chunkIndex", doc.getMetadata() != null ?
+                                doc.getMetadata().getOrDefault("chunkIndex", "") : "");
                         source.put("snippet", doc.getText() != null ?
                                 doc.getText().substring(0, Math.min(doc.getText().length(), 150)) : "");
                         source.put("relevance", Math.round((1.0 - i * 0.08) * 100));
+                        source.put("searchMode", doc.getMetadata() != null ?
+                                doc.getMetadata().getOrDefault("searchMode", "vector") : "vector");
                         knowledgeSources.add(source);
                     }
                     log.info("[streamChat] 知识库检索完成, 找到 {} 个相关片段", knowledgeSources.size());

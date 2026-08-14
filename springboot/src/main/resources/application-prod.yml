@@ -2,31 +2,14 @@
 # 生产环境配置
 # 使用方式: java -jar xxx.jar --spring.profiles.active=prod
 #
-# Elasticsearch 向量检索当前【未启用】（默认降级为内存向量存储 + 关键词搜索）
-# 启用步骤（三者缺一不可）：
-#   1. 设置环境变量 ELASTICSEARCH_HOST/PORT/USERNAME/PASSWORD
-#   2. 设置 ES_VECTORSTORE_ENABLED=true
-#   3. 在 application.yml 的 autoconfigure.exclude 中移除 Elasticsearch 相关排除项
+# Elasticsearch 向量检索为 RAG 默认主存储（ES_VECTORSTORE_ENABLED 默认 true）
+# 连接配置继承自 application.yml：
+#   ELASTICSEARCH_HOST / ELASTICSEARCH_PORT / ELASTICSEARCH_USERNAME / ELASTICSEARCH_PASSWORD
+# ES 不可达时自动降级为内存向量存储 + 关键词搜索，不阻断应用启动
 # ============================================================
 
 spring:
-  # Elasticsearch 连接配置（启用向量检索时使用）
-  elasticsearch:
-    uris: http://${ELASTICSEARCH_HOST:localhost}:${ELASTICSEARCH_PORT:9200}
-    username: ${ELASTICSEARCH_USERNAME:elastic}
-    # ⚠️ 密码必须通过环境变量注入，禁止在此处填写真实密码
-    password: ${ELASTICSEARCH_PASSWORD:}
-    connection-timeout: 5s
-    socket-timeout: 30s
-
-  # Elasticsearch 向量存储（默认关闭，通过 ES_VECTORSTORE_ENABLED 开启）
-  ai:
-    vectorstore:
-      elasticsearch:
-        enabled: ${ES_VECTORSTORE_ENABLED:false}
-        index-name: knowledge_vectors
-        similarity: cosine
-        dimensions: ${EMBEDDING_DIMENSIONS:1536}
+  # 生产环境保持与默认一致的向量存储行为（如需要显式关闭 ES，设置 ES_VECTORSTORE_ENABLED=false）
 
 # 应用配置
 app:

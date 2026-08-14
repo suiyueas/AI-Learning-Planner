@@ -2,8 +2,10 @@ package com.ai.learning.planner.service;
 
 import com.ai.learning.planner.entity.KnowledgeNode;
 import com.ai.learning.planner.entity.KnowledgeChunk;
+import com.ai.learning.planner.entity.KnowledgeDocument;
 import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import com.ai.learning.planner.repository.KnowledgeChunkRepository;
+import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,8 +37,15 @@ public class KnowledgeService {
 
     private final KnowledgeNodeRepository knowledgeNodeRepository;
     private final KnowledgeChunkRepository knowledgeChunkRepository;
+    private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final ObjectMapper objectMapper;
     private final ConfigDataCacheService configDataCacheService;
+
+    @Value("${app.rag.top-k:10}")
+    private int defaultTopK;
+
+    @Value("${app.rag.similarity-threshold:0.7}")
+    private double similarityThreshold;
 
     @Autowired
     @Qualifier("primaryVectorStore")
@@ -57,29 +67,69 @@ public class KnowledgeService {
         return knowledgeNodeRepository.findByCategory(category);
     }
 
+    /**
+     * 语义检索：向量存储优先（ES 主 / 内存降级），失败时回退数据库关键词搜索。
+     * topK 受 app.rag.top-k 上限约束，相似度阈值取 app.rag.similarity-threshold；
+     * 记录检索耗时以观测 <200ms 响应目标
+     */
     public List<Document> searchSimilar(String query, int topK) {
+        int maxTopK = defaultTopK > 0 ? defaultTopK : 10;
+        int effectiveTopK = topK > 0 ? Math.min(topK, maxTopK) : maxTopK;
+
         if (vectorStore == null) {
             log.warn("VectorStore 未配置，降级为数据库关键词搜索");
-            return fallbackKeywordSearch(query, topK);
+            return fallbackKeywordSearch(query, effectiveTopK);
         }
 
+        long start = System.currentTimeMillis();
         try {
-            return vectorStore.similaritySearch(
+            List<Document> results = vectorStore.similaritySearch(
                     SearchRequest.builder()
                             .query(query)
-                            .topK(topK)
+                            .topK(effectiveTopK)
+                            .similarityThreshold(similarityThreshold)
                             .build()
             );
+            long elapsed = System.currentTimeMillis() - start;
+            log.info("[RAG] 检索完成: query={}, topK={}, hits={}, 耗时={}ms {}",
+                    query, effectiveTopK, results.size(), elapsed,
+                    elapsed <= 200 ? "(<200ms ✓)" : "(⚠️ 超过 200ms 目标)");
+            return normalizeMetadata(results);
         } catch (Exception e) {
-            log.warn("向量检索失败，降级为数据库关键词搜索: {}", e.getMessage());
-            return fallbackKeywordSearch(query, topK);
+            long elapsed = System.currentTimeMillis() - start;
+            log.warn("向量检索失败(耗时{}ms)，降级为数据库关键词搜索: {}", elapsed, e.getMessage());
+            return fallbackKeywordSearch(query, effectiveTopK);
         }
+    }
+
+    /**
+     * 归一化检索结果来源元数据：保证 docTitle/title/source 键一致，供前端来源追溯展示
+     */
+    private List<Document> normalizeMetadata(List<Document> results) {
+        for (Document doc : results) {
+            if (doc.getMetadata() == null) {
+                continue;
+            }
+            Object docTitle = doc.getMetadata().get("docTitle");
+            Object title = doc.getMetadata().get("title");
+            if (docTitle == null && title != null) {
+                doc.getMetadata().put("docTitle", title);
+            } else if (title == null && docTitle != null) {
+                doc.getMetadata().put("title", docTitle);
+            }
+        }
+        return results;
     }
 
     private List<Document> fallbackKeywordSearch(String query, int topK) {
         log.debug("使用数据库关键词降级搜索: query={}, topK={}", query, topK);
 
         List<KnowledgeChunk> chunks = knowledgeChunkRepository.findByContentContaining(query);
+        List<String> docIds = chunks.stream().map(KnowledgeChunk::getDocId).distinct().collect(Collectors.toList());
+        Map<String, String> docTitles = docIds.isEmpty()
+                ? Map.of()
+                : knowledgeDocumentRepository.findAllById(docIds).stream()
+                        .collect(Collectors.toMap(KnowledgeDocument::getId, KnowledgeDocument::getTitle, (a, b) -> a));
 
         return chunks.stream()
                 .limit(topK)
@@ -87,6 +137,8 @@ public class KnowledgeService {
                     Document doc = new Document(chunk.getContent());
                     doc.getMetadata().put("chunkId", chunk.getId());
                     doc.getMetadata().put("docId", chunk.getDocId());
+                    doc.getMetadata().put("docTitle", docTitles.getOrDefault(chunk.getDocId(), "未知文档"));
+                    doc.getMetadata().put("title", docTitles.getOrDefault(chunk.getDocId(), "未知文档"));
                     doc.getMetadata().put("chunkIndex", chunk.getChunkIndex());
                     doc.getMetadata().put("source", "mysql_fallback");
                     doc.getMetadata().put("searchMode", "keyword_fallback");

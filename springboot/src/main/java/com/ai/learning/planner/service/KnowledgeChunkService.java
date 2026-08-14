@@ -5,6 +5,7 @@ import com.ai.learning.planner.entity.KnowledgeDocument;
 import com.ai.learning.planner.repository.KnowledgeChunkRepository;
 import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
 import com.ai.learning.planner.utils.DocumentChunker;
+import com.ai.learning.planner.utils.DocumentContentExtractor;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +40,7 @@ public class KnowledgeChunkService {
     private final KnowledgeChunkRepository chunkRepository;
     private final KnowledgeDocumentRepository documentRepository;
     private final DocumentChunker documentChunker;
+    private final DocumentContentExtractor documentContentExtractor;
 
     @Autowired(required = false)
     @Qualifier("primaryVectorStore")
@@ -85,7 +86,7 @@ public class KnowledgeChunkService {
     public void generateChunksForDocument(KnowledgeDocument doc) {
         log.info("生成知识块: docId={}, filePath={}", doc.getId(), doc.getFilePath());
 
-        String content = readFileContent(doc.getFilePath());
+        String content = extractFileContent(doc.getFilePath());
         if (content == null || content.trim().isEmpty()) {
             log.error("文件内容为空或读取失败，跳过该文档: {}", doc.getId());
             doc.setStatus("error");
@@ -106,11 +107,10 @@ public class KnowledgeChunkService {
         chunkRepository.deleteByDocId(doc.getId());
 
         List<KnowledgeChunk> chunks = new ArrayList<>();
-        List<Document> vectorDocuments = new ArrayList<>();
 
         for (int i = 0; i < chunkList.size(); i++) {
             String chunkContent = chunkList.get(i);
-            KnowledgeChunk chunk = KnowledgeChunk.builder()
+            chunks.add(KnowledgeChunk.builder()
                     .docId(doc.getId())
                     .chunkIndex(i + 1)
                     .content(chunkContent)
@@ -118,20 +118,24 @@ public class KnowledgeChunkService {
                     .charCount(chunkContent.length())
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
-                    .build();
-            chunks.add(chunk);
+                    .build());
+        }
 
+        // 先落库生成 chunkId，再构建向量文档（保证来源追溯字段 chunkId 非空）
+        chunkRepository.saveAll(chunks);
+
+        List<Document> vectorDocuments = new ArrayList<>();
+        for (KnowledgeChunk chunk : chunks) {
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("chunkId", chunk.getId());
             metadata.put("docId", doc.getId());
             metadata.put("docTitle", doc.getTitle());
-            metadata.put("chunkIndex", i + 1);
+            metadata.put("title", doc.getTitle());
+            metadata.put("chunkIndex", chunk.getChunkIndex());
             metadata.put("source", "knowledge_chunk");
 
-            Document vectorDoc = new Document(chunkContent, metadata);
-            vectorDocuments.add(vectorDoc);
+            vectorDocuments.add(new Document(chunk.getContent(), metadata));
         }
-        chunkRepository.saveAll(chunks);
 
         if (vectorStore != null && !vectorDocuments.isEmpty()) {
             try {
@@ -225,81 +229,84 @@ public class KnowledgeChunkService {
     }
 
     /**
-     * 读取文件内容，支持多种路径格式，自动尝试多个候选路径。
+     * 提取文档内容：探测文件实际路径后，按扩展名分发到多格式解析器
      */
-    private String readFileContent(String filePath) {
-        try {
-            if (filePath == null || filePath.trim().isEmpty()) {
-                log.error("filePath 为空");
-                return null;
-            }
-
-            log.info("原始 filePath: {}", filePath);
-
-            // 从 filePath 提取纯文件名（去掉目录前缀）
-            String fileName = filePath;
-            int lastSlash = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
-            if (lastSlash >= 0) {
-                fileName = filePath.substring(lastSlash + 1);
-            }
-            log.info("提取的文件名: {}", fileName);
-
-            // 确定项目根目录
-            String projectRoot = System.getProperty("user.dir");
-
-            // ===== 尝试多个候选路径 =====
-            List<Path> candidates = new ArrayList<>();
-
-            // 1. knowledgePath + fileName（相对路径）
-            candidates.add(Paths.get(knowledgePath, fileName).normalize());
-
-            // 2. projectRoot + knowledgePath + fileName
-            candidates.add(Paths.get(projectRoot, knowledgePath, fileName).normalize());
-
-            // 3. if filePath is a URL path like /uploads/knowledges/xxx.md,
-            //    try uploadRoot + /knowledges/ + fileName
-            if (filePath.startsWith("/")) {
-                String relativePath = filePath.startsWith("/uploads/") ? filePath.substring("/uploads/".length()) : filePath.substring(1);
-                candidates.add(Paths.get(uploadRoot, relativePath).normalize());
-                candidates.add(Paths.get(projectRoot, uploadRoot, relativePath).normalize());
-            }
-
-            // 4. Try the raw filePath directly
-            candidates.add(Paths.get(filePath).normalize());
-
-            // 5. projectRoot + raw filePath
-            candidates.add(Paths.get(projectRoot, filePath).normalize());
-
-            // 6. uploadRoot + /knowledges + fileName
-            candidates.add(Paths.get(uploadRoot, "knowledges", fileName).normalize());
-            candidates.add(Paths.get(projectRoot, uploadRoot, "knowledges", fileName).normalize());
-
-            // 去重并逐一尝试
-            Path foundPath = null;
-            for (Path candidate : candidates) {
-                try {
-                    Path absPath = candidate.isAbsolute() ? candidate : Paths.get(projectRoot, candidate.toString()).normalize();
-                    log.debug("尝试路径: {} → 存在: {}", absPath, Files.exists(absPath));
-                    if (Files.exists(absPath) && Files.isReadable(absPath)) {
-                        foundPath = absPath;
-                        log.info("找到文件: {}", absPath);
-                        break;
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-
-            if (foundPath == null) {
-                log.error("所有候选路径均未找到文件，filePath={}, projectRoot={}", filePath, projectRoot);
-                return null;
-            }
-
-            String content = Files.readString(foundPath, StandardCharsets.UTF_8);
-            log.info("文件读取成功: path={}, 大小={} 字符", foundPath, content.length());
-            return content;
-        } catch (Exception e) {
-            log.error("读取文件失败: {}", filePath, e);
+    private String extractFileContent(String filePath) {
+        Path foundPath = findFilePath(filePath);
+        if (foundPath == null) {
+            log.error("所有候选路径均未找到文件，filePath={}, projectRoot={}", filePath, System.getProperty("user.dir"));
             return null;
         }
+
+        String content = documentContentExtractor.extract(foundPath);
+        if (content != null) {
+            log.info("文件解析成功: path={}, 大小={} 字符", foundPath, content.length());
+        }
+        return content;
+    }
+
+    /**
+     * 探测文件实际路径，支持相对路径、绝对路径、URL 风格路径（/uploads/...）等多种格式
+     */
+    private Path findFilePath(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            log.error("filePath 为空");
+            return null;
+        }
+
+        log.info("原始 filePath: {}", filePath);
+
+        // 从 filePath 提取纯文件名（去掉目录前缀）
+        String fileName = filePath;
+        int lastSlash = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+        if (lastSlash >= 0) {
+            fileName = filePath.substring(lastSlash + 1);
+        }
+        log.info("提取的文件名: {}", fileName);
+
+        // 确定项目根目录
+        String projectRoot = System.getProperty("user.dir");
+
+        // ===== 尝试多个候选路径 =====
+        List<Path> candidates = new ArrayList<>();
+
+        // 1. knowledgePath + fileName（相对路径）
+        candidates.add(Paths.get(knowledgePath, fileName).normalize());
+
+        // 2. projectRoot + knowledgePath + fileName
+        candidates.add(Paths.get(projectRoot, knowledgePath, fileName).normalize());
+
+        // 3. if filePath is a URL path like /uploads/knowledges/xxx.md,
+        //    try uploadRoot + /knowledges/ + fileName
+        if (filePath.startsWith("/")) {
+            String relativePath = filePath.startsWith("/uploads/") ? filePath.substring("/uploads/".length()) : filePath.substring(1);
+            candidates.add(Paths.get(uploadRoot, relativePath).normalize());
+            candidates.add(Paths.get(projectRoot, uploadRoot, relativePath).normalize());
+        }
+
+        // 4. Try the raw filePath directly
+        candidates.add(Paths.get(filePath).normalize());
+
+        // 5. projectRoot + raw filePath
+        candidates.add(Paths.get(projectRoot, filePath).normalize());
+
+        // 6. uploadRoot + /knowledges + fileName
+        candidates.add(Paths.get(uploadRoot, "knowledges", fileName).normalize());
+        candidates.add(Paths.get(projectRoot, uploadRoot, "knowledges", fileName).normalize());
+
+        // 去重并逐一尝试
+        for (Path candidate : candidates) {
+            try {
+                Path absPath = candidate.isAbsolute() ? candidate : Paths.get(projectRoot, candidate.toString()).normalize();
+                log.debug("尝试路径: {} → 存在: {}", absPath, Files.exists(absPath));
+                if (Files.exists(absPath) && Files.isReadable(absPath)) {
+                    log.info("找到文件: {}", absPath);
+                    return absPath;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return null;
     }
 }

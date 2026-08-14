@@ -10,7 +10,8 @@ spring:
   application:
     name: ai-learning-planner
 
-  # 开发环境排除 Elasticsearch（生产环境通过 application-prod.yml 启用）
+  # 排除 Elasticsearch 自动配置（VectorStoreConfig 手动构建 RestClient/VectorStore，避免双 Bean 冲突）；
+  # 向量存储仍通过 spring.ai.vectorstore.elasticsearch.enabled 启用，ES 不可达时自动降级内存存储
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
@@ -19,6 +20,13 @@ spring:
       - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
       - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRestClientAutoConfiguration
       - org.springframework.ai.vectorstore.elasticsearch.autoconfigure.ElasticsearchVectorStoreAutoConfiguration
+
+  # Elasticsearch 连接配置（RAG 主存储，ES 不可达时自动降级为内存向量存储，不阻断启动）
+  elasticsearch:
+    uris: http://${ELASTICSEARCH_HOST:localhost}:${ELASTICSEARCH_PORT:9200}
+    username: ${ELASTICSEARCH_USERNAME:elastic}
+    # ⚠️ 密码必须通过环境变量注入，禁止在此处填写真实密码
+    password: ${ELASTICSEARCH_PASSWORD:}
 
   # Servlet multipart 配置
   servlet:
@@ -62,6 +70,14 @@ spring:
 
   # AI 模型配置 - 多模型支持
   ai:
+    # RAG 向量存储：ES 为主存储（默认启用），ES 不可达时 VectorStoreConfig 自动降级内存存储
+    vectorstore:
+      elasticsearch:
+        enabled: ${ES_VECTORSTORE_ENABLED:true}
+        index-name: knowledge_vectors
+        similarity: cosine
+        dimensions: ${EMBEDDING_DIMENSIONS:1536}
+
     # 默认使用 DeepSeek 作为 AI 工具执行的模型
     model:
       provider: deepseek

@@ -3,6 +3,7 @@ package com.ai.learning.planner.config;
 import com.ai.learning.planner.vectorstore.InMemoryVectorStoreWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -51,10 +52,20 @@ public class VectorStoreConfig {
             return null;
         }
 
+        RestClient restClient = null;
         try {
-            // Spring AI 1.1.7 API：ElasticsearchVectorStore.builder(RestClient, EmbeddingModel)
-            RestClient restClient = RestClient.builder(HttpHost.create(uris)).build();
+            // 连接超时 3s / socket 5s：ES 不可达时快速失败，避免启动与首次检索长时间阻塞
+            restClient = RestClient.builder(HttpHost.create(uris))
+                    .setRequestConfigCallback(rcb -> rcb
+                            .setConnectTimeout(3000)
+                            .setSocketTimeout(5000))
+                    .build();
 
+            // 连通性预检：ES 不可达时提前降级，避免 build() 后 InitializingBean#afterPropertiesSet
+            // 内部 indexExists() 检查失败导致 bean 创建异常、阻断应用启动
+            restClient.performRequest(new Request("GET", "/"));
+
+            // Spring AI 1.1.7 API：ElasticsearchVectorStore.builder(RestClient, EmbeddingModel)
             ElasticsearchVectorStoreOptions options = new ElasticsearchVectorStoreOptions();
             options.setIndexName(indexName);
             options.setDimensions(dimensions);
@@ -73,7 +84,13 @@ public class VectorStoreConfig {
                     indexName, dimensions, similarity);
             return vectorStore;
         } catch (Exception e) {
-            log.error("ElasticsearchVectorStore 初始化失败: {}", e.getMessage());
+            if (restClient != null) {
+                try {
+                    restClient.close();
+                } catch (Exception ignored) {
+                }
+            }
+            log.error("ElasticsearchVectorStore 初始化失败（将降级为 InMemoryVectorStore）: {}", e.getMessage());
             return null;
         }
     }
