@@ -246,6 +246,24 @@ docker compose down -v   # 停止并删除容器与数据卷（全部清空）
 - **Elasticsearch 安全**：演示环境关闭了 `xpack.security`（`docker-compose.yml` 中 `xpack.security.enabled=false`）；生产部署请开启认证并配置 `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD`。
 - **密钥安全**：`.env` 已被 `.gitignore` 忽略，禁止提交；`docker-compose.yml` 中的中间件密码与 JWT 密钥为演示默认值，生产环境必须通过 `.env` 覆盖。
 
+### 生产部署（内置资源限制 / 日志滚动 / 网络隔离）
+
+`docker-compose.yml` 已内置三项加固，对开发/演示无副作用，无需额外文件：
+
+| 维度 | 配置 |
+| ---- | ---- |
+| **资源限制** | 每容器 `cpus` / `mem_limit`（后端 2c/1g、MySQL 1c/1g、ES 1c/1g、Redis 0.5c/512m、Nginx 0.25c/128m），防止单容器耗尽宿主机 |
+| **日志配置** | `json-file` 滚动：单文件 50MB × 3 份，自动压缩，防止磁盘打满 |
+| **网络隔离** | 分层网络 `net-public`（Nginx→后端）/ `net-data`（后端→中间件），中间件仅内部网段可达 |
+
+正式上线检查清单：
+
+- **删除端口映射**：移除 `docker-compose.yml` 中 `mysql` / `redis` / `elasticsearch` / `backend` 的 `ports` 映射（各服务内已注释标注"生产部署请删除此映射"），仅保留 `frontend`，Nginx 为唯一公网入口
+- `.env` 覆盖全部默认密码与 `JWT_SECRET`（必做）
+- 开启 Elasticsearch 认证（示例见 `docker-compose.yml` 中 elasticsearch 服务注释）
+- 宿主机保留数据卷：`docker compose down` 不删数据，`-v` 才会删除
+- Linux 主机设置 `vm.max_map_count=262144`（ES 依赖）
+
 ---
 
 ## 项目结构
@@ -334,7 +352,7 @@ ai-learning-planner/
 │   ├── UI设计.html                # UI 设计稿
 │   └── 功能架构设计.html           # 功能架构图
 │
-├── docker-compose.yml             # Docker Compose 编排（MySQL/Redis/ES/后端/前端）
+├── docker-compose.yml             # Docker Compose 编排（内置资源限制/日志滚动/分层网络）
 ├── .env.example                   # Docker 环境变量模板
 ├── springboot/Dockerfile          # 后端镜像（Maven 多阶段构建）
 ├── springboot/.env.example        # 环境变量模板

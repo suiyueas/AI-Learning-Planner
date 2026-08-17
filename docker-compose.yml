@@ -7,9 +7,27 @@
 #   2. docker compose up -d --build
 #   3. 访问前端 http://localhost:3000，后端 http://localhost:8080/api
 #
-# 说明：${VAR:-默认值} 为 Compose 变量替换，未配置时回退演示默认值；
-#       MySQL/Redis 密码与 JWT 密钥等生产环境务必通过 .env 覆盖。
+# 已内置生产加固（对开发/演示无副作用，无需额外文件）：
+#   - 资源限制：每容器 cpus / mem_limit，防止单容器耗尽宿主机
+#   - 日志滚动：json-file 单文件 50MB × 3，自动压缩，防止磁盘打满
+#   - 分层网络：net-public（Nginx <-> 后端）/ net-data（后端 <-> 中间件）
+#
+# 正式上线检查清单：
+#   - 删除 mysql / redis / elasticsearch / backend 的 `ports` 映射
+#     （保留 frontend 端口），使 Nginx 成为唯一公网入口
+#   - .env 覆盖 MYSQL_PASSWORD / REDIS_PASSWORD / JWT_SECRET
+#     （文件中为演示默认值，仅用于本地试用）
+#   - 开启 Elasticsearch 认证（示例见 elasticsearch 服务内注释）
+#   - Linux 主机设置 vm.max_map_count=262144（ES 依赖）
 # ============================================================
+
+# 日志滚动统一配置（YAML 锚点复用）
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+    compress: "true"
 
 services:
   # ---------- MySQL（业务数据） ----------
@@ -25,10 +43,18 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    # 资源限制：防止单容器耗尽宿主机
+    cpus: 1.0
+    mem_limit: 1g
+    # 日志滚动：单文件 50MB × 3，自动压缩
+    logging: *default-logging
+    # 开发/演示调试入口；生产部署请删除此映射（仅内部网络 net-data 可达）
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    networks:
+      - net-data
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
@@ -45,10 +71,16 @@ services:
       # 容器内环境变量：command 与 healthcheck 通过 $$ 引用它
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-}"]
+    cpus: 0.5
+    mem_limit: 512m
+    logging: *default-logging
+    # 开发/演示调试入口；生产部署请删除此映射
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - net-data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
       interval: 10s
@@ -63,7 +95,9 @@ services:
     restart: unless-stopped
     environment:
       discovery.type: single-node
-      # 本地演示关闭安全认证（生产请开启 xpack.security 并配置 ELASTICSEARCH_USERNAME/PASSWORD）
+      # 演示环境关闭安全认证。
+      # 生产建议改为 "true" 并设置 ELASTIC_PASSWORD，
+      # 同时在 backend 配置 ELASTICSEARCH_USERNAME=elastic / ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ulimits:
@@ -73,10 +107,16 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    cpus: 1.0
+    mem_limit: 1g
+    logging: *default-logging
+    # 开发/演示调试入口；生产部署请删除此映射
     ports:
       - "9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
+    networks:
+      - net-data
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"'"]
       interval: 15s
@@ -128,12 +168,20 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400}
       # 演示环境默认初始化 admin/admin123 账户
       INIT_DEFAULT_ADMIN: ${INIT_DEFAULT_ADMIN:-true}
+    cpus: 2.0
+    mem_limit: 1g
+    logging: *default-logging
+    # 开发/演示调试入口（Swagger 等）；生产部署请删除此映射，仅经 Nginx 访问
     ports:
       - "8080:8080"
     volumes:
       - uploads-data:/app/uploads
+    # 同时接入两个网段：经 net-public 被 Nginx 访问，经 net-data 访问中间件
+    networks:
+      - net-public
+      - net-data
 
-  # ---------- 前端（Vue 3 + Nginx） ----------
+  # ---------- 前端（Vue 3 + Nginx，唯一公网入口） ----------
   frontend:
     build:
       context: ./vue
@@ -142,8 +190,19 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    cpus: 0.25
+    mem_limit: 128m
+    logging: *default-logging
     ports:
       - "${VUE_PORT:-3000}:80"
+    networks:
+      - net-public
+
+networks:
+  # 入口网段：Nginx <-> 后端
+  net-public:
+  # 数据网段：后端 <-> MySQL / Redis / Elasticsearch（中间件仅内部网段可达）
+  net-data:
 
 volumes:
   mysql-data:
