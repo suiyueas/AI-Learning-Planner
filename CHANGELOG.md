@@ -39,9 +39,12 @@ AI 学习规划师首个可发布版本：基于 Spring AI + Agent + MCP 的智�
 
 ## [Unreleased]
 
+### ✅ 已实现（待发版）
+
+- 容器化部署：`docker-compose.yml` 一键编排 MySQL/Redis/Elasticsearch/后端/前端，多阶段镜像构建（后端 Maven + JRE、前端 Node + Nginx）
+
 ### 规划中
 
 - [ ] 知识库检索信任度过滤（基于 trustLevel 字段）
 - [ ] 工具调用全链路审计报表
-- [ ] 容器化部署（Dockerfile + docker-compose）
 - [ ] 贡献指南对应 CI 流水线（GitHub Actions）

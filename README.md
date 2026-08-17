@@ -144,8 +144,11 @@ AI 学习规划师是一个基于大语言模型与智能算法的智能学习�
 - MySQL 8.0+
 - Redis 7.x
 - Elasticsearch 8.x（推荐，缺失时自动降级内存向量存储）
+- Docker 24+ 与 Docker Compose v2（方式二需要）
 
-### 1. 克隆项目
+### 方式一：本地开发
+
+#### 1. 克隆项目
 
 ```bash
 # 替换为你的实际仓库地址
@@ -153,7 +156,7 @@ git clone https://github.com/<your-github-username>/ai-learning-planner.git
 cd ai-learning-planner
 ```
 
-### 2. 配置环境变量
+#### 2. 配置环境变量
 
 ```bash
 # 复制配置模板
@@ -161,7 +164,7 @@ cp springboot/.env.example springboot/.env
 # - JWT 密钥
 ```
 
-### 3. 初始化数据库
+#### 3. 初始化数据库
 
 ```sql
 -- 创建数据库
@@ -170,7 +173,7 @@ CREATE DATABASE ai_learning_planner DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb
 
 建表语句参考 `springboot/src/main/resources/sql/init.sql`（实体表结构由 JPA 自动维护）。
 
-### 4. 启动后端
+#### 4. 启动后端
 
 ```bash
 cd springboot
@@ -181,7 +184,7 @@ mvn spring-boot:run
 
 API 文档：`http://localhost:8080/api/swagger-ui.html`
 
-### 5. 启动前端
+#### 5. 启动前端
 
 ```bash
 cd vue
@@ -190,6 +193,58 @@ npm run dev
 ```
 
 前端启动后访问：`http://localhost:3000`
+
+### 方式二：Docker Compose 一键启动（推荐）
+
+无需本地安装 JDK / Node / MySQL / Redis / ES，一条命令拉起 MySQL + Redis + Elasticsearch + 后端 + 前端五个容器。
+
+#### 1. 配置环境变量
+
+```bash
+# 复制根目录配置模板（AI API Key、JWT 密钥、数据库密码等）
+cp .env.example .env
+```
+
+> 不配置也能启动（中间件使用演示默认值），但 AI 对话/RAG 功能需要填入 `DEEPSEEK_API_KEY` 等密钥。
+
+#### 2. 构建并启动
+
+```bash
+docker compose up -d --build
+```
+
+等待后端健康检查通过后（首次构建需拉取依赖，约 3-5 分钟），访问：
+
+| 服务     | 地址                                        |
+| -------- | ------------------------------------------- |
+| 前端     | http://localhost:3000                       |
+| 后端 API | http://localhost:8080/api                   |
+| Swagger  | http://localhost:8080/api/swagger-ui.html   |
+| Elasticsearch | http://localhost:9200                   |
+
+默认管理员账户 `admin/admin123`（由 `INIT_DEFAULT_ADMIN=true` 控制，生产建议关闭）。
+
+#### 3. 常用命令
+
+```bash
+docker compose ps        # 查看容器状态
+docker compose logs -f backend   # 查看后端日志
+docker compose restart backend   # 重启后端
+docker compose down      # 停止并删除容器（数据卷保留）
+docker compose down -v   # 停止并删除容器与数据卷（全部清空）
+```
+
+#### 4. 注意事项
+
+- **端口占用**：本机 3306/6379/9200/8080/3000 被占用时，可在 `.env` 中调整 `MYSQL_PORT` / `REDIS_PORT` / `VUE_PORT` 等映射。
+- **Linux 主机**：启动 Elasticsearch 前需提高系统内存映射上限：
+
+  ```bash
+  sudo sysctl -w vm.max_map_count=262144
+  ```
+
+- **Elasticsearch 安全**：演示环境关闭了 `xpack.security`（`docker-compose.yml` 中 `xpack.security.enabled=false`）；生产部署请开启认证并配置 `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD`。
+- **密钥安全**：`.env` 已被 `.gitignore` 忽略，禁止提交；`docker-compose.yml` 中的中间件密码与 JWT 密钥为演示默认值，生产环境必须通过 `.env` 覆盖。
 
 ---
 
@@ -279,7 +334,12 @@ ai-learning-planner/
 │   ├── UI设计.html                # UI 设计稿
 │   └── 功能架构设计.html           # 功能架构图
 │
+├── docker-compose.yml             # Docker Compose 编排（MySQL/Redis/ES/后端/前端）
+├── .env.example                   # Docker 环境变量模板
+├── springboot/Dockerfile          # 后端镜像（Maven 多阶段构建）
 ├── springboot/.env.example        # 环境变量模板
+├── vue/Dockerfile                 # 前端镜像（Node 构建 + Nginx）
+├── vue/nginx.conf                 # 前端 Nginx 配置（/api 反向代理 + SSE）
 ├── CHANGELOG.md                   # 版本变更日志
 └── LICENSE                        # 开源协议
 ```
