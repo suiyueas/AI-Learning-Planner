@@ -358,7 +358,6 @@ ai-learning-planner/
 ├── springboot/.env.example        # 环境变量模板
 ├── vue/Dockerfile                 # 前端镜像（Node 构建 + Nginx）
 ├── vue/nginx.conf                 # 前端 Nginx 配置（/api 反向代理 + SSE）
-├── CHANGELOG.md                   # 版本变更日志
 └── LICENSE                        # 开源协议
 ```
 
@@ -372,7 +371,6 @@ ai-learning-planner/
 - [高级推理与 MCP 升级](docs/advanced_reasoning_and_mcp_upgrade.md)
 - [UI 设计稿](docs/UI设计.html)
 - [功能架构设计](docs/功能架构设计.html)
-- [版本变更日志](CHANGELOG.md)
 - [API 接口文档](http://localhost:8080/api/swagger-ui.html) (启动后访问)
 
 ---
