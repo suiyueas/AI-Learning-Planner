@@ -445,8 +445,8 @@ app:
     retry-initial-delay-ms: 500
     retry-multiplier: 2.0
     retry-max-attempts: 3
-    read-timeout-ms: 15000
-    write-timeout-ms: 30000
+    read-timeout-ms: 3000
+    write-timeout-ms: 8000
     hitl-default-timeout-ms: 120000
 ```
 

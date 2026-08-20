@@ -11,10 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class McpTimeoutPolicy {
 
     /** 默认读超时 */
-    public static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(15);
+    public static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(3);
 
     /** 默认写超时 */
-    public static final Duration DEFAULT_WRITE_TIMEOUT = Duration.ofSeconds(30);
+    public static final Duration DEFAULT_WRITE_TIMEOUT = Duration.ofSeconds(8);
 
     /** 写操作工具名前缀（exec/write/delete/update/create/save） */
     private static final String[] WRITE_PREFIXES = {"exec", "write", "delete", "update", "create", "save", "remove", "insert"};

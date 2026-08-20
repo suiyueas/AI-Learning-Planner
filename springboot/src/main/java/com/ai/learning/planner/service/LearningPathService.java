@@ -85,13 +85,21 @@ public class LearningPathService {
 
     /**
      * 更新学习路径（先校验归属；保留原 userId 与 createdAt，防止被篡改或覆盖丢失）
+     * 乐观锁：客户端提交的版本号须与数据库当前版本一致（CAS 比对），
+     * 不一致说明路径已被其他操作并发修改，直接拒绝本次覆盖，防止并发更新互相覆盖丢失。
      */
     public LearningPath updatePath(LearningPath path, String userId) {
         LearningPath existing = requireOwnedPath(path.getId(), userId);
+        Integer incomingVersion = path.getVersion();
+        Integer currentVersion = existing.getVersion();
+        if (incomingVersion != null && currentVersion != null && !incomingVersion.equals(currentVersion)) {
+            throw new BusinessException(
+                    "学习路径已被其他操作更新（当前版本 v" + currentVersion + "），请刷新后重试");
+        }
         path.setUserId(existing.getUserId());
         path.setCreatedAt(existing.getCreatedAt());
         path.setUpdatedAt(LocalDateTime.now());
-        path.setVersion(path.getVersion() != null ? path.getVersion() + 1 : 1);
+        path.setVersion(currentVersion != null ? currentVersion + 1 : 1);
         return learningPathRepository.save(path);
     }
 

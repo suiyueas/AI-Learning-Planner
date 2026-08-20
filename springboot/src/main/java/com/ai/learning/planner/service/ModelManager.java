@@ -1,5 +1,6 @@
 package com.ai.learning.planner.service;
 
+import com.ai.learning.planner.config.FailoverChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -13,13 +14,25 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 模型管理器
- * 管理所有 ChatModel 实例，支持动态切换和按名称路由
+ * 管理所有 ChatModel 实例，支持动态切换和按名称路由；
+ * 默认启用多模型故障转移（FailoverChatModel：DeepSeek → Qwen → MiMo），
+ * 主模型 API Key 失效/调用异常时自动降级到下一个可用模型，服务不中断。
  */
 @Service
 @Slf4j
 public class ModelManager {
 
+    /** 故障转移模型 Bean key */
+    public static final String FAILOVER_MODEL_KEY = "failoverChatModel";
+
+    /** 故障转移模型前端短名称 */
+    public static final String FAILOVER_SHORT_NAME = "auto";
+
     private final Map<String, ChatModel> modelMap;
+
+    /** 多模型故障转移（主 → 备用按序降级），不足两个模型时为 null */
+    private final ChatModel failoverModel;
+
     private final AtomicReference<String> currentModelKey = new AtomicReference<>("deepSeekChatModel");
 
     /**
@@ -27,22 +40,33 @@ public class ModelManager {
      */
     public ModelManager(Map<String, ChatModel> modelMap) {
         this.modelMap = new ConcurrentHashMap<>(modelMap);
-        
+
         // 检查是否有可用的模型
         if (this.modelMap.isEmpty()) {
             log.error("没有可用的 ChatModel Bean！请检查 MultiModelConfig 配置。");
             throw new IllegalStateException("没有可用的 ChatModel Bean，请检查 MultiModelConfig 是否正确初始化。");
         }
 
-        // 设置默认模型（优先 deepSeekChatModel）
-        if (this.modelMap.containsKey("deepSeekChatModel")) {
+        // 构建故障转移链（DeepSeek → Qwen → MiMo 优先级），仅存在多个模型时启用
+        List<ChatModel> ordered = new ArrayList<>(3);
+        for (String beanName : new String[]{"deepSeekChatModel", "qwenChatModel", "miMoChatModel"}) {
+            ChatModel model = this.modelMap.get(beanName);
+            if (model != null) ordered.add(model);
+        }
+        this.failoverModel = ordered.size() >= 2 ? new FailoverChatModel(ordered) : null;
+
+        // 默认模型：优先故障转移（多模型高可用），否则 DeepSeek，再否则任意可用模型
+        if (this.failoverModel != null) {
+            currentModelKey.set(FAILOVER_MODEL_KEY);
+        } else if (this.modelMap.containsKey("deepSeekChatModel")) {
             currentModelKey.set("deepSeekChatModel");
         } else {
             currentModelKey.set(this.modelMap.keySet().iterator().next());
         }
 
-        log.info("✅ ModelManager 初始化完成，可用模型: {} (默认: {})",
-                this.modelMap.keySet(), currentModelKey.get());
+        log.info("✅ ModelManager 初始化完成，可用模型: {} (默认: {}{})",
+                this.modelMap.keySet(), currentModelKey.get(),
+                this.failoverModel != null ? "，已启用多模型故障转移降级" : "");
     }
 
     /**
@@ -53,9 +77,17 @@ public class ModelManager {
     }
 
     /**
-     * 根据 key 获取模型，同时支持 Bean 名称和短名称
+     * 根据 key 获取模型，同时支持 Bean 名称和短名称；故障转移模式返回 FailoverChatModel
      */
     public ChatModel getModel(String key) {
+        // 0. 故障转移模式（Bean 名或短名称 auto）
+        if (failoverModel != null) {
+            String bean = toBeanName(key);
+            if (FAILOVER_MODEL_KEY.equals(key) || FAILOVER_MODEL_KEY.equals(bean)) {
+                return failoverModel;
+            }
+        }
+
         // 1. 直接按 key 查询
         ChatModel model = modelMap.get(key);
         if (model != null) return model;
@@ -67,15 +99,20 @@ public class ModelManager {
             if (model != null) return model;
         }
 
-        // 3. 降级到默认
+        // 3. 降级到默认（故障转移优先，保证应用始终可用）
         log.warn("模型 {} 不存在（短名称: {}），降级到默认模型: {}", key, beanName, currentModelKey.get());
-        return modelMap.get(currentModelKey.get());
+        return failoverModel != null ? failoverModel : modelMap.get(currentModelKey.get());
     }
 
     /**
      * 切换当前模型
      */
     public String switchModel(String modelKey) {
+        if (FAILOVER_MODEL_KEY.equals(modelKey)) {
+            currentModelKey.set(modelKey);
+            log.info("已切换到自动降级模式（多模型故障转移）");
+            return modelKey;
+        }
         if (!modelMap.containsKey(modelKey)) {
             throw new IllegalArgumentException("不支持的模型: " + modelKey + "，可用模型: " + modelMap.keySet());
         }
@@ -113,10 +150,12 @@ public class ModelManager {
     }
 
     /**
-     * 获取可用模型列表（返回 Bean 名称）
+     * 获取可用模型列表（返回 Bean 名称，排除故障转移聚合模型）
      */
     public List<String> getAvailableModelKeys() {
-        return new ArrayList<>(modelMap.keySet());
+        List<String> keys = new ArrayList<>(modelMap.keySet());
+        keys.remove(FAILOVER_MODEL_KEY);
+        return keys;
     }
 
     /**
@@ -127,6 +166,7 @@ public class ModelManager {
             case "qwenChatModel" -> "Qwen-Max（阿里云）";
             case "deepSeekChatModel" -> "DeepSeek-V4-Flash";
             case "miMoChatModel" -> "小米 MiMo-V2.5-Pro";
+            case FAILOVER_MODEL_KEY -> "自动降级（多模型）";
             default -> key;
         };
     }
@@ -143,6 +183,9 @@ public class ModelManager {
      */
     public String getModelName(ChatModel model) {
         try {
+            if (model instanceof FailoverChatModel failover) {
+                return failover.getPrimaryModelName();
+            }
             if (model instanceof org.springframework.ai.openai.OpenAiChatModel openAiModel) {
                 return openAiModel.getDefaultOptions().getModel();
             }
@@ -160,6 +203,7 @@ public class ModelManager {
             case "qwenChatModel" -> "qwen";
             case "deepSeekChatModel" -> "deepseek";
             case "miMoChatModel" -> "xiaomi";
+            case FAILOVER_MODEL_KEY -> FAILOVER_SHORT_NAME;
             default -> beanName;
         };
     }
@@ -172,6 +216,7 @@ public class ModelManager {
             case "qwen" -> "qwenChatModel";
             case "deepseek" -> "deepSeekChatModel";
             case "xiaomi", "mimo" -> "miMoChatModel";
+            case FAILOVER_SHORT_NAME -> FAILOVER_MODEL_KEY;
             default -> shortName;
         };
     }

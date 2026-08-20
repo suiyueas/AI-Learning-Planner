@@ -136,4 +136,18 @@ class LearningPathServiceTest {
 
         assertEquals(1, updated.getVersion());
     }
+
+    @Test
+    void updatePath_versionMismatch_throwsConflict() {
+        // 乐观锁：数据库当前版本 v2，客户端提交 v1 → 并发冲突拒绝覆盖
+        LearningPath existing = LearningPath.builder().id("path-1").userId("user-1").version(2).isActive(true).build();
+        when(learningPathRepository.findById("path-1")).thenReturn(Optional.of(existing));
+
+        LearningPath path = LearningPath.builder()
+                .id("path-1").version(1).isActive(true).build();
+
+        assertThrows(com.ai.learning.planner.exception.BusinessException.class,
+                () -> learningPathService.updatePath(path, "user-1"));
+        verify(learningPathRepository, never()).save(any(LearningPath.class));
+    }
 }

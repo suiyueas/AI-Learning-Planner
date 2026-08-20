@@ -159,8 +159,8 @@ app:
     retry-initial-delay-ms: 500   # 指数退避初始延迟
     retry-multiplier: 2.0         # 退避倍数
     retry-max-attempts: 3         # 最大重试次数
-    read-timeout-ms: 15000        # 读超时（毫秒）
-    write-timeout-ms: 30000       # 写超时（毫秒），读超时 < 写超时
+    read-timeout-ms: 3000         # 读超时（毫秒）
+    write-timeout-ms: 8000        # 写超时（毫秒），读超时 < 写超时
     hitl-default-timeout-ms: 120000 # 人工审批默认等待超时
 
     # ===== AI 赋能工具层（文档摘要/知识点提取/测验题/翻译/学习助手） =====
