@@ -117,6 +117,13 @@ public class KnowledgeService {
             } else if (title == null && docTitle != null) {
                 doc.getMetadata().put("title", docTitle);
             }
+            // 标注向量检索来源，与 mysql_fallback 路径对称
+            if (!doc.getMetadata().containsKey("source")) {
+                doc.getMetadata().put("source", "vector_search");
+            }
+            if (!doc.getMetadata().containsKey("searchMode")) {
+                doc.getMetadata().put("searchMode", "vector");
+            }
         }
         return results;
     }

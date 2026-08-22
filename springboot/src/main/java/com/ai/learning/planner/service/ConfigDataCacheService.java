@@ -2,6 +2,8 @@ package com.ai.learning.planner.service;
 
 import com.ai.learning.planner.entity.KnowledgeDocument;
 import com.ai.learning.planner.entity.KnowledgeNode;
+import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
+import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 public class ConfigDataCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final KnowledgeNodeRepository knowledgeNodeRepository;
+    private final KnowledgeDocumentRepository knowledgeDocumentRepository;
 
 
     private static final String PREFIX = "cache:config:";
@@ -104,7 +108,16 @@ public class ConfigDataCacheService {
      */
     @SuppressWarnings("unchecked")
     public Optional<List<KnowledgeNode>> getCachedKnowledgeNodes() {
-        if (!isRedisAvailable()) return Optional.empty();
+        if (!isRedisAvailable()) {
+            log.warn("[Cache] Redis不可用，降级到MySQL查询知识节点");
+            try {
+                List<KnowledgeNode> nodes = knowledgeNodeRepository.findAll();
+                return Optional.of(nodes);
+            } catch (Exception e) {
+                log.error("[Cache] MySQL降级查询知识节点失败: {}", e.getMessage());
+                return Optional.empty();
+            }
+        }
         try {
             Object cached = redisTemplate.opsForValue().get(KNOWLEDGE_NODES_KEY);
             if (cached != null) {
@@ -138,7 +151,16 @@ public class ConfigDataCacheService {
      */
     @SuppressWarnings("unchecked")
     public Optional<List<KnowledgeDocument>> getCachedKnowledgeDocuments() {
-        if (!isRedisAvailable()) return Optional.empty();
+        if (!isRedisAvailable()) {
+            log.warn("[Cache] Redis不可用，降级到MySQL查询知识文档");
+            try {
+                List<KnowledgeDocument> docs = knowledgeDocumentRepository.findAll();
+                return Optional.of(docs);
+            } catch (Exception e) {
+                log.error("[Cache] MySQL降级查询知识文档失败: {}", e.getMessage());
+                return Optional.empty();
+            }
+        }
         try {
             Object cached = redisTemplate.opsForValue().get(KNOWLEDGE_DOCS_KEY);
             if (cached != null) {

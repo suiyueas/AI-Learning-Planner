@@ -36,7 +36,7 @@ public class Orchestrator {
             ModelManager modelManager,
             AgentService agentService,
             DiagnosisAgent diagnosisAgent,
-            PlanningAgent planningAgent,
+            AdvancedPlanningAgent advancedPlanningAgent,
             QAAgent qaAgent,
             ReportAgent reportAgent,
             InterventionAgent interventionAgent,
@@ -46,10 +46,10 @@ public class Orchestrator {
         this.modelManager = modelManager;
         this.agentService = agentService;
 
-        // 注册所有子Agent（暂存到列表，最后统一汇总日志）
+        // 注册所有子Agent（高级规划Agent替代原PlanningAgent，启用完整推理闭环）
         List<BaseAgent> agentsToRegister = List.of(
                 diagnosisAgent,
-                planningAgent,
+                advancedPlanningAgent,
                 qaAgent,
                 reportAgent,
                 interventionAgent,

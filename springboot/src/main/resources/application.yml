@@ -122,12 +122,12 @@ spring:
       api-key: ${MIMO_API_KEY:}
       base-url: ${MIMO_BASE_URL:https://api.xiaomimimo.com/v1}
 
-    # MCP 服务端配置
-    mcp:
-      server:
-        enabled: true
-        name: learning-planner-mcp
-        version: 1.0.0
+    # MCP 服务端配置（TODO: 当前仅声明配置，服务端实现待完成；面试时不要声称已实现 MCP Server）
+    # mcp:
+    #   server:
+    #     enabled: true
+    #     name: learning-planner-mcp
+    #     version: 1.0.0
 
 
 # 应用配置

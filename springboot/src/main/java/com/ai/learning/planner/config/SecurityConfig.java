@@ -69,6 +69,9 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // MCP 健康检查
                         .requestMatchers("/mcp/**").permitAll()
+                        // 推理链监控 + Agent 协作 API（开发/演示用）
+                        .requestMatchers("/api/reasoning/**").permitAll()
+                        .requestMatchers("/api/agents/collaborate/**").permitAll()
                         // 其他接口需要认证（含知识库、工具管理、用户数据等）
                         .anyRequest().authenticated()
                 )

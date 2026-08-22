@@ -154,6 +154,7 @@ public class AdvancedReasoningAgent extends ToolCallAgent {
 
     /**
      * 行动阶段：通过 EnhancedMcpClient 执行工具（超时/重试/降级/HITL）
+     * 多个工具调用时使用 batchCall 并行执行，提升吞吐
      */
     @Override
     public String act(String thought) {
@@ -161,37 +162,47 @@ public class AdvancedReasoningAgent extends ToolCallAgent {
             return thought;
         }
         Matcher matcher = TOOL_CALL_PATTERN.matcher(thought);
-        StringBuilder result = new StringBuilder();
-        int matched = 0;
+        List<EnhancedMcpClient.FunctionCall> calls = new ArrayList<>();
 
         while (matcher.find()) {
-            matched++;
             String toolName = matcher.group(1);
             Map<String, Object> args = parseArgs(matcher.group(2));
-            log.info("[{}] 调用工具: {}，参数: {}", name, toolName, args);
+            calls.add(new EnhancedMcpClient.FunctionCall(toolName, args));
+        }
 
-            long start = System.currentTimeMillis();
-            var callResult = mcpClient.call(toolName, args);
-            long duration = System.currentTimeMillis() - start;
-            if (monitor != null) monitor.recordToolDuration(duration);
+        if (calls.isEmpty()) {
+            return thought;
+        }
 
-            // 监控：失败/降级
-            if (!callResult.success()) {
+        log.info("[{}] 批量调用 {} 个工具", name, calls.size());
+
+        // 多工具并行调用（batchCall 内部使用虚拟线程池）
+        long batchStart = System.currentTimeMillis();
+        List<EnhancedMcpClient.McpCallResult> results = calls.size() == 1
+                ? List.of(mcpClient.call(calls.get(0).name(), calls.get(0).args()))
+                : mcpClient.batchCall(calls);
+        long batchDuration = System.currentTimeMillis() - batchStart;
+        if (monitor != null) monitor.recordToolDuration(batchDuration);
+
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < results.size(); i++) {
+            EnhancedMcpClient.McpCallResult r = results.get(i);
+            EnhancedMcpClient.FunctionCall c = calls.get(i);
+            log.info("[{}] 工具 {} 结果: success={}, fallback={}", name, c.name(), r.success(), r.fallback());
+
+            if (!r.success()) {
                 if (monitor != null) monitor.recordToolFailure();
-                result.append(FAILURE_PREFIX).append(toolName).append(": ")
-                        .append(callResult.error() == null ? "未知错误" : callResult.error()).append('\n');
+                output.append(FAILURE_PREFIX).append(c.name()).append(": ")
+                        .append(r.error() == null ? "未知错误" : r.error()).append('\n');
             } else {
-                if (callResult.fallback() && monitor != null) {
+                if (r.fallback() && monitor != null) {
                     monitor.recordToolFallback();
                 }
-                result.append(callResult.result()).append('\n');
+                output.append(r.result()).append('\n');
             }
         }
 
-        if (matched == 0) {
-            return thought;
-        }
-        return result.toString().trim();
+        return output.toString().trim();
     }
 
     /**

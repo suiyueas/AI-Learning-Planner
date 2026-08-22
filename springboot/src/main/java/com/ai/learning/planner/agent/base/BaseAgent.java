@@ -267,4 +267,24 @@ public abstract class BaseAgent {
      * 获取可用工具列表
      */
     public abstract List<String> getAvailableTools();
+
+    /**
+     * Agent 间委托调用：当前 Agent 可以将子任务委托给另一个 Agent 执行
+     * 子类可重写以实现更复杂的协作逻辑（如并行委托、结果合并等）
+     *
+     * @param targetAgent 目标 Agent
+     * @param subTask     子任务描述
+     * @return 目标 Agent 的执行结果
+     */
+    public String delegateTo(BaseAgent targetAgent, String subTask) {
+        log.info("[{}] 委托子任务给 {}: {}", this.name, targetAgent.getName(), subTask);
+        pushEvent("delegate", Map.of(
+                "from", this.name,
+                "to", targetAgent.getName(),
+                "subTask", subTask
+        ));
+        String result = targetAgent.run(subTask);
+        addMessage("delegate", "委托 " + targetAgent.getName() + " 执行: " + subTask + " -> " + result);
+        return result;
+    }
 }

@@ -19,8 +19,29 @@ public class McpTimeoutPolicy {
     /** 写操作工具名前缀（exec/write/delete/update/create/save） */
     private static final String[] WRITE_PREFIXES = {"exec", "write", "delete", "update", "create", "save", "remove", "insert"};
 
+    /** 实际读超时（可由配置注入） */
+    private final Duration readTimeout;
+
+    /** 实际写超时（可由配置注入） */
+    private final Duration writeTimeout;
+
     /** 工具级自定义超时（name -> [readTimeoutMs, writeTimeoutMs]） */
     private final Map<String, long[]> toolTimeouts = new ConcurrentHashMap<>();
+
+    public McpTimeoutPolicy() {
+        this(DEFAULT_READ_TIMEOUT, DEFAULT_WRITE_TIMEOUT);
+    }
+
+    /**
+     * 支持配置注入的构造函数
+     *
+     * @param readTimeout  读超时（从 app.mcp.read-timeout-ms 读取）
+     * @param writeTimeout 写超时（从 app.mcp.write-timeout-ms 读取）
+     */
+    public McpTimeoutPolicy(Duration readTimeout, Duration writeTimeout) {
+        this.readTimeout = readTimeout;
+        this.writeTimeout = writeTimeout;
+    }
 
     /**
      * 为指定工具配置自定义超时
@@ -42,7 +63,7 @@ public class McpTimeoutPolicy {
     public long readTimeoutMs(String toolName) {
         long[] t = toolTimeouts.get(toolName);
         if (t != null) return t[0];
-        return isWriteTool(toolName) ? DEFAULT_READ_TIMEOUT.toMillis() : DEFAULT_READ_TIMEOUT.toMillis();
+        return readTimeout.toMillis();
     }
 
     /**
@@ -51,7 +72,7 @@ public class McpTimeoutPolicy {
     public long writeTimeoutMs(String toolName) {
         long[] t = toolTimeouts.get(toolName);
         if (t != null) return t[1];
-        return isWriteTool(toolName) ? DEFAULT_WRITE_TIMEOUT.toMillis() : DEFAULT_READ_TIMEOUT.toMillis();
+        return writeTimeout.toMillis();
     }
 
     /**
