@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="weakness-page">
     <!-- 顶部导航栏 -->
     <header class="detail-header">
@@ -262,9 +262,10 @@ const viewFullPath = () => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .weakness-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -274,9 +275,9 @@ const viewFullPath = () => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -293,19 +294,19 @@ const viewFullPath = () => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -314,7 +315,7 @@ const viewFullPath = () => {
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -327,9 +328,9 @@ const viewFullPath = () => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -339,8 +340,8 @@ const viewFullPath = () => {
 
 .btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 /* ===== 内容区 ===== */
@@ -373,28 +374,28 @@ const viewFullPath = () => {
 .intro-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
 .intro-desc {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.6;
 }
 
 /* 薄弱点卡片 */
 .weakness-card {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
   transition: all 0.3s ease;
   animation: fadeInUp 0.5s ease both;
 
   &:hover {
-    border-color: rgba(0, 229, 255, 0.15);
+    border-color: rgba($accent-primary, 0.15);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
@@ -428,7 +429,7 @@ const viewFullPath = () => {
 .weakness-name {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .weakness-badge {
@@ -485,7 +486,7 @@ const viewFullPath = () => {
 
 .score-label {
   font-size: 0.75rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 /* 进度条 */
@@ -499,7 +500,7 @@ const viewFullPath = () => {
 .progress-track {
   flex: 1;
   height: 6px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -518,7 +519,7 @@ const viewFullPath = () => {
   font-size: 0.85rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
-  color: #94A3B8;
+  color: $text-secondary;
   min-width: 40px;
   text-align: right;
 
@@ -535,7 +536,7 @@ const viewFullPath = () => {
 .block-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #00E5FF;
+  color: $accent-primary;
   margin-bottom: 10px;
 }
 
@@ -576,15 +577,15 @@ const viewFullPath = () => {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   margin-bottom: 8px;
   transition: all 0.25s ease;
 
   &:hover {
-    border-color: rgba(0, 229, 255, 0.15);
-    background: rgba(0, 229, 255, 0.03);
+    border-color: rgba($accent-primary, 0.15);
+    background: rgba($accent-primary, 0.03);
   }
 }
 
@@ -608,7 +609,7 @@ const viewFullPath = () => {
 
 .resource-duration {
   font-size: 0.78rem;
-  color: #00E5FF;
+  color: $accent-primary;
   white-space: nowrap;
 }
 
@@ -618,7 +619,7 @@ const viewFullPath = () => {
   align-items: center;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 100, 180, 0.08);
+  border-top: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .btn-start {
@@ -626,10 +627,10 @@ const viewFullPath = () => {
   align-items: center;
   gap: 8px;
   padding: 10px 22px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -637,8 +638,8 @@ const viewFullPath = () => {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-    border-color: rgba(0, 229, 255, 0.4);
+    box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+    border-color: rgba($accent-primary, 0.4);
 
     svg:last-child { transform: translateX(4px); }
   }
@@ -652,9 +653,9 @@ const viewFullPath = () => {
   gap: 8px;
   padding: 10px 22px;
   background: transparent;
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 10px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -674,9 +675,9 @@ const viewFullPath = () => {
 
 /* 学习建议 */
 .advice-card {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
   animation: fadeInUp 0.5s ease 0.4s both;
@@ -688,7 +689,7 @@ const viewFullPath = () => {
   gap: 8px;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 14px;
 
   svg { color: #F59E0B; }
@@ -702,7 +703,7 @@ const viewFullPath = () => {
 }
 
 .advice-strong {
-  color: #00E5FF;
+  color: $accent-primary;
   font-weight: 600;
 }
 
@@ -717,8 +718,8 @@ const viewFullPath = () => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
 }
 
@@ -728,8 +729,8 @@ const viewFullPath = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 229, 255, 0.1);
-  color: #00E5FF;
+  background: rgba($accent-primary, 0.1);
+  color: $accent-primary;
   border-radius: 50%;
   font-size: 0.8rem;
   font-weight: 700;
@@ -745,12 +746,12 @@ const viewFullPath = () => {
 .advice-name {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .advice-course {
   font-size: 0.8rem;
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 /* 底部操作 */
@@ -768,29 +769,29 @@ const viewFullPath = () => {
   gap: 8px;
   padding: 12px 28px;
   background: transparent;
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 10px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba(0, 229, 255, 0.25);
-    color: #00E5FF;
-    background: rgba(0, 229, 255, 0.04);
+    border-color: rgba($accent-primary, 0.25);
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.04);
   }
 
   &.primary {
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-    border-color: rgba(0, 229, 255, 0.25);
-    color: #00E5FF;
+    background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+    border-color: rgba($accent-primary, 0.25);
+    color: $accent-primary;
     font-weight: 600;
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+      box-shadow: 0 0 24px rgba($accent-primary, 0.15);
     }
   }
 }

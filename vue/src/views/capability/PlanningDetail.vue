@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="detail-page">
     <!-- 顶部导航栏 -->
     <header class="detail-header">
@@ -766,9 +766,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .detail-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -777,9 +778,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -796,19 +797,19 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -817,12 +818,12 @@ onMounted(async () => {
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .header-icon {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .btn-action {
@@ -830,9 +831,9 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -842,8 +843,8 @@ onMounted(async () => {
 
 .btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 .detail-content {
@@ -856,16 +857,16 @@ onMounted(async () => {
 }
 
 .info-section {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
   transition: all 0.3s ease;
 }
 
 .info-section:hover {
-  border-color: rgba(0, 229, 255, 0.15);
+  border-color: rgba($accent-primary, 0.15);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -875,14 +876,14 @@ onMounted(async () => {
   gap: 8px;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .section-label svg {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 /* 计划信息 */
@@ -901,19 +902,19 @@ onMounted(async () => {
 
 .plan-info-label {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   min-width: 80px;
   flex-shrink: 0;
 }
 
 .plan-info-value {
   font-size: 0.95rem;
-  color: #F1F5F9;
+  color: $text-primary;
   font-weight: 500;
 }
 
 .plan-info-value.date {
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
 }
 
@@ -928,14 +929,14 @@ onMounted(async () => {
   flex: 1;
   max-width: 200px;
   height: 8px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .plan-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #10B981);
+  background: linear-gradient(90deg, $accent-primary, #10B981);
   border-radius: 4px;
   transition: width 1s ease;
 }
@@ -964,14 +965,14 @@ onMounted(async () => {
   left: 0;
   right: 0;
   height: 3px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 2px;
   transform: translateY(-50%);
 }
 
 .timeline-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #0055FF);
+  background: linear-gradient(90deg, $accent-primary, #0055FF);
   border-radius: 2px;
   transition: width 1s ease;
 }
@@ -1004,14 +1005,14 @@ onMounted(async () => {
 }
 
 .timeline-dot.active {
-  background: rgba(0, 229, 255, 0.2);
-  border: 2px solid #00E5FF;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  background: rgba($accent-primary, 0.2);
+  border: 2px solid $accent-primary;
+  box-shadow: 0 0 12px rgba($accent-primary, 0.3);
 }
 
 .timeline-dot.future {
-  background: rgba(100, 100, 180, 0.06);
-  border: 2px solid rgba(100, 100, 180, 0.2);
+  background: rgba($accent-secondary, 0.06);
+  border: 2px solid rgba($accent-secondary, 0.2);
 }
 
 .dot-inner {
@@ -1022,8 +1023,8 @@ onMounted(async () => {
 }
 
 .timeline-dot.completed .dot-inner { background: #10B981; }
-.timeline-dot.active .dot-inner { background: #00E5FF; }
-.timeline-dot.future .dot-inner { background: rgba(100, 100, 180, 0.3); }
+.timeline-dot.active .dot-inner { background: $accent-primary; }
+.timeline-dot.future .dot-inner { background: rgba($accent-secondary, 0.3); }
 
 .timeline-labels {
   display: flex;
@@ -1039,7 +1040,7 @@ onMounted(async () => {
 
 .stage-name {
   font-size: 0.8rem;
-  color: #F1F5F9;
+  color: $text-primary;
   font-weight: 500;
 }
 
@@ -1056,13 +1057,13 @@ onMounted(async () => {
 }
 
 .stage-status.active {
-  color: #00E5FF;
-  background: rgba(0, 229, 255, 0.1);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.1);
 }
 
 .stage-status.future {
-  color: #94A3B8;
-  background: rgba(100, 100, 180, 0.08);
+  color: $text-secondary;
+  background: rgba($accent-secondary, 0.08);
 }
 
 /* 阶段详情 */
@@ -1076,14 +1077,14 @@ onMounted(async () => {
 .stage-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .stage-period {
   font-size: 0.85rem;
-  color: #00E5FF;
+  color: $accent-primary;
   padding: 4px 12px;
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba($accent-primary, 0.08);
   border-radius: 20px;
 }
 
@@ -1095,21 +1096,21 @@ onMounted(async () => {
 
 .stage-metric {
   padding: 16px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
 }
 
 .stage-metric .metric-label {
   display: block;
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin-bottom: 8px;
 }
 
 .stage-metric .metric-value {
   font-size: 0.95rem;
-  color: #F1F5F9;
+  color: $text-primary;
   font-weight: 500;
 }
 
@@ -1122,14 +1123,14 @@ onMounted(async () => {
 .metric-progress-track {
   flex: 1;
   height: 6px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .metric-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #10B981);
+  background: linear-gradient(90deg, $accent-primary, #10B981);
   border-radius: 3px;
   transition: width 1s ease;
 }
@@ -1157,7 +1158,7 @@ onMounted(async () => {
   top: 8px;
   bottom: 8px;
   width: 1px;
-  background: rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.12);
 }
 
 .adjust-item {
@@ -1170,8 +1171,8 @@ onMounted(async () => {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: rgba(0, 229, 255, 0.15);
-  border: 2px solid #00E5FF;
+  background: rgba($accent-primary, 0.15);
+  border: 2px solid $accent-primary;
   flex-shrink: 0;
   margin-top: 3px;
   position: relative;
@@ -1186,13 +1187,13 @@ onMounted(async () => {
 
 .adjust-date {
   font-size: 0.8rem;
-  color: #00E5FF;
+  color: $accent-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .adjust-desc {
   font-size: 0.9rem;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .link-btn {
@@ -1200,10 +1201,10 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -1211,8 +1212,8 @@ onMounted(async () => {
 }
 
 .link-btn:hover {
-  background: rgba(0, 229, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.25);
+  background: rgba($accent-primary, 0.1);
+  border-color: rgba($accent-primary, 0.25);
   transform: translateY(-1px);
 }
 
@@ -1234,13 +1235,13 @@ onMounted(async () => {
 .guidance-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0 0 12px 0;
 }
 
 .guidance-desc {
   font-size: 0.95rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin: 0;
   line-height: 1.6;
 }
@@ -1257,8 +1258,8 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
 }
 
@@ -1268,10 +1269,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 50%;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.9rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -1284,13 +1285,13 @@ onMounted(async () => {
 .step-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
 .step-desc {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin: 0;
 }
 
@@ -1302,33 +1303,33 @@ onMounted(async () => {
 .sample-card {
   position: relative;
   padding: 20px 24px;
-  background: rgba(0, 229, 255, 0.04);
-  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.04);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 12px;
 }
 
 .sample-badge {
   display: inline-block;
   padding: 4px 10px;
-  background: rgba(0, 229, 255, 0.1);
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba($accent-primary, 0.1);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 20px;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #00E5FF;
+  color: $accent-primary;
   margin-bottom: 12px;
 }
 
 .sample-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0 0 10px 0;
 }
 
 .sample-reason {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.6;
   margin: 0 0 14px 0;
 }
@@ -1357,17 +1358,17 @@ onMounted(async () => {
 
 .sample-time {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .sample-btn {
   display: inline-flex;
   align-items: center;
   padding: 10px 20px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -1375,16 +1376,16 @@ onMounted(async () => {
 }
 
 .sample-btn:hover {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 85, 255, 0.2));
+  background: linear-gradient(135deg, rgba($accent-primary, 0.25), rgba(0, 85, 255, 0.2));
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 229, 255, 0.15);
+  box-shadow: 0 8px 20px rgba($accent-primary, 0.15);
 }
 
 /* ===== 当前位置卡片 ===== */
 .current-position-card {
   padding: 24px 28px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(16, 185, 129, 0.04));
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.06), rgba(16, 185, 129, 0.04));
+  border: 1px solid rgba($accent-primary, 0.15);
 }
 
 .current-header {
@@ -1400,9 +1401,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 229, 255, 0.1);
+  background: rgba($accent-primary, 0.1);
   border-radius: 10px;
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .current-info {
@@ -1413,25 +1414,25 @@ onMounted(async () => {
 
 .current-label {
   font-size: 0.72rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-weight: 500;
 }
 
 .current-value {
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .current-next {
   padding: 10px 14px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border-radius: 8px;
 }
 
 .next-label {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .next-value {
@@ -1468,7 +1469,7 @@ onMounted(async () => {
 .recommendation-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .recommendation-content {
@@ -1478,13 +1479,13 @@ onMounted(async () => {
 .recommendation-task {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0 0 10px 0;
 }
 
 .recommendation-reason {
   font-size: 0.88rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.6;
   margin: 0 0 14px 0;
 }
@@ -1513,11 +1514,11 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .meta-item svg {
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .recommendation-btn {
@@ -1566,14 +1567,14 @@ onMounted(async () => {
 
 .bar-label {
   font-size: 0.78rem;
-  color: #94A3B8;
+  color: $text-secondary;
   min-width: 60px;
 }
 
 .bar-track {
   flex: 1;
   height: 8px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1584,11 +1585,11 @@ onMounted(async () => {
   transition: width 0.8s ease;
 
   &.planned {
-    background: linear-gradient(90deg, #94A3B8, #64748B);
+    background: linear-gradient(90deg, $text-secondary, $text-muted);
   }
 
   &.actual {
-    background: linear-gradient(90deg, #00E5FF, #10B981);
+    background: linear-gradient(90deg, $accent-primary, #10B981);
   }
 }
 
@@ -1596,7 +1597,7 @@ onMounted(async () => {
   font-size: 0.82rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
-  color: #F1F5F9;
+  color: $text-primary;
   min-width: 40px;
   text-align: right;
 }
@@ -1621,7 +1622,7 @@ onMounted(async () => {
 
 .ring-bg {
   fill: none;
-  stroke: rgba(100, 100, 180, 0.08);
+  stroke: rgba($accent-secondary, 0.08);
   stroke-width: 8;
 }
 
@@ -1632,24 +1633,24 @@ onMounted(async () => {
   transition: stroke-dashoffset 0.8s ease;
 
   &.planned {
-    stroke: #94A3B8;
+    stroke: $text-secondary;
   }
 
   &.actual {
-    stroke: #00E5FF;
+    stroke: $accent-primary;
   }
 }
 
 .ring-label {
   font-size: 0.72rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .ring-value {
   font-size: 0.95rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 @media (max-width: 768px) {
@@ -1683,14 +1684,14 @@ onMounted(async () => {
 .phase-progress-track {
   flex: 1;
   height: 6px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .phase-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7b61ff, #a855f7);
+  background: linear-gradient(90deg, $accent-purple, #a855f7);
   border-radius: 3px;
   transition: width 1s ease;
 }
@@ -1699,14 +1700,14 @@ onMounted(async () => {
   font-size: 0.85rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
-  color: #7b61ff;
+  color: $accent-purple;
   min-width: 45px;
   text-align: right;
 }
 
-.phase-progress-text.completed { color: #10b981; }
-.phase-progress-text.in_progress { color: #f59e0b; }
-.phase-progress-text.pending { color: #94A3B8; }
+.phase-progress-text.completed { color: $accent-emerald; }
+.phase-progress-text.in_progress { color: $accent-amber; }
+.phase-progress-text.pending { color: $text-secondary; }
 
 /* 周容器 */
 .weeks-container {
@@ -1717,8 +1718,8 @@ onMounted(async () => {
 }
 
 .week-section {
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
   padding: 16px;
 }
@@ -1733,19 +1734,19 @@ onMounted(async () => {
 .week-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e8e8ff;
+  color: $text-primary;
 }
 
 .week-progress {
   font-size: 0.8rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .week-progress-track {
   height: 4px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 14px;
@@ -1753,7 +1754,7 @@ onMounted(async () => {
 
 .week-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #10B981);
+  background: linear-gradient(90deg, $accent-primary, #10B981);
   border-radius: 2px;
   transition: width 1s ease;
 }
@@ -1770,15 +1771,15 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: rgba(17, 17, 39, 0.4);
-  border: 1px solid rgba(100, 100, 180, 0.06);
+  background: rgba($bg-primary, 0.4);
+  border: 1px solid rgba($accent-secondary, 0.06);
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .task-item:hover {
-  border-color: rgba(0, 245, 212, 0.12);
-  background: rgba(17, 17, 39, 0.6);
+  border-color: rgba($accent-primary, 0.12);
+  background: rgba($bg-primary, 0.6);
 }
 
 .task-status-icon {
@@ -1806,29 +1807,29 @@ onMounted(async () => {
 }
 
 .task-title.completed {
-  color: #10b981;
+  color: $accent-emerald;
   text-decoration: line-through;
 }
 
 .task-title.in_progress {
-  color: #f59e0b;
+  color: $accent-amber;
 }
 
 .task-title.pending {
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .task-meta {
   font-size: 0.75rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .task-complete-btn {
   padding: 6px 14px;
-  background: rgba(0, 245, 212, 0.08);
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 6px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
@@ -1837,8 +1838,8 @@ onMounted(async () => {
 }
 
 .task-complete-btn:hover:not(:disabled) {
-  background: rgba(0, 245, 212, 0.15);
-  border-color: rgba(0, 245, 212, 0.35);
+  background: rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.35);
   transform: translateY(-1px);
 }
 
@@ -1849,7 +1850,7 @@ onMounted(async () => {
 
 /* 整体进度条颜色（霓虹青） */
 .plan-progress-fill.overall {
-  background: linear-gradient(90deg, #00f5d4, #10b981);
+  background: linear-gradient(90deg, $accent-primary, $accent-emerald);
 }
 
 /* 空状态 */
@@ -1874,13 +1875,13 @@ onMounted(async () => {
 .empty-text {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 8px 0;
 }
 
 .empty-desc {
   font-size: 0.9rem;
-  color: #9090b8;
+  color: $text-muted;
   margin: 0;
 }
 
@@ -1891,9 +1892,9 @@ onMounted(async () => {
   gap: 8px;
   margin-top: 20px;
   padding: 12px 28px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -1903,8 +1904,8 @@ onMounted(async () => {
 
 .btn-generate:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 /* 骨架屏 */
@@ -1915,7 +1916,7 @@ onMounted(async () => {
 .skeleton-label {
   height: 18px;
   width: 120px;
-  background: rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.1);
   border-radius: 4px;
   margin-bottom: 20px;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
@@ -1927,7 +1928,7 @@ onMounted(async () => {
 
 .skeleton-line {
   height: 14px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 4px;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
@@ -1940,8 +1941,8 @@ onMounted(async () => {
 /* ===== 今日任务看板 ===== */
 .today-dashboard {
   padding: 24px 28px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(16, 185, 129, 0.04));
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.06), rgba(16, 185, 129, 0.04));
+  border: 1px solid rgba($accent-primary, 0.15);
 }
 
 .dashboard-header {
@@ -1964,13 +1965,13 @@ onMounted(async () => {
 .dashboard-title {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .dashboard-date {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-weight: 400;
 }
 
@@ -1979,10 +1980,10 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
-.summary-divider { color: rgba(100, 100, 180, 0.3); }
+.summary-divider { color: rgba($accent-secondary, 0.3); }
 
 .summary-item { font-weight: 500; }
 
@@ -1996,21 +1997,21 @@ onMounted(async () => {
 .dashboard-progress .progress-track {
   flex: 1;
   height: 6px;
-  background: rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.15);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .dashboard-progress .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #7C3AED);
+  background: linear-gradient(90deg, $accent-primary, #7C3AED);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .dashboard-progress .progress-text {
   font-size: 0.75rem;
-  color: #00E5FF;
+  color: $accent-primary;
   font-weight: 600;
   min-width: 36px;
 }
@@ -2019,17 +2020,17 @@ onMounted(async () => {
   margin-top: 10px;
   padding: 6px 12px;
   font-size: 0.75rem;
-  color: #00E5FF;
-  background: rgba(0, 229, 255, 0.1);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.1);
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-back-today:hover {
-  background: rgba(0, 229, 255, 0.2);
-  border-color: rgba(0, 229, 255, 0.4);
+  background: rgba($accent-primary, 0.2);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 /* 今日任务列表 */
@@ -2044,15 +2045,15 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 14px;
   padding: 16px 18px;
-  background: rgba(17, 17, 39, 0.5);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($bg-primary, 0.5);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
   transition: all 0.25s ease;
 }
 
 .task-card:hover {
-  border-color: rgba(0, 229, 255, 0.15);
-  background: rgba(17, 17, 39, 0.7);
+  border-color: rgba($accent-primary, 0.15);
+  background: rgba($bg-primary, 0.7);
 }
 
 .task-card.task-completed {
@@ -2074,7 +2075,7 @@ onMounted(async () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(100, 100, 180, 0.25);
+  border: 2px solid rgba($accent-secondary, 0.25);
   background: transparent;
   cursor: pointer;
   display: flex;
@@ -2120,7 +2121,7 @@ onMounted(async () => {
 
 .task-status-badge.status-pending {
   background: rgba(100, 116, 139, 0.15);
-  color: #94A3B8;
+  color: $text-secondary;
   border: 1px solid rgba(100, 116, 139, 0.2);
 }
 
@@ -2152,7 +2153,7 @@ onMounted(async () => {
 
 .task-title.title-done {
   text-decoration: line-through;
-  color: #64748B;
+  color: $text-muted;
 }
 
 .task-type-badge {
@@ -2196,7 +2197,7 @@ onMounted(async () => {
 
 .task-meta-item {
   font-size: 0.78rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .task-action-col {
@@ -2205,10 +2206,10 @@ onMounted(async () => {
 
 .task-start-btn {
   padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(0, 85, 255, 0.08));
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.12), rgba(0, 85, 255, 0.08));
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -2217,9 +2218,9 @@ onMounted(async () => {
 }
 
 .task-start-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 85, 255, 0.15));
+  background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 85, 255, 0.15));
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 229, 255, 0.1);
+  box-shadow: 0 4px 12px rgba($accent-primary, 0.1);
 }
 
 .task-start-btn:disabled {
@@ -2272,7 +2273,7 @@ onMounted(async () => {
   justify-content: center;
   gap: 12px;
   padding: 40px 20px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
 }
 
@@ -2285,7 +2286,7 @@ onMounted(async () => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #00E5FF;
+  background: $accent-primary;
   animation: dots-pulse 1.4s ease-in-out infinite;
 }
 
@@ -2311,7 +2312,7 @@ onMounted(async () => {
 
 .tasks-empty-text {
   font-size: 0.9rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin: 0;
 }
 
@@ -2320,10 +2321,10 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(0, 85, 255, 0.08));
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.12), rgba(0, 85, 255, 0.08));
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 10px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -2331,9 +2332,9 @@ onMounted(async () => {
 }
 
 .btn-generate-tasks:hover {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 85, 255, 0.15));
+  background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 85, 255, 0.15));
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 229, 255, 0.1);
+  box-shadow: 0 6px 16px rgba($accent-primary, 0.1);
 }
 
 /* ===== 本周预览 ===== */
@@ -2345,7 +2346,7 @@ onMounted(async () => {
   margin-left: 8px;
   font-size: 0.78rem;
   font-weight: 400;
-  color: #64748B;
+  color: $text-muted;
 }
 
 .week-days-row {
@@ -2356,20 +2357,20 @@ onMounted(async () => {
 
 .week-day-card {
   padding: 12px 8px;
-  background: rgba(17, 17, 39, 0.4);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($bg-primary, 0.4);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   text-align: center;
   transition: all 0.2s ease;
 }
 
 .week-day-card.is-today {
-  border-color: rgba(0, 229, 255, 0.3);
-  background: rgba(0, 229, 255, 0.04);
+  border-color: rgba($accent-primary, 0.3);
+  background: rgba($accent-primary, 0.04);
 }
 
 .week-day-card.has-tasks:hover {
-  border-color: rgba(0, 229, 255, 0.15);
+  border-color: rgba($accent-primary, 0.15);
   transform: translateY(-2px);
 }
 
@@ -2395,12 +2396,12 @@ onMounted(async () => {
 
 .week-day-name {
   font-size: 0.72rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-weight: 500;
 }
 
 .is-today .week-day-name {
-  color: #00E5FF;
+  color: $accent-primary;
   font-weight: 700;
 }
 
@@ -2412,7 +2413,7 @@ onMounted(async () => {
 }
 
 .is-today .week-day-num {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .week-day-body {
@@ -2428,7 +2429,7 @@ onMounted(async () => {
 
 .week-day-rest {
   font-size: 0.75rem;
-  color: #64748B;
+  color: $text-muted;
 }
 
 .week-day-progress {
@@ -2441,14 +2442,14 @@ onMounted(async () => {
 .week-day-bar {
   flex: 1;
   height: 4px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .week-day-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #10B981);
+  background: linear-gradient(90deg, $accent-primary, #10B981);
   border-radius: 2px;
   transition: width 0.5s ease;
 }
@@ -2456,7 +2457,7 @@ onMounted(async () => {
 .week-day-count {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
   flex-shrink: 0;
 }
@@ -2474,7 +2475,7 @@ onMounted(async () => {
 
 .week-day-minutes {
   font-size: 0.65rem;
-  color: #64748B;
+  color: $text-muted;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -2504,7 +2505,7 @@ onMounted(async () => {
 
 /* 入口颜色 */
 .plan-info-value.accent {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 @media (max-width: 768px) {

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div ref="pageRef" class="study-notes" @mousemove="handleMouseMove" @mouseleave="isMouseInside = false" @mouseenter="isMouseInside = true">
     <!-- ===== 深空背景层 ===== -->
     <div class="bg-layer">
@@ -521,9 +521,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 // ============================================
 // 学习笔记页面 · 深色科技风
-// 背景 #0a0a1a · 强调色 #00f5d4
+// 背景 $bg-primary · 强调色 $accent-primary
 // ============================================
 
 .study-notes {
@@ -557,7 +558,7 @@ onMounted(() => {
 .a1 {
   width: 600px; height: 600px;
   top: -200px; right: -100px;
-  background: radial-gradient(circle, rgba(0,245,212,0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary,0.08) 0%, transparent 70%);
 }
 
 .a2 {
@@ -585,7 +586,7 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,245,212,0.04) 1px, transparent 1px),
+    linear-gradient(rgba($accent-primary,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(123,97,255,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
@@ -601,7 +602,7 @@ onMounted(() => {
   position: absolute;
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle, rgba(0,245,212,0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary,0.04) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -622,7 +623,7 @@ onMounted(() => {
   &.fg-cyan {
     width: 400px; height: 400px;
     top: 30%; right: 10%;
-    background: radial-gradient(circle, rgba(0,245,212,0.06) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba($accent-primary,0.06) 0%, transparent 70%);
   }
 
   &.fg-purple {
@@ -692,19 +693,19 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100,100,180,0.04);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.04);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 10px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
-    border-color: rgba(0,245,212,0.2);
-    color: #00f5d4;
-    background: rgba(0,245,212,0.04);
+    border-color: rgba($accent-primary,0.2);
+    color: $accent-primary;
+    background: rgba($accent-primary,0.04);
     transform: translateX(-2px);
   }
 
@@ -723,7 +724,7 @@ onMounted(() => {
   .title-icon { font-size: 1.6rem; }
 
   .title-text {
-    background: linear-gradient(135deg, #00f5d4 0%, #0055FF 50%, #7b61ff 100%);
+    background: linear-gradient(135deg, $accent-primary 0%, #0055FF 50%, $accent-purple 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -736,13 +737,13 @@ onMounted(() => {
     min-width: 28px;
     height: 28px;
     padding: 0 8px;
-    background: rgba(0,245,212,0.1);
-    border: 1px solid rgba(0,245,212,0.15);
+    background: rgba($accent-primary,0.1);
+    border: 1px solid rgba($accent-primary,0.15);
     border-radius: 14px;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #00f5d4;
-    -webkit-text-fill-color: #00f5d4;
+    color: $accent-primary;
+    -webkit-text-fill-color: $accent-primary;
   }
 }
 
@@ -777,10 +778,10 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(0,85,255,0.1));
-  border: 1px solid rgba(0,245,212,0.2);
+  background: linear-gradient(135deg, rgba($accent-primary,0.15), rgba(0,85,255,0.1));
+  border: 1px solid rgba($accent-primary,0.2);
   border-radius: 10px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -792,7 +793,7 @@ onMounted(() => {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(135deg, #00f5d4, #0055FF);
+    background: linear-gradient(135deg, $accent-primary, #0055FF);
     border-radius: inherit;
     z-index: -1;
     opacity: 0;
@@ -802,8 +803,8 @@ onMounted(() => {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,245,212,0.15);
-    border-color: rgba(0,245,212,0.35);
+    box-shadow: 0 4px 20px rgba($accent-primary,0.15);
+    border-color: rgba($accent-primary,0.35);
 
     &::before { opacity: 0.25; }
   }
@@ -828,18 +829,18 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: rgba(17,17,39,0.6);
+  background: rgba($bg-primary,0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 12px;
   transition: all 0.3s ease;
 
   &:focus-within {
-    border-color: rgba(0,245,212,0.25);
-    box-shadow: 0 0 0 3px rgba(0,245,212,0.04), 0 4px 20px rgba(0,0,0,0.2);
+    border-color: rgba($accent-primary,0.25);
+    box-shadow: 0 0 0 3px rgba($accent-primary,0.04), 0 4px 20px rgba(0,0,0,0.2);
   }
 
-  svg { color: #9090b8; flex-shrink: 0; }
+  svg { color: $text-muted; flex-shrink: 0; }
 }
 
 .search-input {
@@ -847,11 +848,11 @@ onMounted(() => {
   background: transparent;
   border: none;
   outline: none;
-  color: #e8e8ff;
+  color: $text-primary;
   font-size: 0.9rem;
   font-weight: 400;
 
-  &::placeholder { color: #8080a8; }
+  &::placeholder { color: $text-muted; }
 }
 
 .search-clear {
@@ -860,10 +861,10 @@ onMounted(() => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.1);
   border: none;
   border-radius: 6px;
-  color: #9090b8;
+  color: $text-muted;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -879,7 +880,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.result-count { color: #9090b8; font-weight: 500; }
+.result-count { color: $text-muted; font-weight: 500; }
 
 .no-results {
   color: #ff6b6b;
@@ -903,9 +904,9 @@ onMounted(() => {
 .note-card {
   position: relative;
   padding: 24px;
-  background: rgba(17,17,39,0.5);
+  background: rgba($bg-primary,0.5);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  border: 1px solid rgba($accent-secondary,0.08);
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -914,15 +915,15 @@ onMounted(() => {
 
   &:hover {
     transform: translateY(-4px);
-    border-color: rgba(0,245,212,0.15);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 40px rgba(0,245,212,0.03);
+    border-color: rgba($accent-primary,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 40px rgba($accent-primary,0.03);
   }
 
   &.expanded {
     grid-column: 1 / -1;
-    border-color: rgba(0,245,212,0.2);
-    background: rgba(17,17,39,0.7);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba(0,245,212,0.05);
+    border-color: rgba($accent-primary,0.2);
+    background: rgba($bg-primary,0.7);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba($accent-primary,0.05);
   }
 }
 
@@ -932,7 +933,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0,245,212,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba($accent-primary,0.3), transparent);
   opacity: 0;
   transition: opacity 0.3s ease;
 
@@ -953,10 +954,10 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 0.78rem;
-  color: #9090b8;
+  color: $text-muted;
   font-weight: 500;
 
-  svg { flex-shrink: 0; color: #8080a8; }
+  svg { flex-shrink: 0; color: $text-muted; }
 }
 
 .card-actions {
@@ -975,21 +976,21 @@ onMounted(() => {
   justify-content: center;
   width: 30px;
   height: 30px;
-  background: rgba(100,100,180,0.03);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.03);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #9090b8;
+  color: $text-muted;
 
   &:hover {
     transform: translateY(-1px);
   }
 
   &.edit:hover {
-    border-color: rgba(0,245,212,0.2);
-    background: rgba(0,245,212,0.06);
-    color: #00f5d4;
+    border-color: rgba($accent-primary,0.2);
+    background: rgba($accent-primary,0.06);
+    color: $accent-primary;
   }
 
   &.delete:hover {
@@ -1003,7 +1004,7 @@ onMounted(() => {
 .card-title {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 10px;
   line-height: 1.4;
   display: -webkit-box;
@@ -1025,7 +1026,7 @@ onMounted(() => {
 
   p {
     font-size: 0.85rem;
-    color: #c0c0e0;
+    color: $text-secondary;
     line-height: 1.7;
     margin: 0;
     white-space: pre-wrap;
@@ -1047,7 +1048,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 40px;
-  background: linear-gradient(transparent, rgba(17,17,39,0.5));
+  background: linear-gradient(transparent, rgba($bg-primary,0.5));
   pointer-events: none;
 }
 
@@ -1058,9 +1059,9 @@ onMounted(() => {
   gap: 4px;
   padding: 4px 10px;
   background: transparent;
-  border: 1px solid rgba(0,245,212,0.1);
+  border: 1px solid rgba($accent-primary,0.1);
   border-radius: 6px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -1068,8 +1069,8 @@ onMounted(() => {
   margin-bottom: 14px;
 
   &:hover {
-    background: rgba(0,245,212,0.06);
-    border-color: rgba(0,245,212,0.2);
+    background: rgba($accent-primary,0.06);
+    border-color: rgba($accent-primary,0.2);
   }
 
   svg {
@@ -1089,17 +1090,17 @@ onMounted(() => {
 .tag-chip {
   display: inline-block;
   padding: 4px 10px;
-  background: rgba(0,245,212,0.06);
-  border: 1px solid rgba(0,245,212,0.1);
+  background: rgba($accent-primary,0.06);
+  border: 1px solid rgba($accent-primary,0.1);
   border-radius: 12px;
   font-size: 0.72rem;
   font-weight: 500;
-  color: #00f5d4;
+  color: $accent-primary;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0,245,212,0.1);
-    border-color: rgba(0,245,212,0.2);
+    background: rgba($accent-primary,0.1);
+    border-color: rgba($accent-primary,0.2);
   }
 }
 
@@ -1107,12 +1108,12 @@ onMounted(() => {
 .card-footer {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(100,100,180,0.06);
+  border-top: 1px solid rgba($accent-secondary,0.06);
 }
 
 .footer-updated {
   font-size: 0.72rem;
-  color: #8080a8;
+  color: $text-muted;
   font-weight: 400;
 }
 
@@ -1140,7 +1141,7 @@ onMounted(() => {
 .empty-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(0,245,212,0.08);
+  border: 1px solid rgba($accent-primary,0.08);
   animation: ringRotate 20s linear infinite;
 
   &.r1 { width: 100px; height: 100px; }
@@ -1166,13 +1167,13 @@ onMounted(() => {
 .empty-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 6px;
 }
 
 .empty-desc {
   font-size: 0.9rem;
-  color: #9090b8;
+  color: $text-muted;
   margin: 0 0 24px;
 }
 
@@ -1181,10 +1182,10 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(0,85,255,0.08));
-  border: 1px solid rgba(0,245,212,0.2);
+  background: linear-gradient(135deg, rgba($accent-primary,0.12), rgba(0,85,255,0.08));
+  border: 1px solid rgba($accent-primary,0.2);
   border-radius: 10px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -1192,9 +1193,9 @@ onMounted(() => {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,245,212,0.12);
-    border-color: rgba(0,245,212,0.3);
-    background: linear-gradient(135deg, rgba(0,245,212,0.18), rgba(0,85,255,0.12));
+    box-shadow: 0 4px 20px rgba($accent-primary,0.12);
+    border-color: rgba($accent-primary,0.3);
+    background: linear-gradient(135deg, rgba($accent-primary,0.18), rgba(0,85,255,0.12));
   }
 }
 
@@ -1215,10 +1216,10 @@ onMounted(() => {
   max-width: 92vw;
   max-height: 85vh;
   background: rgba(12,14,30,0.97);
-  border: 1px solid rgba(100,100,180,0.12);
+  border: 1px solid rgba($accent-secondary,0.12);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(0,245,212,0.03);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba($accent-primary,0.03);
   display: flex;
   flex-direction: column;
   animation: modalEnter 0.3s ease;
@@ -1234,8 +1235,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  background: rgba(17,17,39,0.8);
-  border-bottom: 1px solid rgba(100,100,180,0.08);
+  background: rgba($bg-primary,0.8);
+  border-bottom: 1px solid rgba($accent-secondary,0.08);
 }
 
 .modal-title {
@@ -1244,7 +1245,7 @@ onMounted(() => {
   gap: 10px;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -1256,16 +1257,16 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(100,100,180,0.08);
+  background: rgba($accent-secondary,0.08);
   border: none;
   border-radius: 8px;
-  color: #9090b8;
+  color: $text-muted;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(100,100,180,0.15);
-    color: #e8e8ff;
+    background: rgba($accent-secondary,0.15);
+    color: $text-primary;
   }
 }
 
@@ -1274,10 +1275,10 @@ onMounted(() => {
   overflow-y: auto;
   padding: 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0,245,212,0.12) transparent;
+  scrollbar-color: rgba($accent-primary,0.12) transparent;
 
   &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.12); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 3px; }
 }
 
 .form-group {
@@ -1291,14 +1292,14 @@ onMounted(() => {
   display: block;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #c0c0e0;
+  color: $text-secondary;
   margin-bottom: 8px;
 }
 
 .label-hint {
   font-weight: 400;
   font-size: 0.72rem;
-  color: #8080a8;
+  color: $text-muted;
   margin-left: 8px;
 }
 
@@ -1307,9 +1308,9 @@ onMounted(() => {
   width: 100%;
   padding: 12px 14px;
   background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 10px;
-  color: #e8e8ff;
+  color: $text-primary;
   font-size: 0.9rem;
   outline: none;
   transition: all 0.25s ease;
@@ -1317,8 +1318,8 @@ onMounted(() => {
   font-family: inherit;
 
   &:focus {
-    border-color: rgba(0,245,212,0.25);
-    box-shadow: 0 0 0 3px rgba(0,245,212,0.04);
+    border-color: rgba($accent-primary,0.25);
+    box-shadow: 0 0 0 3px rgba($accent-primary,0.04);
   }
 
   &::placeholder { color: #606088; }
@@ -1335,7 +1336,7 @@ onMounted(() => {
   right: 14px;
   bottom: 10px;
   font-size: 0.7rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 /* 标签输入 */
@@ -1345,12 +1346,12 @@ onMounted(() => {
   gap: 6px;
   padding: 8px 10px;
   background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 10px;
   transition: border-color 0.25s ease;
 
   &:focus-within {
-    border-color: rgba(0,245,212,0.25);
+    border-color: rgba($accent-primary,0.25);
   }
 }
 
@@ -1365,12 +1366,12 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background: rgba(0,245,212,0.08);
-  border: 1px solid rgba(0,245,212,0.12);
+  background: rgba($accent-primary,0.08);
+  border: 1px solid rgba($accent-primary,0.12);
   border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #00f5d4;
+  color: $accent-primary;
   line-height: 1.4;
 }
 
@@ -1382,7 +1383,7 @@ onMounted(() => {
   height: 14px;
   background: transparent;
   border: none;
-  color: rgba(0,245,212,0.5);
+  color: rgba($accent-primary,0.5);
   cursor: pointer;
   padding: 0;
   border-radius: 3px;
@@ -1400,7 +1401,7 @@ onMounted(() => {
   background: transparent;
   border: none;
   outline: none;
-  color: #e8e8ff;
+  color: $text-primary;
   font-size: 0.85rem;
 
   &::placeholder { color: #606088; }
@@ -1437,24 +1438,24 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid rgba(100,100,180,0.08);
-  background: rgba(17,17,39,0.5);
+  border-top: 1px solid rgba($accent-secondary,0.08);
+  background: rgba($bg-primary,0.5);
 }
 
 .btn-cancel {
   padding: 10px 20px;
   background: transparent;
-  border: 1px solid rgba(100,100,180,0.12);
+  border: 1px solid rgba($accent-secondary,0.12);
   border-radius: 10px;
-  color: #9090b8;
+  color: $text-muted;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(100,100,180,0.2);
-    color: #e8e8ff;
+    border-color: rgba($accent-secondary,0.2);
+    color: $text-primary;
   }
 }
 
@@ -1463,7 +1464,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, #00f5d4, #0055FF);
+  background: linear-gradient(135deg, $accent-primary, #0055FF);
   border: none;
   border-radius: 10px;
   color: #fff;
@@ -1474,7 +1475,7 @@ onMounted(() => {
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,245,212,0.25);
+    box-shadow: 0 4px 16px rgba($accent-primary,0.25);
   }
 
   &:active:not(:disabled) { transform: scale(0.98) translateY(-1px); }
@@ -1491,7 +1492,7 @@ onMounted(() => {
   max-width: 88vw;
   padding: 32px 28px 24px;
   background: rgba(12,14,30,0.97);
-  border: 1px solid rgba(100,100,180,0.12);
+  border: 1px solid rgba($accent-secondary,0.12);
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   text-align: center;
@@ -1506,13 +1507,13 @@ onMounted(() => {
 .delete-title {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 8px;
 }
 
 .delete-desc {
   font-size: 0.85rem;
-  color: #9090b8;
+  color: $text-muted;
   line-height: 1.6;
   margin: 0 0 24px;
 }

@@ -270,6 +270,161 @@ export const getLogsByExecutionId = (executionId) => {
 }
 
 /**
+ * POST SSE 流式执行（真实 ReAct 可视化）
+ * 使用 fetch + ReadableStream 接收后端 SSE 流，支持命名事件
+ * @param {string} agentId Agent ID
+ * @param {string} message 任务描述
+ * @param {object} callbacks 回调函数集
+ * @param {function} callbacks.onStart 开始事件
+ * @param {function} callbacks.onThink 思考步骤
+ * @param {function} callbacks.onAct 行动步骤
+ * @param {function} callbacks.onObserve 观察步骤
+ * @param {function} callbacks.onReflect 反思步骤
+ * @param {function} callbacks.onReplan 重规划步骤
+ * @param {function} callbacks.onComplete 完成事件
+ * @param {function} callbacks.onError 错误事件
+ * @param {AbortSignal} signal 中断信号
+ * @returns {Promise} 完成Promise
+ */
+export const postStreamExecution = async (agentId, message, callbacks = {}, signal = null) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream'
+  }
+  const token = localStorage.getItem('token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const response = await fetch('/api/agent/execute/stream', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ agentId, message }),
+    signal
+  })
+
+  if (!response.ok) {
+    let errorMsg = `服务器响应错误 (${response.status})`
+    if (response.status === 401) errorMsg = '未授权，请重新登录'
+    else if (response.status === 404) errorMsg = '后端接口不存在，请检查后端服务'
+    else if (response.status >= 500) errorMsg = '后端服务异常，请稍后重试'
+    throw new Error(errorMsg)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+
+    // 按行解析 SSE 格式
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    let currentEvent = null
+    let currentData = ''
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+
+      // 空行表示事件分隔符
+      if (!trimmed) {
+        if (currentEvent && currentData) {
+          handleStreamEvent(currentEvent, currentData, callbacks)
+        }
+        currentEvent = null
+        currentData = ''
+        continue
+      }
+
+      if (trimmed.startsWith('event:')) {
+        currentEvent = trimmed.slice(6).trim()
+      } else if (trimmed.startsWith('data:')) {
+        currentData = trimmed.slice(5).trim()
+      }
+    }
+
+    // 处理最后一个未完成的事件
+    if (currentEvent && currentData) {
+      handleStreamEvent(currentEvent, currentData, callbacks)
+    }
+  }
+
+  // 处理 buffer 中剩余数据
+  if (buffer.trim()) {
+    const trimmed = buffer.trim()
+    let evt = null
+    let data = ''
+    for (const line of trimmed.split('\n')) {
+      const t = line.trim()
+      if (t.startsWith('event:')) evt = t.slice(6).trim()
+      else if (t.startsWith('data:')) data = t.slice(5).trim()
+    }
+    if (evt && data) handleStreamEvent(evt, data, callbacks)
+  }
+}
+
+/**
+ * 处理 SSE 流式事件
+ */
+function handleStreamEvent(eventName, dataStr, callbacks) {
+  let data
+  try {
+    data = JSON.parse(dataStr)
+  } catch {
+    data = { content: dataStr }
+  }
+
+  switch (eventName) {
+    case 'start':
+      if (callbacks.onStart) callbacks.onStart(data)
+      break
+    case 'think':
+      if (callbacks.onThink) callbacks.onThink(data)
+      break
+    case 'act':
+      if (callbacks.onAct) callbacks.onAct(data)
+      break
+    case 'observe':
+      if (callbacks.onObserve) callbacks.onObserve(data)
+      break
+    case 'tool_call':
+      if (callbacks.onAct) callbacks.onAct(data)
+      break
+    case 'tool_result':
+      if (callbacks.onObserve) callbacks.onObserve(data)
+      break
+    case 'reflection':
+    case 'reflect':
+      if (callbacks.onReflect) callbacks.onReflect(data)
+      break
+    case 'replan':
+      if (callbacks.onReplan) callbacks.onReplan(data)
+      break
+    case 'complete':
+    case 'finish':
+      if (callbacks.onComplete) callbacks.onComplete(data)
+      break
+    case 'error':
+      if (callbacks.onError) callbacks.onError(data)
+      break
+    case 'status':
+      if (callbacks.onStart) callbacks.onStart(data)
+      break
+    case 'step_result':
+      if (callbacks.onStepResult) callbacks.onStepResult(data)
+      break
+    default:
+      break
+  }
+}
+
+/**
  * 处理命名事件
  */
 function handleNamedEvent(eventType, data, callbacks) {
@@ -302,7 +457,6 @@ function handleNamedEvent(eventType, data, callbacks) {
       if (callbacks.onStepResult) callbacks.onStepResult(data)
       break
     default:
-      // 未知事件类型静默忽略，不传递原始 JSON 到 onChunk，防止结构化数据显示
       break
   }
 }

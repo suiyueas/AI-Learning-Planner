@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="auth-page">
     <canvas ref="canvasRef" class="bg-canvas"></canvas>
     <div class="bg-gradient"></div>
@@ -407,12 +407,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .auth-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0a0a1a;
+  background: $bg-primary;
   position: relative;
   overflow: hidden;
 }
@@ -430,7 +431,7 @@ onUnmounted(() => {
 .bg-gradient {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, rgba(74, 144, 249, 0.03) 0%, rgba(123, 104, 238, 0.03) 50%, rgba(0, 245, 212, 0.03) 100%);
+  background: linear-gradient(135deg, rgba(74, 144, 249, 0.03) 0%, rgba(123, 104, 238, 0.03) 50%, rgba($accent-primary, 0.03) 100%);
   z-index: 0;
   pointer-events: none;
   animation: gradientFlow 15s ease-in-out infinite;
@@ -460,7 +461,7 @@ onUnmounted(() => {
   height: 600px;
   top: -150px;
   right: -100px;
-  background: radial-gradient(circle, rgba(0, 245, 212, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
   animation: auroraFloat 8s ease-in-out infinite;
 }
 
@@ -498,13 +499,13 @@ onUnmounted(() => {
 
 .auth-card {
   position: relative;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 20px;
   padding: 40px 32px;
-  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5), 0 0 80px rgba(0, 245, 212, 0.04);
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5), 0 0 80px rgba($accent-primary, 0.04);
   overflow: hidden;
   animation: cardSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
@@ -540,18 +541,18 @@ onUnmounted(() => {
   width: 68px;
   height: 68px;
   margin: 0 auto 16px;
-  background: linear-gradient(135deg, rgba(0, 245, 212, 0.15), rgba(123, 97, 255, 0.15));
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(123, 97, 255, 0.15));
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 30px rgba(0, 245, 212, 0.1);
+  box-shadow: 0 0 30px rgba($accent-primary, 0.1);
 }
 
 .logo-icon {
-  color: #00f5d4;
-  filter: drop-shadow(0 0 8px rgba(0, 245, 212, 0.4));
+  color: $accent-primary;
+  filter: drop-shadow(0 0 8px rgba($accent-primary, 0.4));
 }
 
 .breathing-glow {
@@ -559,22 +560,22 @@ onUnmounted(() => {
 }
 
 @keyframes breathingGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 245, 212, 0.1), 0 0 40px rgba(0, 245, 212, 0.05); }
-  50% { box-shadow: 0 0 30px rgba(0, 245, 212, 0.2), 0 0 60px rgba(0, 245, 212, 0.1); }
+  0%, 100% { box-shadow: 0 0 20px rgba($accent-primary, 0.1), 0 0 40px rgba($accent-primary, 0.05); }
+  50% { box-shadow: 0 0 30px rgba($accent-primary, 0.2), 0 0 60px rgba($accent-primary, 0.1); }
 }
 
 .auth-title {
   font-size: 28px;
   font-weight: 700;
-  color: #f0f0ff;
+  color: $text-primary;
   margin: 0 0 8px;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   animation: titleGlow 3s ease-in-out infinite;
 }
 
 @keyframes titleGlow {
-  0%, 100% { text-shadow: 0 0 10px rgba(0, 245, 212, 0.3); }
-  50% { text-shadow: 0 0 20px rgba(0, 245, 212, 0.5), 0 0 30px rgba(123, 97, 255, 0.3); }
+  0%, 100% { text-shadow: 0 0 10px rgba($accent-primary, 0.3); }
+  50% { text-shadow: 0 0 20px rgba($accent-primary, 0.5), 0 0 30px rgba(123, 97, 255, 0.3); }
 }
 
 .auth-subtitle {
@@ -619,20 +620,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .input-wrapper:hover {
-  border-color: rgba(100, 100, 180, 0.18);
+  border-color: rgba($accent-secondary, 0.18);
 }
 
 .form-group.focused .input-wrapper {
-  border-color: #00f5d4;
-  box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.1), 0 0 20px rgba(0, 245, 212, 0.05);
+  border-color: $accent-primary;
+  box-shadow: 0 0 0 3px rgba($accent-primary, 0.1), 0 0 20px rgba($accent-primary, 0.05);
 }
 
 .form-group.error .input-wrapper {
@@ -641,14 +642,14 @@ onUnmounted(() => {
 }
 
 .input-icon {
-  color: #606090;
+  color: $text-muted;
   flex-shrink: 0;
   transition: all 0.3s ease;
   transform: scale(1);
 }
 
 .form-group.focused .input-icon {
-  color: #00f5d4;
+  color: $accent-primary;
   transform: scale(1.1);
 }
 
@@ -664,7 +665,7 @@ onUnmounted(() => {
 }
 
 .validation-icon.success {
-  color: #10b981;
+  color: $accent-emerald;
   animation: iconPop 0.3s ease;
 }
 
@@ -680,7 +681,7 @@ onUnmounted(() => {
   border: none;
   background: transparent;
   font-size: 15px;
-  color: #f0f0ff;
+  color: $text-primary;
   outline: none;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
@@ -695,7 +696,7 @@ onUnmounted(() => {
   left: 14px;
   right: 14px;
   height: 2px;
-  background: #00f5d4;
+  background: $accent-primary;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.4s ease;
@@ -727,7 +728,7 @@ onUnmounted(() => {
 }
 
 .eye-icon.active {
-  color: #00f5d4;
+  color: $accent-primary;
   transform: rotate(180deg);
 }
 
@@ -750,7 +751,7 @@ onUnmounted(() => {
 .strength-bar {
   flex: 1;
   height: 4px;
-  background: rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.1);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -806,7 +807,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  background: linear-gradient(135deg, #00f5d4, #7b61ff);
+  background: linear-gradient(135deg, $accent-primary, $accent-purple);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -814,7 +815,7 @@ onUnmounted(() => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 245, 212, 0.25);
+  box-shadow: 0 4px 20px rgba($accent-primary, 0.25);
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   letter-spacing: 2px;
   overflow: hidden;
@@ -822,7 +823,7 @@ onUnmounted(() => {
 
 .submit-btn:hover:not(:disabled) {
   transform: scale(1.02) translateY(-1px);
-  box-shadow: 0 8px 30px rgba(0, 245, 212, 0.35), 0 0 40px rgba(123, 97, 255, 0.15);
+  box-shadow: 0 8px 30px rgba($accent-primary, 0.35), 0 0 40px rgba(123, 97, 255, 0.15);
 }
 
 .submit-btn:active:not(:disabled) {
@@ -867,7 +868,7 @@ onUnmounted(() => {
 }
 
 .auth-link {
-  color: #00f5d4;
+  color: $accent-primary;
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
@@ -882,7 +883,7 @@ onUnmounted(() => {
   left: 0;
   width: 0;
   height: 1px;
-  background: #00f5d4;
+  background: $accent-primary;
   transition: width 0.3s ease;
 }
 

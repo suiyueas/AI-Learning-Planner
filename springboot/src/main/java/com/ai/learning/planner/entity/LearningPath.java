@@ -30,6 +30,7 @@ public class LearningPath {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Version
     private Integer version;
 
     @Column(name = "is_active")

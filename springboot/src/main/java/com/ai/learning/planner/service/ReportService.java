@@ -82,6 +82,9 @@ public class ReportService {
                 case "recommendations":
                     report.put("recommendations", buildRecommendationsSection(userId, startDate, endDate));
                     break;
+                case "analysis":
+                    report.put("analysis", buildAIAnalysisSection(userId, startDate, endDate));
+                    break;
             }
         }
 
@@ -92,6 +95,7 @@ public class ReportService {
     /**
      * 构建报告概览模块
      * 数据来源统一，计算口径一致，保证数据逻辑自洽
+     * 修复：totalLearningMinutes 和 totalTasksCompleted 必须来自同一批已完成记录
      */
     private Map<String, Object> buildOverviewSection(Long userId, LocalDate startDate, LocalDate endDate) {
         Map<String, Object> overview = new LinkedHashMap<>();
@@ -103,13 +107,15 @@ public class ReportService {
                 .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(
                         String.valueOf(userId), "completed", startDateTime, endDateTime);
 
+        // 修复：totalLearningMinutes 和 totalTasksCompleted 必须来自同一批已完成记录
+        // 只有 status='completed' 且 completedAt 不为 null 的记录才算有效完成
         int totalLearningMinutes = allLearningRecords.stream()
-                .filter(r -> r.getTimeSpent() != null)
+                .filter(r -> r.getTimeSpent() != null && r.getCompletedAt() != null)
                 .mapToInt(LearningRecord::getTimeSpent)
                 .sum();
 
         int totalTasksCompleted = (int) allLearningRecords.stream()
-                .filter(r -> "completed".equals(r.getStatus()))
+                .filter(r -> "completed".equals(r.getStatus()) && r.getCompletedAt() != null)
                 .count();
 
         List<CheckinRecord> checkinRecords = checkinRecordRepository
@@ -362,5 +368,132 @@ public class ReportService {
             log.debug("[ReportService] 获取最近测评时间失败: {}", e.getMessage());
             return 999;
         }
+    }
+
+    // ==================== AI 学习分析模块 ====================
+
+    /**
+     * 构建 AI 学习分析模块
+     * 生成个性化的学习分析报告，帮助用户理解自己的学习模式并提供改进建议
+     */
+    private Map<String, Object> buildAIAnalysisSection(Long userId, LocalDate startDate, LocalDate endDate) {
+        Map<String, Object> analysis = new LinkedHashMap<>();
+        String userIdStr = String.valueOf(userId);
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        // 获取数据
+        List<LearningRecord> learningRecords = learningRecordRepository
+                .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(
+                        userIdStr, "completed", startDateTime, endDateTime);
+
+        List<CheckinRecord> checkinRecords = checkinRecordRepository
+                .findByUserIdAndCheckinDateBetween(userId, startDate, endDate);
+
+        List<AssessmentRecord> assessmentRecords = assessmentRecordRepository
+                .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startDateTime, endDateTime);
+
+        // 计算核心指标
+        int totalMinutes = learningRecords.stream()
+                .filter(r -> r.getTimeSpent() != null && r.getCompletedAt() != null)
+                .mapToInt(LearningRecord::getTimeSpent)
+                .sum();
+        int completedTasks = (int) learningRecords.stream()
+                .filter(r -> "completed".equals(r.getStatus()) && r.getCompletedAt() != null)
+                .count();
+        int checkinDays = checkinRecords.size();
+        double totalHours = Math.round((float) totalMinutes / 60 * 10) / 10.0;
+
+        // 生成分析段落
+        List<String> insights = new ArrayList<>();
+        List<String> actions = new ArrayList<>();
+
+        // 1. 学习时长与任务完成一致性分析
+        if (totalHours > 0 && completedTasks == 0) {
+            insights.add(String.format("⚠️ 数据不一致：你已累计学习 %.1f 小时，但尚未完成任务。", totalHours));
+            insights.add("这可能是因为学习记录的状态未正确更新。请检查是否有任务完成但状态未标记的情况。");
+            actions.add("建议从「变量与数据类型」开始，这是最短可完成的学习单元。");
+        } else if (totalHours > 0 && completedTasks > 0) {
+            double efficiency = totalHours / completedTasks;
+            if (efficiency > 2) {
+                insights.add(String.format("📊 学习效率分析：你完成 %d 个任务累计 %.1f 小时，平均每个任务 %.1f 小时。", completedTasks, totalHours, efficiency));
+                insights.add("学习效率较高，建议继续保持当前节奏，或挑战更复杂的内容。");
+            } else if (efficiency < 0.5) {
+                insights.add(String.format("📊 学习效率分析：你完成 %d 个任务累计 %.1f 小时，平均每个任务仅 %.1f 小时。", completedTasks, totalHours, efficiency));
+                insights.add("任务完成较快，建议确保每个任务都深入理解，可适当增加练习时间。");
+            } else {
+                insights.add(String.format("📊 学习效率分析：你完成 %d 个任务累计 %.1f 小时，学习节奏良好。", completedTasks, totalHours));
+            }
+        } else if (totalHours == 0 && completedTasks == 0 && checkinDays > 0) {
+            insights.add("📊 你有 " + checkinDays + " 天打卡记录，但期间没有完成任何学习任务。");
+            insights.add("建议选择简短的学习任务开始，例如「变量与数据类型」，只需约 25 分钟即可完成。");
+        } else if (totalHours == 0 && completedTasks == 0) {
+            insights.add("📊 报告期间暂无学习记录。开始学习吧！AI 将为你规划专属学习路径。");
+            actions.add("设定学习目标，让 AI 帮你制定计划");
+        }
+
+        // 2. 打卡行为分析
+        if (checkinDays > 0) {
+            int totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
+            double checkinRate = (double) checkinDays / totalDays * 100;
+            if (checkinRate > 80) {
+                insights.add("🔥 学习意愿强：你有 " + checkinDays + " 天打卡记录（占报告期 " + String.format("%.0f", checkinRate) + "%），学习积极性很高。");
+            } else if (checkinRate > 50) {
+                insights.add("📈 学习意愿中等：你有 " + checkinDays + " 天打卡记录，继续保持可以形成更好的学习习惯。");
+            } else {
+                insights.add("📉 学习频率偏低：你有 " + checkinDays + " 天打卡记录，建议增加每周学习次数。");
+            }
+        }
+
+        // 3. 薄弱点分析
+        if (!assessmentRecords.isEmpty()) {
+            Map<String, List<AssessmentRecord>> recordsBySubject = new LinkedHashMap<>();
+            for (AssessmentRecord record : assessmentRecords) {
+                String subject = record.getSubject();
+                recordsBySubject.computeIfAbsent(subject, k -> new ArrayList<>()).add(record);
+            }
+
+            List<String> weakSubjects = new ArrayList<>();
+            for (Map.Entry<String, List<AssessmentRecord>> entry : recordsBySubject.entrySet()) {
+                List<AssessmentRecord> records = entry.getValue();
+                int totalCorrect = records.stream()
+                        .filter(r -> r.getScore() != null && r.getTotal() != null && r.getTotal() > 0)
+                        .mapToInt(r -> r.getScore())
+                        .sum();
+                int totalQuestions = records.stream()
+                        .filter(r -> r.getScore() != null && r.getTotal() != null && r.getTotal() > 0)
+                        .mapToInt(r -> r.getTotal())
+                        .sum();
+                int accuracy = totalQuestions > 0 ? Math.round((float) totalCorrect / totalQuestions * 100) : 0;
+
+                if (accuracy < 60) {
+                    weakSubjects.add(entry.getKey() + "（正确率" + accuracy + "%）");
+                }
+            }
+
+            if (!weakSubjects.isEmpty()) {
+                insights.add("📚 薄弱知识点：" + String.join("、", weakSubjects) + "。建议优先复习这些章节。");
+                actions.add("开始专项练习，巩固薄弱知识点");
+            }
+        }
+
+        // 4. 进度预估
+        if (completedTasks > 0 && totalHours > 0) {
+            int remainingTasks = Math.max(0, 10 - completedTasks);
+            double avgTimePerTask = totalHours / completedTasks;
+            double remainingHours = remainingTasks * avgTimePerTask;
+            int remainingDays = (int) Math.ceil(remainingHours / 1.5);
+
+            if (remainingTasks > 0) {
+                insights.add("⏱️ 进度预估：按当前节奏，预计还需 " + remainingDays + " 天完成剩余 " + remainingTasks + " 个任务。");
+            }
+        }
+
+        analysis.put("insights", insights);
+        analysis.put("suggestedActions", actions);
+        analysis.put("dataConsistency", totalHours > 0 && completedTasks == 0 ? "warning" : "ok");
+
+        return analysis;
     }
 }

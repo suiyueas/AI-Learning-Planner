@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="statistics-page">
     <div class="bg-layer">
       <div class="bg-aurora">
@@ -346,6 +346,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .statistics-page {
   min-height: 100vh;
   position: relative;
@@ -377,7 +378,7 @@ onUnmounted(() => {
   height: 500px;
   top: -150px;
   right: -100px;
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary, 0.1) 0%, transparent 70%);
   animation: aurora 18s ease-in-out infinite;
 }
 
@@ -411,8 +412,8 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
@@ -444,9 +445,9 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(0, 229, 255, 0.1);
-    border-color: rgba(0, 229, 255, 0.3);
-    color: #00E5FF;
+    background: rgba($accent-primary, 0.1);
+    border-color: rgba($accent-primary, 0.3);
+    color: $accent-primary;
   }
 }
 
@@ -456,11 +457,11 @@ onUnmounted(() => {
   gap: 12px;
   font-size: 28px;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 
   .title-icon {
-    color: #00E5FF;
+    color: $accent-primary;
   }
 }
 
@@ -479,7 +480,7 @@ onUnmounted(() => {
     box-shadow: none;
 
     &:hover, &:focus {
-      border-color: rgba(0, 229, 255, 0.3);
+      border-color: rgba($accent-primary, 0.3);
     }
   }
 
@@ -500,7 +501,7 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #00E5FF;
+  color: $accent-primary;
   margin-bottom: 16px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -515,7 +516,7 @@ onUnmounted(() => {
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(0, 229, 255, 0.2);
+    border-color: rgba($accent-primary, 0.2);
   }
 }
 
@@ -552,12 +553,12 @@ onUnmounted(() => {
   }
 
   &.hours-icon {
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 133, 255, 0.2));
-    color: #00E5FF;
+    background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 133, 255, 0.2));
+    color: $accent-primary;
   }
 
   &.completed-icon {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(0, 229, 255, 0.2));
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba($accent-primary, 0.2));
     color: #10B981;
   }
 
@@ -576,17 +577,17 @@ onUnmounted(() => {
 .overview-value {
   font-size: 36px;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .overview-unit {
   font-size: 14px;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .overview-label {
   font-size: 13px;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .chart-section {
@@ -620,7 +621,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  color: #64748B;
+  color: $text-muted;
 
   .empty-icon {
     margin-bottom: 16px;
@@ -644,8 +645,8 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(0, 229, 255, 0.03);
-    border-color: rgba(0, 229, 255, 0.15);
+    background: rgba($accent-primary, 0.03);
+    border-color: rgba($accent-primary, 0.15);
   }
 }
 
@@ -656,7 +657,7 @@ onUnmounted(() => {
 
 .record-day {
   font-size: 13px;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .record-info {
@@ -674,7 +675,7 @@ onUnmounted(() => {
 
 .record-duration {
   font-size: 13px;
-  color: #64748B;
+  color: $text-muted;
 }
 
 .record-status {

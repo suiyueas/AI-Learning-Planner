@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="notification-system">
     <!-- 通知触发器 -->
     <div class="notification-trigger" @click="togglePanel">
@@ -325,6 +325,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .notification-system {
   position: relative;
 }
@@ -337,7 +338,7 @@ defineExpose({
   transition: all 0.25s ease;
 
   &:hover {
-    background: rgba(0, 229, 255, 0.08);
+    background: rgba($accent-primary, 0.08);
   }
 
   .notification-icon {
@@ -362,13 +363,13 @@ defineExpose({
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
 
     &.red {
-      background: linear-gradient(135deg, #ef4444, #f97316);
+      background: linear-gradient(135deg, $accent-red, #f97316);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
       animation: badgePulse 2s ease-in-out infinite;
     }
 
     &.blue {
-      background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+      background: linear-gradient(135deg, $accent-blue, #0ea5e9);
     }
   }
 }
@@ -414,6 +415,19 @@ defineExpose({
   .panel-actions {
     display: flex;
     gap: 8px;
+
+    :deep(.el-button) {
+      background: rgba($accent-primary, 0.15);
+      border-color: rgba($accent-primary, 0.3);
+      color: #e0e0ff;
+      font-size: 0.75rem;
+
+      &:hover {
+        background: rgba($accent-primary, 0.25);
+        border-color: rgba($accent-primary, 0.4);
+        color: #ffffff;
+      }
+    }
   }
 }
 
@@ -431,18 +445,18 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 14px;
   font-size: 0.75rem;
-  color: #c0c0e0;
+  color: $text-secondary;
   cursor: pointer;
   transition: all 0.2s;
 
   &.active {
-    border-color: #00f5d4;
-    color: #00f5d4;
-    background: rgba(0, 245, 212, 0.08);
+    border-color: $accent-primary;
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.08);
   }
 }
 
@@ -450,16 +464,16 @@ defineExpose({
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  &.cyan { background: #00f5d4; }
-  &.red { background: #ef4444; }
-  &.yellow { background: #f59e0b; }
-  &.blue { background: #3b82f6; }
+  &.cyan { background: $accent-primary; }
+  &.red { background: $accent-red; }
+  &.yellow { background: $accent-amber; }
+  &.blue { background: $accent-blue; }
 }
 
 .filter-count {
   font-size: 0.65rem;
   padding: 0 5px;
-  background: rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.12);
   border-radius: 8px;
 }
 
@@ -475,16 +489,16 @@ defineExpose({
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #9090b8;
-  background: rgba(10, 10, 26, 0.4);
+  color: $text-muted;
+  background: rgba($bg-primary, 0.4);
   position: sticky;
   top: 0;
   z-index: 1;
   backdrop-filter: blur(8px);
 
-  &.EMERGENCY { color: #ef4444; }
-  &.WARNING { color: #f59e0b; }
-  &.INFO { color: #3b82f6; }
+  &.EMERGENCY { color: $accent-red; }
+  &.WARNING { color: $accent-amber; }
+  &.INFO { color: $accent-blue; }
 }
 
 .notification-item {
@@ -498,25 +512,25 @@ defineExpose({
 
   // 优先级高亮：P0 红色边框、P1 黄色边框、P2 蓝色
   &.EMERGENCY {
-    border-left-color: #ef4444;
+    border-left-color: $accent-red;
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.06), transparent 70%);
 
     &:hover { background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), transparent 70%); }
   }
 
   &.WARNING {
-    border-left-color: #f59e0b;
+    border-left-color: $accent-amber;
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.04), transparent 70%);
 
     &:hover { background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), transparent 70%); }
   }
 
   &.INFO {
-    border-left-color: #3b82f6;
+    border-left-color: $accent-blue;
   }
 
   &:hover {
-    background: rgba(0, 229, 255, 0.04);
+    background: rgba($accent-primary, 0.04);
   }
 
   &:last-child {
@@ -582,8 +596,8 @@ defineExpose({
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #00f5d4;
-    box-shadow: 0 0 6px rgba(0, 245, 212, 0.6);
+    background: $accent-primary;
+    box-shadow: 0 0 6px rgba($accent-primary, 0.6);
   }
 
   .handled-tag {
@@ -591,7 +605,7 @@ defineExpose({
     padding: 1px 8px;
     border-radius: 8px;
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: $accent-emerald;
     border: 1px solid rgba(16, 185, 129, 0.15);
   }
 }
@@ -606,8 +620,8 @@ defineExpose({
 
 .action-btn {
   padding: 5px 12px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-primary, 0.12);
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 8px;
   color: #c0c0e0;
   font-size: 0.72rem;
@@ -615,19 +629,20 @@ defineExpose({
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.3);
-    color: #00f5d4;
+    border-color: rgba($accent-primary, 0.5);
+    color: #ffffff;
+    background: rgba($accent-primary, 0.2);
   }
 
   &.primary {
-    background: linear-gradient(135deg, rgba(0, 245, 212, 0.12), rgba(0, 85, 255, 0.1));
-    border-color: rgba(0, 245, 212, 0.25);
-    color: #00f5d4;
+    background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 85, 255, 0.15));
+    border-color: rgba($accent-primary, 0.4);
+    color: #ffffff;
     font-weight: 600;
 
     &:hover {
-      background: linear-gradient(135deg, rgba(0, 245, 212, 0.2), rgba(0, 85, 255, 0.16));
-      box-shadow: 0 0 12px rgba(0, 245, 212, 0.15);
+      background: linear-gradient(135deg, rgba($accent-primary, 0.3), rgba(0, 85, 255, 0.25));
+      box-shadow: 0 0 12px rgba($accent-primary, 0.25);
     }
   }
 }
@@ -639,13 +654,13 @@ defineExpose({
   align-self: flex-start;
   background: none;
   border: none;
-  color: var(--text-sub);
+  color: #9090b0;
   font-size: 0.85rem;
   cursor: pointer;
   padding: 2px 4px;
 
   &:hover {
-    color: #ef4444;
+    color: $accent-red;
   }
 }
 
@@ -674,7 +689,7 @@ defineExpose({
 
   .empty-sub {
     font-size: 0.75rem;
-    color: #606090;
+    color: $text-muted;
     margin-top: 6px;
   }
 }

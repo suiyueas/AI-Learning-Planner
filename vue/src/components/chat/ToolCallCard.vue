@@ -52,26 +52,28 @@ const formatParams = (params) => {
 </script>
 
 <style lang="scss" scoped>
+@use '@/styles/variables' as *;
+
 .tool-call-card {
   margin-top: 8px;
-  background: rgba(123, 97, 255, 0.08);
-  border: 1px solid rgba(123, 97, 255, 0.15);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: $font-mono;
 
   &.executing {
-    border-color: #F59E0B;
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+    border-color: $accent-amber;
+    box-shadow: 0 0 12px rgba($accent-amber, 0.15);
     animation: pulse-border 1.5s ease-in-out infinite;
   }
 
   &.completed {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba($accent-emerald, 0.3);
   }
 
   &.error {
-    border-color: rgba(239, 68, 68, 0.3);
+    border-color: rgba($accent-red, 0.3);
   }
 }
 
@@ -87,7 +89,7 @@ const formatParams = (params) => {
 
 .tool-name {
   font-weight: 600;
-  color: #7b61ff;
+  color: $accent-primary;
   font-size: 12px;
   flex: 1;
 }
@@ -98,13 +100,13 @@ const formatParams = (params) => {
   gap: 4px;
   font-size: 11px;
 
-  &.pending { color: #606090; }
+  &.pending { color: $text-muted; }
   &.executing {
-    color: #F59E0B;
+    color: $accent-amber;
     .status-icon { animation: spin 1s linear infinite; }
   }
-  &.completed { color: #10B981; }
-  &.error { color: #EF4444; }
+  &.completed { color: $accent-emerald; }
+  &.error { color: $accent-red; }
 }
 
 .status-icon { font-size: 11px; }
@@ -115,7 +117,7 @@ const formatParams = (params) => {
 
 .params-code {
   font-size: 11px;
-  color: #a0a0c8;
+  color: $text-secondary;
   background: rgba(0, 0, 0, 0.2);
   padding: 3px 6px;
   border-radius: 3px;
@@ -128,18 +130,18 @@ const formatParams = (params) => {
 .tool-result {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(100,100,180,0.06);
+  border-top: 1px solid rgba($text-muted, 0.06);
 }
 
 .result-value {
   font-size: 11px;
-  color: #8080a8;
+  color: $text-muted;
   line-height: 1.4;
 }
 
 @keyframes pulse-border {
-  0%, 100% { border-color: rgba(245, 158, 11, 0.3); box-shadow: 0 0 8px rgba(245, 158, 11, 0.08); }
-  50% { border-color: rgba(245, 158, 11, 0.7); box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
+  0%, 100% { border-color: rgba($accent-amber, 0.3); box-shadow: 0 0 8px rgba($accent-amber, 0.08); }
+  50% { border-color: rgba($accent-amber, 0.7); box-shadow: 0 0 20px rgba($accent-amber, 0.2); }
 }
 
 @keyframes spin {

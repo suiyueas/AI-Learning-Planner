@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="quiz-result">
     <div class="result-header">
       <div v-if="summary" class="result-summary">
@@ -214,6 +214,7 @@ function handleExport() {
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
 .quiz-result {
   padding: 4px 0;
 }
@@ -228,7 +229,7 @@ function handleExport() {
   border-radius: 10px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: #b0b0d8;
+  color: $text-secondary;
   .summary-icon { font-size: 1.1rem; }
   .summary-text { font-weight: 500; }
 }
@@ -279,7 +280,7 @@ function handleExport() {
   align-items: center;
   justify-content: center;
   background: rgba(123, 97, 255, 0.1);
-  color: #7b61ff;
+  color: $accent-purple;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
@@ -296,7 +297,7 @@ function handleExport() {
 
 .q-toggle {
   flex-shrink: 0;
-  color: #606090;
+  color: $text-muted;
   font-size: 10px;
   transition: transform 0.2s;
 }
@@ -317,8 +318,8 @@ function handleExport() {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.06);
   border-radius: 8px;
   font-size: 12px;
   color: #b0b0d0;
@@ -338,16 +339,16 @@ function handleExport() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: #8080a8;
+  color: $text-muted;
   font-family: 'JetBrains Mono', monospace;
 
   .is-correct & {
     background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    color: $accent-emerald;
   }
 }
 
@@ -355,7 +356,7 @@ function handleExport() {
 
 .opt-correct {
   flex-shrink: 0;
-  color: #10b981;
+  color: $accent-emerald;
   font-weight: 700;
 }
 
@@ -365,19 +366,19 @@ function handleExport() {
 
 .q-answer-toggle {
   padding: 6px 14px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 6px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.2);
-    color: #00f5d4;
-    background: rgba(0, 245, 212, 0.06);
+    border-color: rgba($accent-primary, 0.2);
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.06);
   }
 }
 
@@ -392,7 +393,7 @@ function handleExport() {
 .q-answer-label {
   font-size: 11px;
   font-weight: 600;
-  color: #10b981;
+  color: $accent-emerald;
   margin-bottom: 4px;
 }
 
@@ -407,12 +408,12 @@ function handleExport() {
   padding-top: 8px;
   border-top: 1px solid rgba(16, 185, 129, 0.08);
   font-size: 12px;
-  color: #9090b8;
+  color: $text-muted;
   line-height: 1.5;
 }
 
 .q-explanation-label {
-  color: #8080a8;
+  color: $text-muted;
   font-weight: 600;
 }
 
@@ -421,17 +422,17 @@ function handleExport() {
   .raw-label {
     font-size: 12px;
     font-weight: 600;
-    color: #8080a8;
+    color: $text-muted;
     margin-bottom: 8px;
   }
   .raw-json {
     padding: 12px;
-    background: rgba(100, 100, 180, 0.04);
-    border: 1px solid rgba(100, 100, 180, 0.08);
+    background: rgba($accent-secondary, 0.04);
+    border: 1px solid rgba($accent-secondary, 0.08);
     border-radius: 8px;
     font-size: 12px;
     line-height: 1.6;
-    color: #c0c0e0;
+    color: $text-secondary;
     overflow-x: auto;
     font-family: 'JetBrains Mono', monospace;
     white-space: pre-wrap;
@@ -445,7 +446,7 @@ function handleExport() {
 .result-empty {
   text-align: center;
   padding: 24px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 13px;
 }
 
@@ -475,10 +476,10 @@ function handleExport() {
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 6px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
@@ -486,9 +487,9 @@ function handleExport() {
   white-space: nowrap;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.2);
-    color: #00f5d4;
-    background: rgba(0, 245, 212, 0.06);
+    border-color: rgba($accent-primary, 0.2);
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.06);
   }
 
   span {

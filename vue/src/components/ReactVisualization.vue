@@ -104,12 +104,14 @@ const formatTime = (timestamp) => {
 </script>
 
 <style lang="scss" scoped>
+@use '@/styles/variables' as *;
+
 .react-visualization {
   margin-top: 16px;
   padding: 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  background: $bg-elevated;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
 }
 
 .react-header {
@@ -125,7 +127,7 @@ const formatTime = (timestamp) => {
   .react-title {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: $text-primary;
     flex: 1;
   }
 
@@ -168,7 +170,7 @@ const formatTime = (timestamp) => {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--accent-primary);
+    background: $accent-primary;
     color: white;
     display: flex;
     align-items: center;
@@ -181,7 +183,7 @@ const formatTime = (timestamp) => {
   .step-line {
     width: 2px;
     flex: 1;
-    background: var(--border-subtle);
+    background: $border-subtle;
     margin-top: 4px;
     min-height: 20px;
   }
@@ -200,13 +202,13 @@ const formatTime = (timestamp) => {
   .step-type {
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: $text-primary;
     margin-bottom: 4px;
   }
 
   .step-text {
     font-size: 0.9rem;
-    color: #CBD5E1;
+    color: $text-secondary;
     line-height: 1.5;
     margin-bottom: 8px;
   }
@@ -216,10 +218,10 @@ const formatTime = (timestamp) => {
     align-items: center;
     gap: 16px;
     font-size: 0.85rem;
-    color: #94A3B8;
+    color: $text-muted;
 
     .step-time {
-      font-family: var(--font-mono);
+      font-family: $font-mono;
     }
 
     .step-status {
@@ -231,19 +233,19 @@ const formatTime = (timestamp) => {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: var(--text-muted);
+        background: $text-muted;
 
         .in_progress & {
-          background: var(--accent-amber);
+          background: $accent-amber;
           animation: pulse 1.5s infinite;
         }
 
         .completed & {
-          background: var(--accent-emerald);
+          background: $accent-emerald;
         }
 
         .failed & {
-          background: var(--accent-red);
+          background: $accent-red;
         }
       }
     }
@@ -254,19 +256,19 @@ const formatTime = (timestamp) => {
 .react-step {
   &.think {
     .step-number {
-      background: var(--accent-primary);
+      background: $accent-primary;
     }
   }
 
   &.act {
     .step-number {
-      background: var(--accent-amber);
+      background: $accent-amber;
     }
   }
 
   &.observe {
     .step-number {
-      background: var(--accent-emerald);
+      background: $accent-emerald;
     }
   }
 }
@@ -277,7 +279,7 @@ const formatTime = (timestamp) => {
 
   .summary-text {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: $text-muted;
   }
 }
 

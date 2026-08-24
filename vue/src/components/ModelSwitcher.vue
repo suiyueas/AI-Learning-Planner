@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div ref="switcherRef" class="model-switcher">
     <div class="current-model" @click="toggleDropdown">
       <span class="status-dot"></span>
@@ -88,6 +88,7 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .model-switcher {
   position: relative;
 }
@@ -97,21 +98,21 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
   align-items: center;
   gap: 6px;
   padding: 4px 12px 4px 10px;
-  background: rgba(100,100,180,0.06);
+  background: rgba($accent-secondary,0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.3);
-    background: rgba(100,100,180,0.1);
-    color: #00f5d4;
+    border-color: rgba($accent-primary, 0.3);
+    background: rgba($accent-secondary,0.1);
+    color: $accent-primary;
 
-    .model-name { color: #00f5d4; }
-    .status-dot { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+    .model-name { color: $accent-primary; }
+    .status-dot { background: $accent-emerald; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
   }
 }
 
@@ -119,7 +120,7 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #10b981;
+  background: $accent-emerald;
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
   flex-shrink: 0;
   animation: dot-pulse 2s ease-in-out infinite;
@@ -138,7 +139,7 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
 
 .dropdown-arrow {
   font-size: 8px;
-  color: #606090;
+  color: $text-muted;
   transition: transform 0.25s ease;
   &.open { transform: rotate(180deg); }
 }
@@ -152,9 +153,9 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
   background: rgba(10, 14, 26, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 245, 212, 0.03);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 30px rgba($accent-primary, 0.03);
   z-index: 1001;
   overflow: hidden;
 }
@@ -168,10 +169,10 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
 
 .dropdown-header {
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(100,100,180,0.07);
+  border-bottom: 1px solid rgba($accent-secondary,0.07);
   font-size: 11px;
   font-weight: 600;
-  color: #8080a8;
+  color: $text-muted;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -190,14 +191,14 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
   transition: all 0.15s ease;
 
   &:hover {
-    background: rgba(100,100,180,0.06);
+    background: rgba($accent-secondary,0.06);
   }
 
   &.active {
-    background: rgba(0, 245, 212, 0.06);
-    border: 1px solid rgba(0, 245, 212, 0.1);
+    background: rgba($accent-primary, 0.06);
+    border: 1px solid rgba($accent-primary, 0.1);
 
-    .option-name { color: #00f5d4; }
+    .option-name { color: $accent-primary; }
   }
 }
 
@@ -217,13 +218,13 @@ onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
 .option-name {
   font-size: 12px;
   font-weight: 500;
-  color: #e8e8ff;
+  color: $text-primary;
   transition: color 0.15s;
 }
 
 .option-desc {
   font-size: 10px;
-  color: #606090;
+  color: $text-muted;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

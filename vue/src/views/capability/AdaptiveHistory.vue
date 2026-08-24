@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="history-page">
     <!-- 顶部导航栏 -->
     <header class="history-header">
@@ -157,9 +157,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .history-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -168,9 +169,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -187,19 +188,19 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -208,21 +209,21 @@ onMounted(() => {
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .header-icon {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .header-total {
   font-size: 0.9rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .total-num {
-  color: #00E5FF;
+  color: $accent-primary;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
 }
@@ -245,31 +246,31 @@ onMounted(() => {
 
 .filter-btn {
   padding: 8px 18px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 20px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .filter-btn:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
 }
 
 .filter-btn.active {
-  background: rgba(0, 229, 255, 0.1);
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.3);
+  background: rgba($accent-primary, 0.1);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.3);
 }
 
 /* 时间线 */
 .info-section {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
 }
@@ -289,7 +290,7 @@ onMounted(() => {
   top: 8px;
   bottom: 8px;
   width: 1px;
-  background: rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.12);
 }
 
 .adjust-entry {
@@ -306,12 +307,12 @@ onMounted(() => {
   height: 16px;
   border-radius: 50%;
   border: 2px solid;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   z-index: 1;
 }
 
 .adjust-entry-dot.review_insert { border-color: #EF4444; }
-.adjust-entry-dot.advance_recommend { border-color: #00E5FF; }
+.adjust-entry-dot.advance_recommend { border-color: $accent-primary; }
 .adjust-entry-dot.plan_adjust { border-color: #F59E0B; }
 .adjust-entry-dot.resource_recommend { border-color: #A855F7; }
 .adjust-entry-dot.difficulty_adjust { border-color: #10B981; }
@@ -330,7 +331,7 @@ onMounted(() => {
 
 .adjust-entry-date {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -342,7 +343,7 @@ onMounted(() => {
 }
 
 .adjust-entry-tag.review_insert { background: rgba(239, 68, 68, 0.1); color: #EF4444; }
-.adjust-entry-tag.advance_recommend { background: rgba(0, 229, 255, 0.1); color: #00E5FF; }
+.adjust-entry-tag.advance_recommend { background: rgba($accent-primary, 0.1); color: $accent-primary; }
 .adjust-entry-tag.plan_adjust { background: rgba(245, 158, 11, 0.1); color: #F59E0B; }
 .adjust-entry-tag.resource_recommend { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
 .adjust-entry-tag.difficulty_adjust { background: rgba(16, 185, 129, 0.1); color: #10B981; }
@@ -350,14 +351,14 @@ onMounted(() => {
 .adjust-entry-path {
   font-size: 0.75rem;
   color: #a0a0c8;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   padding: 2px 10px;
   border-radius: 10px;
 }
 
 .adjust-entry-desc {
   font-size: 0.9rem;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0 0 6px;
 }
 
@@ -371,9 +372,9 @@ onMounted(() => {
   font-size: 0.75rem;
   padding: 3px 10px;
   border-radius: 10px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
-  color: #94A3B8;
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
+  color: $text-secondary;
 }
 
 .meta-chip.effect {
@@ -393,12 +394,12 @@ onMounted(() => {
 }
 
 .empty-icon {
-  color: rgba(100, 100, 180, 0.4);
+  color: rgba($accent-secondary, 0.4);
 }
 
 .chart-empty p {
   font-size: 0.9rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin: 0;
   max-width: 420px;
   line-height: 1.6;
@@ -436,23 +437,23 @@ onMounted(() => {
   gap: 16px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid rgba(100, 100, 180, 0.08);
+  border-top: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .page-btn {
   padding: 7px 16px;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: rgba(0, 229, 255, 0.12);
-  border-color: rgba(0, 229, 255, 0.3);
+  background: rgba($accent-primary, 0.12);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .page-btn:disabled {
@@ -462,7 +463,7 @@ onMounted(() => {
 
 .page-info {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 

@@ -45,6 +45,57 @@
       </div>
     </header>
 
+    <!-- ===== 主 Tab 切换 ===== -->
+    <div class="main-tabs">
+      <button class="main-tab" :class="{ active: mainTab === 'agents' }" @click="mainTab = 'agents'">
+        <span class="tab-icon">🤖</span>
+        <span>智能体</span>
+      </button>
+      <button class="main-tab" :class="{ active: mainTab === 'chat' }" @click="mainTab = 'chat'">
+        <span class="tab-icon">💬</span>
+        <span>AI 对话</span>
+      </button>
+      <button class="main-tab" :class="{ active: mainTab === 'tools' }" @click="mainTab = 'tools'">
+        <span class="tab-icon">🔧</span>
+        <span>工具</span>
+      </button>
+      <button class="main-tab" :class="{ active: mainTab === 'history' }" @click="mainTab = 'history'">
+        <span class="tab-icon">📋</span>
+        <span>执行历史</span>
+        <span v-if="executionLogs.length > 0" class="tab-badge">{{ executionLogs.length }}</span>
+      </button>
+    </div>
+
+    <!-- ===== 智能体视图 ===== -->
+    <template v-if="mainTab === 'agents'">
+    <!-- ===== 智能路由入口 ===== -->
+    <section class="smart-router-section">
+      <div class="router-header">
+        <h2 class="router-title">💡 智能路由</h2>
+        <p class="router-desc">不确定选哪个？直接输入你的需求，AI 帮你分配到最合适的智能体</p>
+      </div>
+      <div class="router-input-wrap">
+        <input
+          v-model="routerInput"
+          class="router-input"
+          placeholder="输入你想做什么... 例如：帮我规划Python学习路径"
+          @keydown.enter="handleSmartRouter"
+        />
+        <button class="router-submit-btn" :disabled="!routerInput.trim() || isRouterLoading" @click="handleSmartRouter">
+          <span v-if="isRouterLoading" class="btn-spinner-small"></span>
+          <span v-else>🚀</span>
+          <span>{{ isRouterLoading ? '分析中...' : '发送' }}</span>
+        </button>
+      </div>
+      <div v-if="routedAgent" class="router-result">
+        <span class="router-result-icon">{{ routedAgent.icon }}</span>
+        <span class="router-result-text">已为你分配：<strong>{{ routedAgent.name }}</strong></span>
+        <span class="router-result-role">{{ routedAgent.role }}</span>
+        <button class="router-go-btn" @click="goToAgent(routedAgent)">进入对话</button>
+      </div>
+      <div v-if="routerError" class="router-error">{{ routerError }}</div>
+    </section>
+
     <!-- ===== 主控 Agent (Orchestrator) ===== -->
     <section class="orchestrator-section" @click="toggleOrchExpand">
       <div class="section-label"><span class="label-dot"></span> 主控智能体 · Orchestrator</div>
@@ -203,9 +254,22 @@
               <span v-for="tool in agent.tools" :key="tool" class="tool-tag">{{ tool }}</span>
             </div>
 
-            <!-- 示例预览 -->
+            <!-- 示例预览 & 快速指令 -->
             <div class="card-example" :title="'点击执行查看更多示例'">
               <span class="example-text">{{ agent.example }}</span>
+            </div>
+
+            <!-- 快速指令区 -->
+            <div v-if="agent.quickCommands && agent.quickCommands.length > 0" class="card-quick-commands">
+              <span class="quick-cmd-label">快速指令：</span>
+              <button
+                v-for="cmd in agent.quickCommands.slice(0, 2)"
+                :key="cmd"
+                class="quick-cmd-btn"
+                @click.stop="executeQuickCommand(agent, cmd)"
+              >
+                {{ cmd }}
+              </button>
             </div>
 
             <!-- 按钮行 -->
@@ -220,12 +284,47 @@
                 <span v-else class="exec-ico">▶</span>
                 <span>{{ agent.status === 'executing' ? '执行中' : '执行' }}</span>
               </button>
+              <button class="chat-btn" @click.stop="openAgentChat(agent)">
+                💬 对话
+              </button>
             </div>
           </div>
         </TransitionGroup>
       </div>
     </section>
+    </template>
 
+    <div v-if="mainTab === 'chat'" class="chat-tab-container">
+    <AIChatPanel />
+    </div>
+
+    <template v-if="mainTab === 'tools'">
+    <section class="tools-view-section">
+      <div class="tools-view-header">
+        <h2 class="tools-view-title">🔧 MCP 工具中心</h2>
+        <p class="tools-view-subtitle">使用各种工具来完成复杂任务</p>
+      </div>
+      <div class="tools-categories">
+        <div class="tool-category-card" v-for="cat in toolCategories" :key="cat.id">
+          <div class="tc-header">
+            <span class="tc-icon">{{ cat.icon }}</span>
+            <span class="tc-name">{{ cat.name }}</span>
+            <span class="tc-count">{{ cat.count }} 个工具</span>
+          </div>
+          <div class="tc-tools">
+            <div class="tc-tool-item" v-for="tool in cat.tools" :key="tool.id" @click="handleToolClick(tool)">
+              <span class="tt-icon">{{ tool.icon }}</span>
+              <span class="tt-name">{{ tool.name }}</span>
+              <span class="tt-status" :class="tool.status">{{ tool.statusText }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </template>
+
+    <!-- ===== 历史记录视图 ===== -->
+    <template v-if="mainTab === 'history'">
     <!-- ===== 任务执行流面板（执行历史统一入口） ===== -->
     <section class="flow-panel" :class="{ 'has-active': executionLogs.length > 0 }">
       <div class="flow-head" @click="flowExpanded = !flowExpanded">
@@ -362,6 +461,7 @@
         </div>
 </div>
     </section>
+    </template>
 
     <!-- ===== 执行详情弹窗（统一：元信息 + 用户输入 + 按结果类型渲染 + 操作栏） ===== -->
     <ExecutionDetailModal
@@ -497,19 +597,113 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { confirmAction, cleanupDialogs } from '@/utils/modalHelper'
-import { saveAgentExecution, getAllResults, clearAllResults, deleteResultById, deleteResultsBatch, getTrashResults, restoreResult } from '@/api/agentApi'
+import { saveAgentExecution, getAllResults, clearAllResults, deleteResultById, deleteResultsBatch, getTrashResults, restoreResult, postStreamExecution } from '@/api/agentApi'
 import { getToolExecutionHistory, deleteToolExecution } from '@/api/toolsApi'
 import { parseResultContent } from '@/utils/markdown'
 import { securityFilter } from '@/utils/securityUtils'
 import SchedulingCenter from '@/components/agent/SchedulingCenter.vue'
 import ResultDetailDialog from '@/components/agent/ResultDetailDialog.vue'
 import ExecutionDetailModal from '@/components/agent/ExecutionDetailModal.vue'
+import AIChatPanel from '@/components/chat/AIChatPanel.vue'
+import { useToolsStore } from '@/stores/toolsStore'
 
 const route = useRoute()
+const router = useRouter()
 const pageRef = ref(null)
+const toolsStore = useToolsStore()
+
+// ===== 主 Tab 切换 =====
+const mainTab = ref('agents')
+
+// ===== 工具视图数据（从 toolsStore 获取真实工具） =====
+const REAL_TOOL_ICONS = {
+  unified_academic_search: '🌐',
+  deep_document_analysis: '📄',
+  smart_quiz_generation: '✏️',
+  academic_translation: '🌍',
+  full_chain_learning: '🔗'
+}
+
+const toolCategories = computed(() => {
+  const tools = toolsStore.tools
+  if (!tools || tools.length === 0) {
+    return [{ id: 'empty', name: '暂无工具', icon: '🔧', count: 0, tools: [] }]
+  }
+  const categories = {}
+  for (const tool of tools) {
+    const cat = tool.category || 'other'
+    if (!categories[cat]) {
+      const catNames = { input_search: '搜索工具', understanding_output: '理解工具', assessment_loop: '评估工具', system_debug: '系统工具', other: '其他工具' }
+      const catIcons = { input_search: '🔍', understanding_output: '📖', assessment_loop: '📊', system_debug: '⚙️', other: '🔧' }
+      categories[cat] = { id: cat, name: catNames[cat] || cat, icon: catIcons[cat] || '🔧', count: 0, tools: [] }
+    }
+    categories[cat].tools.push({
+      id: tool.id,
+      name: tool.name,
+      icon: REAL_TOOL_ICONS[tool.id] || '🔧',
+      status: tool.status === 'available' ? 'available' : 'unavailable',
+      statusText: tool.status === 'available' ? '可用' : '不可用'
+    })
+    categories[cat].count++
+  }
+  return Object.values(categories)
+})
+
+const handleToolClick = (tool) => {
+  ElMessage.info(`工具「${tool.name}」功能开发中，敬请期待！`)
+}
+
+const goToFullTools = () => {
+  ElMessage.info('完整工具中心功能开发中，将在后续版本开放')
+}
+
+// ===== 智能路由 =====
+const routerInput = ref('')
+const isRouterLoading = ref(false)
+const routedAgent = ref(null)
+const routerError = ref(null)
+
+const handleSmartRouter = async () => {
+  const input = routerInput.value.trim()
+  if (!input) return
+
+  isRouterLoading.value = true
+  routerError.value = null
+  routedAgent.value = null
+
+  await sleep(800)
+
+  const lowerInput = input.toLowerCase()
+
+  if (lowerInput.includes('诊断') || lowerInput.includes('水平') || lowerInput.includes('能力') || lowerInput.includes('薄弱点') || lowerInput.includes('测评') || lowerInput.includes('评估')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'diagnosis') || null
+  } else if (lowerInput.includes('规划') || lowerInput.includes('计划') || lowerInput.includes('学习路径') || lowerInput.includes('路线') || lowerInput.includes('目标')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'planner') || null
+  } else if (lowerInput.includes('答疑') || lowerInput.includes('解释') || lowerInput.includes('教我') || lowerInput.includes('问题') || lowerInput.includes('问') || lowerInput.includes('不懂')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'tutor') || null
+  } else if (lowerInput.includes('报告') || lowerInput.includes('总结') || lowerInput.includes('分析') || lowerInput.includes('导出')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'reporter') || null
+  } else if (lowerInput.includes('练习') || lowerInput.includes('习题') || lowerInput.includes('题目') || lowerInput.includes('作业') || lowerInput.includes('批改')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'exercise') || null
+  } else if (lowerInput.includes('搜索') || lowerInput.includes('查找') || lowerInput.includes('资源') || lowerInput.includes('教程')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'search') || null
+  } else if (lowerInput.includes('知识') || lowerInput.includes('文档') || lowerInput.includes('检索') || lowerInput.includes('知识库')) {
+    routedAgent.value = subAgents.value.find(a => a.id === 'knowledge') || null
+  } else {
+    routedAgent.value = subAgents.value[Math.floor(Math.random() * subAgents.value.length)]
+  }
+
+  isRouterLoading.value = false
+}
+
+const goToAgent = (agent) => {
+  routerInput.value = ''
+  openTaskDialog(agent)
+}
+
 const flowBodyRef = ref(null)
 const flowListWrapRef = ref(null)
 const flowExpanded = ref(true)
@@ -541,11 +735,11 @@ const generateParticles = () => {
 }
 
 // ===== ReAct 步骤配置 =====
-const reactSteps = [
+const reactSteps = ref([
   { id: 'think', icon: '🤔', name: '思考', desc: '分析任务，拆解问题' },
   { id: 'act', icon: '⚡', name: '行动', desc: '调用工具，获取信息' },
   { id: 'observe', icon: '👁️', name: '观察', desc: '整合结果，优化输出' }
-]
+])
 const reactActiveStep = ref(-1)
 const reactIteration = ref(0)
 
@@ -557,6 +751,7 @@ const agentConfigs = [
     tools: ['智能测评出题', '全域学术检索'], avgTime: '2.3s',
     example: '💡 诊断我的 Python 学习水平',
     categories: ['🏷️ 能力测评', '🏷️ 画像构建', '🏷️ 薄弱分析'],
+    quickCommands: ['诊断我的Python水平', '评估我的能力画像'],
     examples: [
       { cat: '能力测评', text: '诊断我的 Python 学习水平，找出薄弱点' },
       { cat: '能力测评', text: '评估我的数据分析能力，给出评分和建议' },
@@ -571,6 +766,7 @@ const agentConfigs = [
     tools: ['全域学术检索', '全链路学习助手'], avgTime: '3.1s',
     example: '💡 制定3个月的Java学习计划',
     categories: ['🏷️ 路径规划', '🏷️ 动态调整', '🏷️ 资源推荐'],
+    quickCommands: ['制定Python学习计划', '调整我的学习路径'],
     examples: [
       { cat: '路径规划', text: '制定3个月的Java学习计划，从入门到进阶' },
       { cat: '路径规划', text: '规划Python数据分析完整学习路径' },
@@ -585,6 +781,7 @@ const agentConfigs = [
     tools: ['全域学术检索', '学术翻译'], avgTime: '2.8s',
     example: '💡 解释一下什么是闭包？',
     categories: ['🏷️ 概念解释', '🏷️ 引导式教学', '🏷️ 代码答疑'],
+    quickCommands: ['解释Python装饰器', '教我理解排序算法'],
     examples: [
       { cat: '概念解释', text: '解释一下什么是闭包？用通俗的语言说明' },
       { cat: '概念解释', text: '帮我理解Python装饰器的工作原理' },
@@ -599,6 +796,7 @@ const agentConfigs = [
     tools: ['深度文献解析', '全域学术检索'], avgTime: '4.2s',
     example: '💡 生成我本月的学习报告',
     categories: ['🏷️ 周报', '🏷️ 月报', '🏷️ 分析建议'],
+    quickCommands: ['生成本周学习报告', '分析我的学习趋势'],
     examples: [
       { cat: '周报', text: '生成本周学习报告，包含时长和完成率' },
       { cat: '月报', text: '生成我本月的学习报告，分析进步趋势' },
@@ -613,6 +811,7 @@ const agentConfigs = [
     tools: ['智能测评出题'], avgTime: '2.5s',
     example: '💡 生成5道Python基础练习题',
     categories: ['🏷️ 习题生成', '🏷️ 智能批改', '🏷️ 错题巩固'],
+    quickCommands: ['生成专项练习题', '批改我的作业'],
     examples: [
       { cat: '习题生成', text: '生成5道Python基础练习题，包含难度标注' },
       { cat: '习题生成', text: '出10道Java面试高频算法题' },
@@ -627,6 +826,7 @@ const agentConfigs = [
     tools: ['全域学术检索'], avgTime: '1.8s',
     example: '💡 搜索最新的Python教程',
     categories: ['🏷️ 全网搜索', '🏷️ 学术搜索', '🏷️ 教程搜索'],
+    quickCommands: ['搜索机器学习教程', '查找相关学习资源'],
     examples: [
       { cat: '全网搜索', text: '搜索2026年最新的Python学习教程推荐' },
       { cat: '教程搜索', text: '查找高质量的机器学习入门教程和课程' },
@@ -771,6 +971,19 @@ const openTaskDialog = (agent) => {
   docFilter.value = '全部'
   showTaskDialog.value = true
 }
+
+const executeQuickCommand = (agent, command) => {
+  currentAgent.value = agent
+  taskInput.value = command
+  showTaskDialog.value = true
+}
+
+const openAgentChat = (agent) => {
+  currentAgent.value = agent
+  taskInput.value = ''
+  showTaskDialog.value = true
+}
+
 const closeTaskDialog = () => {
   if (isTaskExecuting.value) return
   showTaskDialog.value = false
@@ -1173,29 +1386,100 @@ const generateResultPayload = (agent, task) => {
   }
 }
 
-// ===== 模拟执行（同时收集日志用于后端持久化） =====
+// ===== 真实 ReAct 执行（通过后端 SSE 流式输出） =====
+let activeAbortController = null
+
 const simulateExecution = async (agent, task, logCollector) => {
   const desc = task.length > 35 ? task.substring(0, 35) + '...' : task
+  let stepCount = 0
+  let isFinished = false
 
-  // 思考
-  reactActiveStep.value = 0
-  await sleep(600 + Math.random() * 400)
-  addFlowLog(agent, 'think', '🤔 思考', `分析任务需求：「${desc}」`, logCollector)
-  await sleep(800 + Math.random() * 500)
+  // 取消上一次未完成的流式执行
+  if (activeAbortController) {
+    activeAbortController.abort()
+  }
+  activeAbortController = new AbortController()
 
-  // 行动
-  reactActiveStep.value = 1
-  addFlowLog(agent, 'act', '⚡ 行动', `调用「${agent.tools[0] || '关联工具'}」获取数据...`, logCollector)
-  await sleep(900 + Math.random() * 500)
+  try {
+    await postStreamExecution(agent.id, task, {
+      onStart: () => {
+        addFlowLog(agent, 'task', '🚀 启动', `任务已启动: ${desc}`, logCollector)
+      },
+      onThink: (data) => {
+        stepCount = data.step || stepCount
+        reactActiveStep.value = 0
+        const thought = data.content || data.thought || JSON.stringify(data)
+        addFlowLog(agent, 'think', '🤔 思考', thought, logCollector)
+      },
+      onAct: (data) => {
+        reactActiveStep.value = 1
+        const toolName = data.tool || data.toolName || '关联工具'
+        const args = data.args || data.params || {}
+        const argsStr = Object.keys(args).length > 0 ? ` 参数: ${JSON.stringify(args)}` : ''
+        addFlowLog(agent, 'act', '⚡ 行动', `调用「${toolName}」${argsStr}`, logCollector)
+        // 高亮工具调用
+        highlightToolCall(toolName)
+      },
+      onObserve: (data) => {
+        reactActiveStep.value = 2
+        const content = data.content || data.observation || ''
+        const result = data.result
+        let observation = content
+        if (result && typeof result === 'string' && result.length > 0) {
+          const preview = result.length > 200 ? result.substring(0, 200) + '...' : result
+          observation = content ? `${content}\n${preview}` : preview
+        }
+        addFlowLog(agent, 'observe', '👁️ 观察', observation || '执行成功', logCollector)
+      },
+      onReflect: (data) => {
+        const reflection = data.content || data.reflection || JSON.stringify(data)
+        addFlowLog(agent, 'reflect', '🔄 反思', reflection, logCollector)
+      },
+      onReplan: (data) => {
+        const reason = data.reason || data.newPlan || ''
+        const alternative = data.alternative || ''
+        addFlowLog(agent, 'replan', '📝 重规划', `原因: ${reason}\n新计划: ${alternative}`, logCollector)
+      },
+      onComplete: (data) => {
+        isFinished = true
+        const output = data.output || data.message || '任务执行完成'
+        const duration = data.duration || 0
+        const steps = data.steps || stepCount
+        addFlowLog(agent, 'success', '✅ 任务完成', output, logCollector, null, {
+          type: 'default',
+          displayTitle: `${agent.name} 执行完成`,
+          summary: output.length > 80 ? output.substring(0, 80) + '...' : output,
+          outputText: output,
+          generatedAt: new Date().toISOString(),
+          status: 'success'
+        })
+      },
+      onError: (data) => {
+        isFinished = true
+        const errorMsg = data.message || data.error || '执行失败'
+        addFlowLog(agent, 'error', '❌ 错误', errorMsg, logCollector)
+      }
+    }, activeAbortController.signal)
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    console.error('ReAct 执行失败:', error)
+    addFlowLog(agent, 'error', '❌ 错误', error.message || '执行失败', logCollector)
+  } finally {
+    activeAbortController = null
+  }
+}
 
-  // 观察
-  reactActiveStep.value = 2
-  addFlowLog(agent, 'observe', '👁️ 观察', '整合分析结果，校验数据完整性...', logCollector)
-  await sleep(600 + Math.random() * 400)
-
-  // 完成步骤
-  reactActiveStep.value = 3
-  await sleep(400)
+// ===== 工具调用高亮 =====
+const highlightToolCall = (toolName) => {
+  nextTick(() => {
+    const toolElements = document.querySelectorAll('.tool-tag')
+    toolElements.forEach(el => {
+      if (el.textContent.trim() === toolName) {
+        el.classList.add('tool-highlight')
+        setTimeout(() => el.classList.remove('tool-highlight'), 3000)
+      }
+    })
+  })
 }
 
 // ===== 执行流日志（同步收集到 logCollector 用于后端持久化） =====
@@ -1588,86 +1872,102 @@ const handleSchedulingBatch = (tasks) => {
   todayScheduleCount.value += tasks.length
 }
 
-// 模拟单个 Agent 执行
+// 单个 Agent 流式执行（调度中心批量执行）
 const simulateAgentExecution = async (agent, description) => {
   const desc = description.length > 35 ? description.substring(0, 35) + '...' : description
-  
-  // 生成执行标识
   const executionId = 'exec_' + Date.now() + '_' + agent.id
   const sessionId = currentSessionId.value || ('session_' + Date.now())
   const stepLogs = []
-  
-  // 思考
-  addFlowLog(agent, 'think', '🤔 思考', `分析任务需求：「${desc}」`)
-  stepLogs.push({ phase: 'think', content: `分析任务需求：「${desc}」` })
-  await sleep(400 + Math.random() * 300)
-  
-  // 行动
-  addFlowLog(agent, 'act', '⚡ 行动', `调用「${agent.tools[0] || '关联工具'}」获取数据...`)
-  stepLogs.push({ phase: 'act', content: `调用「${agent.tools[0] || '关联工具'}」获取数据...` })
-  await sleep(500 + Math.random() * 300)
-  
-  // 观察
-  addFlowLog(agent, 'observe', '👁️ 观察', '整合分析结果，校验数据完整性...')
-  stepLogs.push({ phase: 'observe', content: '整合分析结果，校验数据完整性...' })
-  await sleep(400 + Math.random() * 200)
-  
-  // 生成执行结果载荷
-  const result = generateResultPayload(agent, description)
+  const startMs = Date.now()
+  let finalResult = null
 
-  const execResult = {
-    agentId: agent.id,
-    agentName: agent.name,
-    taskDescription: description,
-    status: 'completed',
-    resultType: result.type || 'default',
-    result: result,
-    duration: Math.floor(Math.random() * 3000) + 1000,
-    createdAt: new Date().toISOString()
+  try {
+    await postStreamExecution(agent.id, description, {
+      onStart: () => {
+        addFlowLog(agent, 'task', '🚀 启动', `任务已启动: ${desc}`)
+        stepLogs.push({ phase: 'start', content: `任务已启动: ${desc}` })
+      },
+      onThink: (data) => {
+        reactActiveStep.value = 0
+        const thought = data.content || data.thought || JSON.stringify(data)
+        addFlowLog(agent, 'think', '🤔 思考', thought)
+        stepLogs.push({ phase: 'think', content: thought })
+      },
+      onAct: (data) => {
+        reactActiveStep.value = 1
+        const toolName = data.tool || data.toolName || '关联工具'
+        const args = data.args || data.params || {}
+        const argsStr = Object.keys(args).length > 0 ? ` 参数: ${JSON.stringify(args)}` : ''
+        addFlowLog(agent, 'act', '⚡ 行动', `调用「${toolName}」${argsStr}`)
+        stepLogs.push({ phase: 'act', content: `调用「${toolName}」${argsStr}` })
+      },
+      onObserve: (data) => {
+        reactActiveStep.value = 2
+        const content = data.content || data.observation || ''
+        addFlowLog(agent, 'observe', '👁️ 观察', content || '执行成功')
+        stepLogs.push({ phase: 'observe', content: content || '执行成功' })
+      },
+      onReflect: (data) => {
+        const reflection = data.content || data.reflection || ''
+        addFlowLog(agent, 'reflect', '🔄 反思', reflection)
+        stepLogs.push({ phase: 'reflect', content: reflection })
+      },
+      onReplan: (data) => {
+        const reason = data.reason || data.newPlan || ''
+        addFlowLog(agent, 'replan', '📝 重规划', reason)
+        stepLogs.push({ phase: 'replan', content: reason })
+      },
+      onComplete: (data) => {
+        const output = data.output || data.message || '任务执行完成'
+        finalResult = generateResultPayload(agent, description)
+        stepLogs.push({ phase: 'complete', content: output })
+      },
+      onError: (data) => {
+        const errorMsg = data.message || data.error || '执行失败'
+        addFlowLog(agent, 'error', '❌ 错误', errorMsg)
+        stepLogs.push({ phase: 'error', content: errorMsg })
+      }
+    })
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    addFlowLog(agent, 'error', '❌ 错误', error.message || '执行失败')
   }
 
-  // 先更新本地结果缓存（确保即使后端保存失败也能查看结果）
-  latestResultsCache[agent.id] = { ...execResult }
-
-  // 先持久化到后端数据库，获取 resultId
+  // 持久化
+  const duration = Date.now() - startMs
+  const result = finalResult || generateResultPayload(agent, description)
   let savedResultId = null
   try {
     const res = await saveAgentExecution({
       agentId: agent.id,
       agentName: agent.name,
       taskDescription: description,
-      sessionId: sessionId,
-      executionId: executionId,
-      result: result,
-      duration: execResult.duration,
+      sessionId,
+      executionId,
+      result,
+      duration,
       logs: stepLogs
     })
     savedResultId = res?.data?.resultId || null
-    // 更新本地缓存的 resultId
-    latestResultsCache[agent.id].id = savedResultId
   } catch (e) {
     console.warn('保存执行结果到数据库失败:', e)
   }
-  
-  // 添加完成日志（携带 resultId 与任务描述，供详情面板展示用户输入）
+
   addFlowLog(agent, 'success', '✅ 任务完成', `${agent.name} 成功执行：${desc}`, null, { resultId: savedResultId, taskDescription: description }, result)
-  stepLogs.push({ phase: 'complete', content: `${agent.name} 成功执行：${desc}` })
-  
-  // 更新统计
+
   agent.execCount = (agent.execCount || 0) + 1
   agentStats[agent.id] = agent.execCount
   saveStats({ ...agentStats })
-  
-  // 更新最近调度日志
+
   recentSchedulingLogs.value.unshift({
     time: formatTime(),
     agentName: agent.name,
     agentId: agent.id,
-    description: description,
+    description,
     status: 'success',
-    duration: execResult.duration
+    duration
   })
-  
+
   agent.status = 'available'
   isTaskExecuting.value = false
   scrollToBottom()
@@ -1871,6 +2171,8 @@ onMounted(() => {
   generateParticles()
   loadAllResultsFromBackend()
   startPolling()
+  toolsStore.fetchTools().catch(() => {})
+  toolsStore.fetchToolStats().catch(() => {})
   // 从工具中心「查看全部执行历史」跳转：展开并滚动定位到执行历史面板
   if (route.query.flow === 'history') {
     flowExpanded.value = true
@@ -1904,6 +2206,7 @@ onActivated(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 /* ===== 页面容器 ===== */
 .agents-page {
   position: relative; min-height: 100vh; padding: 32px 40px 80px;
@@ -1943,6 +2246,148 @@ onActivated(() => {
   100% { transform: translateY(-100vh) translateX(0); }
 }
 
+/* ===== 智能路由入口 ===== */
+.smart-router-section {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 28px;
+  padding: 24px 28px;
+  background: rgba(17, 17, 39, 0.5);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(124, 107, 245, 0.15);
+  border-radius: 18px;
+  animation: slideUp 0.6s ease 0.04s both;
+}
+
+.router-header {
+  margin-bottom: 16px;
+}
+
+.router-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.router-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.router-input-wrap {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.router-input {
+  flex: 1;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(124, 107, 245, 0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s ease;
+
+  &::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  &:focus {
+    border-color: rgba(124, 107, 245, 0.5);
+    box-shadow: 0 0 20px rgba(124, 107, 245, 0.1);
+  }
+}
+
+.router-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, rgba(124, 107, 245, 0.8), rgba(91, 134, 255, 0.8));
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(124, 107, 245, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.router-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.2);
+  border-radius: 12px;
+  animation: slideUp 0.3s ease both;
+}
+
+.router-result-icon {
+  font-size: 1.4rem;
+}
+
+.router-result-text {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+
+  strong {
+    color: #00f5d4;
+  }
+}
+
+.router-result-role {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.router-go-btn {
+  padding: 8px 16px;
+  background: rgba(0, 245, 212, 0.15);
+  border: 1px solid rgba(0, 245, 212, 0.3);
+  border-radius: 8px;
+  color: #00f5d4;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(0, 245, 212, 0.25);
+    transform: translateY(-1px);
+  }
+}
+
+.router-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 0.82rem;
+}
+
 /* ===== 顶部标题 ===== */
 .page-header { position: relative; z-index: 1; margin-bottom: 24px; animation: slideUp 0.6s ease both; }
 .header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
@@ -1971,6 +2416,170 @@ onActivated(() => {
 .kpi-num.kpi-run { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.3); }
 .kpi-num.kpi-accent { color: #00f5d4; text-shadow: 0 0 12px rgba(0,245,212,0.3); }
 .kpi-label { font-size: 0.68rem; color: var(--text-sub); letter-spacing: 0.03em; }
+
+/* ===== 主 Tab 切换 ===== */
+.main-tabs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 6px;
+  background: rgba(100, 100, 180, 0.04);
+  border: 1px solid rgba(100, 100, 180, 0.08);
+  border-radius: 14px;
+  width: fit-content;
+}
+
+.main-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(0, 245, 212, 0.06);
+    color: var(--text-secondary);
+  }
+
+  &.active {
+    background: rgba(0, 245, 212, 0.1);
+    color: #00f5d4;
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
+  }
+
+  .tab-icon {
+    font-size: 1.1rem;
+  }
+
+  .tab-badge {
+    background: rgba(0, 245, 212, 0.2);
+    color: #00f5d4;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+  }
+}
+
+/* ===== AI 对话标签页容器 ===== */
+.chat-tab-container {
+  position: relative;
+  z-index: 1;
+  height: calc(100vh - 56px - 48px);
+  min-height: 400px;
+}
+
+/* ===== 工具视图 ===== */
+.tools-view-section {
+  position: relative;
+  z-index: 1;
+}
+
+.tools-view-header {
+  margin-bottom: 24px;
+
+  .tools-view-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 8px;
+  }
+
+  .tools-view-subtitle {
+    font-size: 0.9rem;
+    color: #9090b0;
+    margin: 0;
+  }
+}
+
+.tools-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.tool-category-card {
+  background: rgba(100, 100, 180, 0.04);
+  border: 1px solid rgba(100, 100, 180, 0.08);
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+
+.tc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .tc-icon {
+    font-size: 1.2rem;
+  }
+
+  .tc-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .tc-count {
+    font-size: 0.75rem;
+    color: #8080a0;
+    margin-left: auto;
+  }
+}
+
+.tc-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tc-tool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(0, 245, 212, 0.04);
+  border: 1px solid rgba(0, 245, 212, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(0, 245, 212, 0.08);
+    border-color: rgba(0, 245, 212, 0.2);
+  }
+
+  .tt-icon {
+    font-size: 1rem;
+  }
+
+  .tt-name {
+    font-size: 0.85rem;
+    color: #e0e0ff;
+  }
+
+  .tt-status {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+
+    &.available {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+  }
+}
 
 /* ===== 通用 Section 标签 ===== */
 .section-label {
@@ -2211,10 +2820,69 @@ onActivated(() => {
     &:hover { color: #b8c0d8; }
   }
 }
-.card-actions { margin-top: auto; }
+
+// ===== 快速指令 =====
+.card-quick-commands {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.quick-cmd-label {
+  font-size: 0.72rem;
+  color: $text-muted;
+  flex-shrink: 0;
+}
+.quick-cmd-btn {
+  padding: 4px 8px;
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.15);
+  border-radius: 4px;
+  color: $accent-primary;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  &:hover {
+    background: rgba($accent-primary, 0.15);
+    transform: translateY(-1px);
+  }
+}
+
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+}
+.chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 0;
+  flex: 1;
+  border: 1px solid rgba($accent-secondary, 0.2);
+  border-radius: 8px;
+  background: rgba($accent-secondary, 0.06);
+  color: $text-secondary;
+  font-weight: 600;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &:hover {
+    border-color: rgba($accent-primary, 0.3);
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.08);
+  }
+}
 .exec-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  width: 100%; padding: 9px 0; border: none; border-radius: 8px;
+  flex: 1; padding: 9px 0; border: none; border-radius: 8px;
   background: var(--btn-gradient); color: #ffffff;
   font-weight: 600; font-size: 0.78rem; font-family: inherit;
   cursor: pointer; opacity: 0.9;
@@ -2596,5 +3264,532 @@ onActivated(() => {
   .kpi-num { font-size: 1rem; }
   .react-steps { flex-direction: column; gap: 12px; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ===== 工具调用高亮 ===== */
+.tool-highlight {
+  background: rgba(0, 245, 212, 0.15) !important;
+  border-color: rgba(0, 245, 212, 0.5) !important;
+  color: #00f5d4 !important;
+  box-shadow: 0 0 12px rgba(0, 245, 212, 0.2);
+  animation: toolPulse 0.6s ease-in-out 3;
+}
+@keyframes toolPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 245, 212, 0.1); }
+  50% { box-shadow: 0 0 16px rgba(0, 245, 212, 0.35); }
+}
+
+/* ===== AI 对话视图 ===== */
+.chat-view-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 280px);
+  min-height: 500px;
+  background: rgba(15, 17, 28, 0.6);
+  border: 1px solid rgba(123, 97, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chat-roles-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: rgba(20, 24, 40, 0.8);
+  border-bottom: 1px solid rgba(123, 97, 255, 0.08);
+}
+
+.role-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.role-pill {
+  padding: 6px 14px;
+  background: rgba(123, 97, 255, 0.08);
+  border: 1px solid rgba(123, 97, 255, 0.15);
+  border-radius: 20px;
+  color: #a0a0c0;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(123, 97, 255, 0.15);
+    color: #e0e0ff;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(123, 97, 255, 0.25), rgba(91, 134, 255, 0.15));
+    border-color: rgba(123, 97, 255, 0.4);
+    color: #ffffff;
+    font-weight: 500;
+  }
+}
+
+.quick-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qpill {
+  padding: 4px 10px;
+  background: rgba(0, 245, 212, 0.06);
+  border: 1px solid rgba(0, 245, 212, 0.12);
+  border-radius: 12px;
+  color: #8080a0;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 245, 212, 0.1);
+    border-color: rgba(0, 245, 212, 0.25);
+    color: #00f5d4;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.pri {
+    background: rgba(123, 97, 255, 0.1);
+    border-color: rgba(123, 97, 255, 0.2);
+    color: #b0a0e0;
+
+    &:hover:not(:disabled) {
+      background: rgba(123, 97, 255, 0.2);
+      border-color: rgba(123, 97, 255, 0.4);
+      color: #d0c0ff;
+    }
+  }
+}
+
+.chat-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scroll-behavior: smooth;
+}
+
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  text-align: center;
+}
+
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: rgba(123, 97, 255, 0.08);
+  border: 1px solid rgba(123, 97, 255, 0.15);
+  border-radius: 12px;
+  margin-bottom: 24px;
+
+  .welcome-avatar {
+    font-size: 2.5rem;
+  }
+
+  .welcome-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+
+  .welcome-text {
+    font-size: 0.85rem;
+    color: #a0a0c0;
+    line-height: 1.5;
+  }
+}
+
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e0ff;
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 0.85rem;
+  color: #8080a0;
+  margin-bottom: 20px;
+}
+
+.empty-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 600px;
+}
+
+.example-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(123, 97, 255, 0.06);
+  border: 1px solid rgba(123, 97, 255, 0.12);
+  border-radius: 10px;
+  color: #c0c0e0;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(123, 97, 255, 0.12);
+    border-color: rgba(123, 97, 255, 0.25);
+    color: #ffffff;
+    transform: translateY(-2px);
+  }
+
+  .ex-icon {
+    font-size: 1rem;
+  }
+}
+
+.user-message-wrapper,
+.ai-message-wrapper {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.user-message-wrapper {
+  flex-direction: row-reverse;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 85%;
+
+  &.user {
+    flex-direction: row-reverse;
+
+    .msg-bubble {
+      background: linear-gradient(135deg, rgba(123, 97, 255, 0.2), rgba(91, 134, 255, 0.15));
+      border: 1px solid rgba(123, 97, 255, 0.25);
+      color: #f0f0ff;
+    }
+  }
+
+  &.assistant {
+    .msg-bubble {
+      background: rgba(30, 35, 55, 0.8);
+      border: 1px solid rgba(123, 97, 255, 0.1);
+      color: #e0e0ff;
+    }
+  }
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.user-av {
+  background: rgba(123, 97, 255, 0.2);
+}
+
+.ai-av {
+  background: rgba(0, 245, 212, 0.15);
+}
+
+.msg-content {
+  flex: 1;
+}
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+
+  .ai-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #00f5d4;
+  }
+
+  .msg-time {
+    font-size: 0.65rem;
+    color: #606080;
+  }
+}
+
+.sources-section,
+.tool-calls-section {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(0, 245, 212, 0.05);
+  border: 1px solid rgba(0, 245, 212, 0.1);
+  border-radius: 8px;
+}
+
+.sources-title,
+.tool-call-header {
+  font-size: 0.75rem;
+  color: #a0a0c0;
+}
+
+.tool-call-status {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+
+  &.success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+  &.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+  &.running { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+}
+
+.msg-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message:hover .msg-actions {
+  opacity: 1;
+}
+
+.act-btn {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #8080a0;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(123, 97, 255, 0.15);
+    border-color: rgba(123, 97, 255, 0.3);
+    color: #d0c0ff;
+  }
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #00f5d4;
+    border-radius: 50%;
+    animation: typingBounce 1.4s ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+}
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+.chat-input-area {
+  padding: 16px 20px;
+  background: rgba(20, 24, 40, 0.6);
+  border-top: 1px solid rgba(123, 97, 255, 0.08);
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.msg-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(30, 35, 55, 0.8);
+  border: 1px solid rgba(123, 97, 255, 0.15);
+  border-radius: 12px;
+  color: #f0f0ff;
+  font-size: 0.9rem;
+  resize: none;
+  min-height: 44px;
+  max-height: 100px;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(123, 97, 255, 0.4);
+  }
+
+  &::placeholder {
+    color: #606080;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.stop-btn {
+  padding: 10px 16px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+}
+
+.send-btn {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(123, 97, 255, 0.8), rgba(91, 134, 255, 0.8));
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(123, 97, 255, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.input-disclaimer {
+  margin-top: 8px;
+  font-size: 0.65rem;
+  color: #505068;
+  text-align: center;
+}
+
+.chat-context-panel {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: 200px;
+  padding: 16px;
+  background: rgba(20, 24, 40, 0.95);
+  border: 1px solid rgba(123, 97, 255, 0.12);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+}
+
+.context-section {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.context-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c0c0e0;
+  margin: 0 0 10px;
+}
+
+.context-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #e0e0ff;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  &.online, &.idle { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+  &.thinking, &.generating { background: #f59e0b; animation: pulse 1s ease-in-out infinite; }
+  &.searching, &.executing { background: #3b82f6; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.context-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #9090b0;
+  margin-bottom: 6px;
+
+  .stat-value {
+    color: #00f5d4;
+    font-weight: 500;
+  }
+}
+
+.token-bar {
+  height: 4px;
+  background: rgba(123, 97, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.token-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7b61ff, #00f5d4);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.token-text {
+  font-size: 0.65rem;
+  color: #707090;
+  text-align: center;
 }
 </style>

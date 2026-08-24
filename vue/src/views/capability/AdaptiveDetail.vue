@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="detail-page">
     <!-- 顶部导航栏 -->
     <header class="detail-header">
@@ -708,9 +708,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .detail-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -719,9 +720,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -738,19 +739,19 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -759,12 +760,12 @@ onMounted(() => {
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .header-icon {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .btn-action {
@@ -772,9 +773,9 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -784,8 +785,8 @@ onMounted(() => {
 
 .btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 .detail-content {
@@ -798,16 +799,16 @@ onMounted(() => {
 }
 
 .info-section {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
   transition: all 0.3s ease;
 }
 
 .info-section:hover {
-  border-color: rgba(0, 229, 255, 0.15);
+  border-color: rgba($accent-primary, 0.15);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -817,14 +818,14 @@ onMounted(() => {
   gap: 8px;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .section-label svg {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 /* 引擎状态 */
@@ -836,8 +837,8 @@ onMounted(() => {
 
 .engine-item {
   padding: 20px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
 }
 
@@ -867,7 +868,7 @@ onMounted(() => {
 
 .engine-label {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   display: block;
   margin-bottom: 6px;
 }
@@ -876,7 +877,7 @@ onMounted(() => {
   display: block;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .engine-value.active {
@@ -884,7 +885,7 @@ onMounted(() => {
 }
 
 .engine-value.highlight {
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 1.4rem;
 }
 
@@ -905,7 +906,7 @@ onMounted(() => {
   top: 8px;
   bottom: 8px;
   width: 1px;
-  background: rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.12);
 }
 
 .adjust-entry {
@@ -922,12 +923,12 @@ onMounted(() => {
   height: 16px;
   border-radius: 50%;
   border: 2px solid;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   z-index: 1;
 }
 
 .adjust-entry-dot.review { border-color: #EF4444; }
-.adjust-entry-dot.advance { border-color: #00E5FF; }
+.adjust-entry-dot.advance { border-color: $accent-primary; }
 .adjust-entry-dot.plan { border-color: #F59E0B; }
 .adjust-entry-dot.resource { border-color: #A855F7; }
 
@@ -944,7 +945,7 @@ onMounted(() => {
 
 .adjust-entry-date {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -956,13 +957,13 @@ onMounted(() => {
 }
 
 .adjust-entry-tag.review { background: rgba(239, 68, 68, 0.1); color: #EF4444; }
-.adjust-entry-tag.advance { background: rgba(0, 229, 255, 0.1); color: #00E5FF; }
+.adjust-entry-tag.advance { background: rgba($accent-primary, 0.1); color: $accent-primary; }
 .adjust-entry-tag.plan { background: rgba(245, 158, 11, 0.1); color: #F59E0B; }
 .adjust-entry-tag.resource { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
 
 .adjust-entry-desc {
   font-size: 0.9rem;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -975,8 +976,8 @@ onMounted(() => {
 
 .effect-card {
   padding: 20px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
 }
 
@@ -985,27 +986,27 @@ onMounted(() => {
   font-size: 2rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
 .effect-label {
   display: block;
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin-bottom: 12px;
 }
 
 .effect-bar {
   height: 4px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .effect-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #38BDF8);
+  background: linear-gradient(90deg, $accent-primary, #38BDF8);
   border-radius: 2px;
   transition: width 1s ease;
 }
@@ -1021,7 +1022,7 @@ onMounted(() => {
 /* 推荐内容 */
 .recommend-intro {
   font-size: 0.9rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin-bottom: 16px;
 }
 
@@ -1037,16 +1038,16 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .recommend-item:hover {
-  background: rgba(0, 229, 255, 0.03);
-  border-color: rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.03);
+  border-color: rgba($accent-primary, 0.15);
   transform: translateX(4px);
 }
 
@@ -1056,14 +1057,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 12px;
   flex-shrink: 0;
 }
 
 .recommend-icon svg {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .recommend-info {
@@ -1076,12 +1077,12 @@ onMounted(() => {
 .recommend-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .recommend-desc {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .recommend-match {
@@ -1099,9 +1100,9 @@ onMounted(() => {
 }
 
 .recommend-match.medium {
-  background: rgba(0, 229, 255, 0.08);
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.08);
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.15);
 }
 
 .link-btn {
@@ -1109,10 +1110,10 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -1120,8 +1121,8 @@ onMounted(() => {
 }
 
 .link-btn:hover {
-  background: rgba(0, 229, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.25);
+  background: rgba($accent-primary, 0.1);
+  border-color: rgba($accent-primary, 0.25);
   transform: translateY(-1px);
 }
 
@@ -1139,21 +1140,21 @@ onMounted(() => {
 
 /* Preferences Dialog */
 .preferences-dialog :deep(.el-dialog) {
-  background: rgba(17, 17, 39, 0.95);
+  background: rgba($bg-primary, 0.95);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 20px;
 }
 
 .preferences-dialog :deep(.el-dialog__header) {
   padding: 24px 28px 16px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .preferences-dialog :deep(.el-dialog__title) {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .preferences-dialog :deep(.el-dialog__body) {
@@ -1162,7 +1163,7 @@ onMounted(() => {
 
 .preferences-dialog :deep(.el-dialog__footer) {
   padding: 16px 28px 24px;
-  border-top: 1px solid rgba(100, 100, 180, 0.08);
+  border-top: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .preferences-content {
@@ -1176,17 +1177,17 @@ onMounted(() => {
 }
 
 .preferences-content::-webkit-scrollbar-track {
-  background: rgba(100, 100, 180, 0.05);
+  background: rgba($accent-secondary, 0.05);
   border-radius: 3px;
 }
 
 .preferences-content::-webkit-scrollbar-thumb {
-  background: rgba(100, 100, 180, 0.2);
+  background: rgba($accent-secondary, 0.2);
   border-radius: 3px;
 }
 
 .preferences-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 100, 180, 0.3);
+  background: rgba($accent-secondary, 0.3);
 }
 
 .pref-section {
@@ -1205,7 +1206,7 @@ onMounted(() => {
   display: block;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
@@ -1238,23 +1239,23 @@ onMounted(() => {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .pref-card:hover {
-  background: rgba(0, 245, 212, 0.04);
-  border-color: rgba(0, 245, 212, 0.2);
+  background: rgba($accent-primary, 0.04);
+  border-color: rgba($accent-primary, 0.2);
   transform: translateY(-1px);
 }
 
 .pref-card.active {
-  background: rgba(0, 245, 212, 0.08);
-  border-color: #00f5d4;
-  box-shadow: 0 0 16px rgba(0, 245, 212, 0.1);
+  background: rgba($accent-primary, 0.08);
+  border-color: $accent-primary;
+  box-shadow: 0 0 16px rgba($accent-primary, 0.1);
 }
 
 .pref-card-icon {
@@ -1273,12 +1274,12 @@ onMounted(() => {
 .pref-card-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .pref-card-time {
   font-size: 0.75rem;
-  color: #00f5d4;
+  color: $accent-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -1303,18 +1304,18 @@ onMounted(() => {
 .custom-input {
   width: 80px;
   padding: 8px 12px;
-  background: rgba(17, 17, 39, 0.8);
-  border: 1px solid rgba(0, 245, 212, 0.3);
+  background: rgba($bg-primary, 0.8);
+  border: 1px solid rgba($accent-primary, 0.3);
   border-radius: 8px;
-  color: #F1F5F9;
+  color: $text-primary;
   font-size: 0.9rem;
   outline: none;
   transition: all 0.25s ease;
 }
 
 .custom-input:focus {
-  border-color: #00f5d4;
-  box-shadow: 0 0 12px rgba(0, 245, 212, 0.15);
+  border-color: $accent-primary;
+  box-shadow: 0 0 12px rgba($accent-primary, 0.15);
 }
 
 .custom-input::-webkit-inner-spin-button,
@@ -1394,12 +1395,12 @@ input[type="number"] {
 }
 
 .empty-icon {
-  color: rgba(100, 100, 180, 0.4);
+  color: rgba($accent-secondary, 0.4);
 }
 
 .chart-empty p {
   font-size: 0.9rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin: 0;
   max-width: 420px;
   line-height: 1.6;
@@ -1407,13 +1408,13 @@ input[type="number"] {
 
 /* ===== 引擎状态扩展 ===== */
 .status-dot.offline {
-  background: #94A3B8;
+  background: $text-secondary;
   box-shadow: none;
   animation: none;
 }
 
 .engine-value.paused {
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .engine-value.negative {
@@ -1455,9 +1456,9 @@ input[type="number"] {
 }
 
 .recommend-status.viewed {
-  background: rgba(0, 229, 255, 0.08);
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba($accent-primary, 0.08);
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.2);
 }
 
 .recommend-status.consumed {
@@ -1468,7 +1469,7 @@ input[type="number"] {
 
 .recommend-match.low {
   background: rgba(148, 163, 184, 0.08);
-  color: #94A3B8;
+  color: $text-secondary;
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -1487,7 +1488,7 @@ input[type="number"] {
 
 .attribution-label {
   font-size: 0.85rem;
-  color: #F1F5F9;
+  color: $text-primary;
   width: 96px;
   flex-shrink: 0;
 }
@@ -1495,7 +1496,7 @@ input[type="number"] {
 .attribution-track {
   flex: 1;
   height: 8px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1519,7 +1520,7 @@ input[type="number"] {
 }
 
 .attribution-fill.advance_recommend {
-  background: linear-gradient(90deg, #00E5FF, #38BDF8);
+  background: linear-gradient(90deg, $accent-primary, #38BDF8);
 }
 
 .attribution-fill.difficulty_adjust {
@@ -1528,7 +1529,7 @@ input[type="number"] {
 
 .attribution-value {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
   width: 120px;
   text-align: right;
@@ -1547,8 +1548,8 @@ input[type="number"] {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
 }
 
@@ -1567,19 +1568,19 @@ input[type="number"] {
 .rule-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .rule-desc {
   font-size: 0.78rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.5;
 }
 
 /* ===== 自适应偏好设置 ===== */
 .adaptive-pref-section {
   padding-top: 20px;
-  border-top: 1px solid rgba(100, 100, 180, 0.08);
+  border-top: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .adaptive-switch-row {
@@ -1588,8 +1589,8 @@ input[type="number"] {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 12px;
   margin-bottom: 14px;
 }
@@ -1608,8 +1609,8 @@ input[type="number"] {
 
 .threshold-item {
   padding: 14px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
 }
 
@@ -1617,7 +1618,7 @@ input[type="number"] {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 10px;
 }
 
@@ -1629,7 +1630,7 @@ input[type="number"] {
 
 .threshold-unit {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .threshold-desc {
@@ -1642,18 +1643,18 @@ input[type="number"] {
 
 .adaptive-pref-section :deep(.el-input-number) {
   width: 110px;
-  background: rgba(17, 17, 39, 0.8);
-  border-color: rgba(100, 100, 180, 0.2);
+  background: rgba($bg-primary, 0.8);
+  border-color: rgba($accent-secondary, 0.2);
 }
 
 .adaptive-pref-section :deep(.el-input-number .el-input__inner) {
-  color: #F1F5F9;
+  color: $text-primary;
   background: transparent;
 }
 
 .adaptive-pref-section :deep(.el-switch.is-checked .el-switch__core) {
-  background: #00E5FF;
-  border-color: #00E5FF;
+  background: $accent-primary;
+  border-color: $accent-primary;
 }
 
 @media (max-width: 768px) {

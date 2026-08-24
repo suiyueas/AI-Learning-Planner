@@ -103,6 +103,22 @@ public class StatsController {
     }
 
     /**
+     * AI 学习洞察：根据用户学习数据生成个性化建议
+     * - 超过3天未学习 → 恢复节奏建议
+     * - 存在薄弱知识点 → 专项练习建议
+     * - 有进行中的路径 → 继续学习建议
+     * - 默认 → 欢迎/引导建议
+     */
+    @GetMapping("/ai-suggestion")
+    public Map<String, Object> getAISuggestion() {
+        String userId = securityContextHolder.getCurrentUserId();
+        if (userId == null) {
+            return Map.of("success", false, "message", "用户未登录");
+        }
+        return Map.of("success", true, "data", progressStatsService.getAISuggestion(userId));
+    }
+
+    /**
      * 能力矩阵：各知识域掌握度（测评科目 + 学习记录知识域聚合）
      */
     @GetMapping("/progress/competency")

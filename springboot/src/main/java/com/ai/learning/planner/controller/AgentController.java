@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
@@ -146,6 +147,58 @@ public class AgentController {
                 emitter.complete();
             }
         });
+
+        return emitter;
+    }
+
+    /**
+     * 流式执行任务（POST + SSE）
+     * 前端通过 fetch + ReadableStream 接收 SSE 流，支持 JSON 请求体
+     */
+    @PostMapping(value = "/execute/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter executeStream(@RequestBody TaskRequest request) {
+        log.info("POST流式执行任务: agentId={}, message={}", request.getAgentId(), request.getMessage());
+
+        SseEmitter emitter = new SseEmitter(300000L);
+
+        emitter.onTimeout(() -> {
+            log.warn("[SSE] POST流式任务超时: agentId={}", request.getAgentId());
+            emitter.complete();
+        });
+
+        emitter.onError(e -> {
+            log.error("[SSE] POST流式任务异常: agentId={}", request.getAgentId(), e);
+        });
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 发送开始事件
+                emitter.send(SseEmitter.event()
+                        .name("start")
+                        .data(Map.of(
+                                "agentId", request.getAgentId(),
+                                "message", request.getMessage(),
+                                "state", "RUNNING"
+                        )));
+
+                // 执行流式任务
+                orchestrator.executeTaskStream(request.getAgentId(), request.getMessage(), emitter);
+            } catch (Exception e) {
+                log.error("[SSE] POST流式执行异常: agentId={}", request.getAgentId(), e);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data(Map.of("message", "执行异常: " + e.getMessage())));
+                } catch (Exception ex) {
+                    log.warn("[SSE] 异常发送失败: {}", ex.getMessage());
+                }
+            } finally {
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {
+                }
+            }
+        }, taskExecutor);
 
         return emitter;
     }

@@ -35,6 +35,14 @@ export const getProgressCompetency = () => {
 }
 
 /**
+ * 获取 AI 学习洞察和建议
+ * @returns {Promise} { message, actions: [{label, target}] }
+ */
+export const getAISuggestion = () => {
+  return get('/stats/ai-suggestion')
+}
+
+/**
  * 获取学习记录列表（分页/状态筛选/关键词搜索/日期范围）
  * @param {object} params 查询参数
  * @returns {Promise} { records, total, page, size, totalPages }
@@ -48,5 +56,6 @@ export default {
   getProgressOverview,
   getProgressCurve,
   getProgressCompetency,
+  getAISuggestion,
   getProgressRecords
 }

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="achievements-page">
     <div class="bg-layer">
       <div class="bg-aurora">
@@ -267,38 +267,39 @@ onMounted(loadData)
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .achievements-page {
-  min-height: calc(100vh - 68px); background: #0a0a1a; position: relative;
+  min-height: calc(100vh - 68px); background: $bg-primary; position: relative;
 }
 .bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .bg-aurora { position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba(0,245,212,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
   animation: auroraDrift 20s ease-in-out infinite;
 }
 @keyframes auroraDrift { 0%,100% { transform: scale(1) rotate(0deg); } 33% { transform: scale(1.08) rotate(0.8deg); } 66% { transform: scale(0.95) rotate(-0.6deg); } }
-.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,245,212,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
+.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
 @keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
 .page-header {
   position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; gap: 16px;
   padding: 16px 32px;
-  background: rgba(10,10,26,0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100,100,180,0.08);
+  background: rgba($bg-primary,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba($accent-secondary,0.08);
 }
 .back-btn {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.1); border-radius: 8px;
-  color: #c0c0e0; font-size: 0.82rem; cursor: pointer;
+  padding: 8px 14px; background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.1); border-radius: 8px;
+  color: $text-secondary; font-size: 0.82rem; cursor: pointer;
   transition: all 0.25s ease;
-  &:hover { border-color: rgba(0,245,212,0.2); color: #00f5d4; }
+  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; }
 }
 .page-title { flex: 1; display: flex; align-items: center; gap: 10px; }
 .title-icon { font-size: 1.3rem; }
 .title-text {
   font-size: 1.05rem; font-weight: 700;
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  background: linear-gradient(135deg, $accent-amber, $accent-red);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .checkin-btn {
@@ -306,7 +307,7 @@ onMounted(loadData)
   padding: 9px 18px;
   background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1));
   border: 1px solid rgba(245,158,11,0.2); border-radius: 10px;
-  color: #f59e0b; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  color: $accent-amber; font-size: 0.85rem; font-weight: 600; cursor: pointer;
   transition: all 0.25s ease;
   &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 20px rgba(245,158,11,0.15); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -321,57 +322,57 @@ onMounted(loadData)
 .streak-card {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 24px;
-  background: rgba(17,17,39,0.6); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.1); border-radius: 16px;
+  background: rgba($bg-primary,0.6); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.1); border-radius: 16px;
 }
 .streak-main { display: flex; align-items: baseline; gap: 4px; }
-.streak-number { font-size: 3rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: #f59e0b; text-shadow: 0 0 20px rgba(245,158,11,0.3); }
-.streak-unit { font-size: 1rem; font-weight: 600; color: #c0c0e0; }
-.streak-label { font-size: 0.82rem; color: #9090b8; }
+.streak-number { font-size: 3rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: $accent-amber; text-shadow: 0 0 20px rgba(245,158,11,0.3); }
+.streak-unit { font-size: 1rem; font-weight: 600; color: $text-secondary; }
+.streak-label { font-size: 0.82rem; color: $text-muted; }
 .streak-dots { display: flex; gap: 6px; }
 .streak-dot {
   width: 10px; height: 10px; border-radius: 50%;
-  background: rgba(100,100,180,0.15);
-  &.active { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+  background: rgba($accent-secondary,0.15);
+  &.active { background: $accent-amber; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
 }
 
 .monthly-card {
   padding: 20px;
-  background: rgba(17,17,39,0.5); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08); border-radius: 16px;
+  background: rgba($bg-primary,0.5); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.08); border-radius: 16px;
 }
 .monthly-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.monthly-title { font-size: 0.85rem; font-weight: 700; color: #e8e8ff; }
-.monthly-count { font-size: 0.8rem; color: #f59e0b; font-family: 'JetBrains Mono', monospace; }
+.monthly-title { font-size: 0.85rem; font-weight: 700; color: $text-primary; }
+.monthly-count { font-size: 0.8rem; color: $accent-amber; font-family: 'JetBrains Mono', monospace; }
 .monthly-grid {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
 }
 .day-cell {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 0.72rem; color: #c0c0e0; border-radius: 6px;
-  background: rgba(100,100,180,0.03);
-  &.today { border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; font-weight: 700; }
-  &.checked { background: rgba(245,158,11,0.12); color: #f59e0b; font-weight: 600; }
+  font-size: 0.72rem; color: $text-secondary; border-radius: 6px;
+  background: rgba($accent-secondary,0.03);
+  &.today { border: 1px solid rgba(245,158,11,0.3); color: $accent-amber; font-weight: 700; }
+  &.checked { background: rgba(245,158,11,0.12); color: $accent-amber; font-weight: 600; }
   &.future { opacity: 0.2; }
 }
 
-.section-title { font-size: 1rem; font-weight: 700; color: #e8e8ff; margin: 0 0 16px; }
+.section-title { font-size: 1rem; font-weight: 700; color: $text-primary; margin: 0 0 16px; }
 
 .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .badge-card {
   display: flex; align-items: center; gap: 14px;
   padding: 16px 18px; border-radius: 14px;
-  background: rgba(17,17,39,0.5); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  background: rgba($bg-primary,0.5); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.08);
   transition: all 0.3s ease;
   &.unlocked { border-color: rgba(245,158,11,0.15); &:hover { border-color: rgba(245,158,11,0.3); transform: translateY(-2px); } }
   &.locked { opacity: 0.5; }
 }
-.badge-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(100,100,180,0.06); flex-shrink: 0; }
+.badge-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba($accent-secondary,0.06); flex-shrink: 0; }
 .badge-icon { font-size: 1.2rem; }
 .badge-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.badge-name { font-size: 0.85rem; font-weight: 600; color: #e8e8ff; }
-.badge-desc { font-size: 0.72rem; color: #9090b8; }
+.badge-name { font-size: 0.85rem; font-weight: 600; color: $text-primary; }
+.badge-desc { font-size: 0.72rem; color: $text-muted; }
 .badge-status { font-size: 0.7rem; font-weight: 500; white-space: nowrap; }
 
 .badge-right {
@@ -390,7 +391,7 @@ onMounted(loadData)
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: 8px;
-  color: #f59e0b;
+  color: $accent-amber;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -409,14 +410,14 @@ onMounted(loadData)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.7);
+  background: rgba($bg-primary, 0.7);
   backdrop-filter: blur(8px);
 }
 
 .share-dialog {
   width: 420px;
   max-width: calc(100vw - 32px);
-  background: rgba(17, 17, 39, 0.97);
+  background: rgba($bg-primary, 0.97);
   border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: 16px;
   padding: 24px;
@@ -433,14 +434,14 @@ onMounted(loadData)
 .share-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0;
 }
 
 .share-close {
   background: none;
   border: none;
-  color: #9090b8;
+  color: $text-muted;
   font-size: 1rem;
   cursor: pointer;
 }
@@ -469,21 +470,21 @@ onMounted(loadData)
 .share-badge-name {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #f59e0b;
+  color: $accent-amber;
 }
 
 .share-badge-date {
   font-size: 0.72rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .share-text-box {
   padding: 14px;
-  background: rgba(100, 100, 180, 0.05);
-  border: 1px dashed rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.05);
+  border: 1px dashed rgba($accent-secondary, 0.15);
   border-radius: 10px;
   font-size: 0.85rem;
-  color: #c0c0e0;
+  color: $text-secondary;
   line-height: 1.7;
   margin-bottom: 10px;
   word-break: break-all;
@@ -498,7 +499,7 @@ onMounted(loadData)
 
 .share-url-label {
   font-size: 0.72rem;
-  color: #8080a8;
+  color: $text-muted;
   flex-shrink: 0;
 }
 
@@ -520,7 +521,7 @@ onMounted(loadData)
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 8px;
-  color: #f59e0b;
+  color: $accent-amber;
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -532,10 +533,10 @@ onMounted(loadData)
 
 .btn-close {
   padding: 9px 16px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.82rem;
   cursor: pointer;
 }
@@ -555,12 +556,12 @@ onMounted(loadData)
 .history-item {
   display: flex; align-items: center; gap: 14px;
   padding: 12px 16px;
-  background: rgba(17,17,39,0.3); border: 1px solid rgba(100,100,180,0.04); border-radius: 10px;
+  background: rgba($bg-primary,0.3); border: 1px solid rgba($accent-secondary,0.04); border-radius: 10px;
 }
-.history-date { font-size: 0.82rem; color: #c0c0e0; min-width: 120px; }
+.history-date { font-size: 0.82rem; color: $text-secondary; min-width: 120px; }
 .history-status { font-size: 0.78rem; }
-.history-time { margin-left: auto; font-size: 0.72rem; color: #8080a8; font-family: 'JetBrains Mono', monospace; }
-.history-empty { text-align: center; padding: 30px; color: #9090b8; font-size: 0.85rem; }
+.history-time { margin-left: auto; font-size: 0.72rem; color: $text-muted; font-family: 'JetBrains Mono', monospace; }
+.history-empty { text-align: center; padding: 30px; color: $text-muted; font-size: 0.85rem; }
 
 @media (max-width: 1024px) {
   .page-header { padding: 12px 20px; }

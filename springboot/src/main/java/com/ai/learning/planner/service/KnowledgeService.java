@@ -16,6 +16,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +42,7 @@ public class KnowledgeService {
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final ObjectMapper objectMapper;
     private final ConfigDataCacheService configDataCacheService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.rag.top-k:10}")
     private int defaultTopK;
@@ -67,15 +70,51 @@ public class KnowledgeService {
         return knowledgeNodeRepository.findByCategory(category);
     }
 
+    private static final String RAG_CACHE_PREFIX = "cache:rag:search:";
+    private static final long RAG_CACHE_TTL_MINUTES = 10;
+
     /**
      * 语义检索：向量存储优先（ES 主 / 内存降级），失败时回退数据库关键词搜索。
      * topK 受 app.rag.top-k 上限约束，相似度阈值取 app.rag.similarity-threshold；
-     * 记录检索耗时以观测 <200ms 响应目标
+     * Redis 缓存热门查询结果（TTL 10分钟），命中缓存时直接返回
      */
     public List<Document> searchSimilar(String query, int topK) {
         int maxTopK = defaultTopK > 0 ? defaultTopK : 10;
         int effectiveTopK = topK > 0 ? Math.min(topK, maxTopK) : maxTopK;
 
+        // 1. Redis 缓存命中检查
+        String cacheKey = buildRagCacheKey(query, effectiveTopK, similarityThreshold);
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null && cached instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Document> cachedDocs = (List<Document>) cached;
+                log.debug("[RAG] 缓存命中: query={}, topK={}", query, effectiveTopK);
+                return cachedDocs;
+            }
+        } catch (Exception e) {
+            log.warn("[RAG] 缓存读取失败，继续执行检索: {}", e.getMessage());
+        }
+
+        // 2. 缓存未命中，执行检索
+        List<Document> results = doSearchSimilar(query, effectiveTopK);
+
+        // 3. 写入缓存（TTL 10分钟）
+        if (!results.isEmpty()) {
+            try {
+                redisTemplate.opsForValue().set(cacheKey, results, RAG_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+            } catch (Exception e) {
+                log.warn("[RAG] 缓存写入失败: {}", e.getMessage());
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 执行实际的相似度检索（向量优先 + MySQL降级）
+     */
+    private List<Document> doSearchSimilar(String query, int effectiveTopK) {
         if (vectorStore == null) {
             log.warn("VectorStore 未配置，降级为数据库关键词搜索");
             return fallbackKeywordSearch(query, effectiveTopK);
@@ -100,6 +139,15 @@ public class KnowledgeService {
             log.warn("向量检索失败(耗时{}ms)，降级为数据库关键词搜索: {}", elapsed, e.getMessage());
             return fallbackKeywordSearch(query, effectiveTopK);
         }
+    }
+
+    /**
+     * 构建 RAG 缓存 Key：query + topK + threshold 组合哈希，避免不同参数命中同一缓存
+     */
+    private String buildRagCacheKey(String query, int topK, double threshold) {
+        String raw = query.trim().toLowerCase() + ":" + topK + ":" + threshold;
+        int hash = raw.hashCode();
+        return RAG_CACHE_PREFIX + Integer.toHexString(hash);
     }
 
     /**

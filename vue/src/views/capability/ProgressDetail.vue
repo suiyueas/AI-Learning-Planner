@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="detail-page">
     <!-- 顶部导航栏 -->
     <header class="detail-header">
@@ -498,9 +498,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .detail-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -509,9 +510,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -528,19 +529,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -549,12 +550,12 @@ onUnmounted(() => {
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .header-icon {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .btn-action {
@@ -562,9 +563,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  color: #00E5FF;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -574,8 +575,8 @@ onUnmounted(() => {
 
 .btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
-  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 .detail-content {
@@ -588,16 +589,16 @@ onUnmounted(() => {
 }
 
 .info-section {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 28px;
   transition: all 0.3s ease;
 }
 
 .info-section:hover {
-  border-color: rgba(0, 229, 255, 0.15);
+  border-color: rgba($accent-primary, 0.15);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -607,14 +608,14 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .section-label svg {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 /* 统计概览 */
@@ -627,8 +628,8 @@ onUnmounted(() => {
 .stats-card {
   text-align: center;
   padding: 24px 16px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
 }
 
@@ -637,17 +638,17 @@ onUnmounted(() => {
   font-size: 2.5rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
-  background: linear-gradient(135deg, #00E5FF 0%, #38BDF8 100%);
+  background: linear-gradient(135deg, $accent-primary 0%, #38BDF8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 15px rgba(0, 229, 255, 0.3));
+  filter: drop-shadow(0 0 15px rgba($accent-primary, 0.3));
   margin-bottom: 6px;
 }
 
 .stats-label {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 /* 学习曲线 */
@@ -665,10 +666,10 @@ onUnmounted(() => {
 
 .range-btn {
   padding: 6px 16px;
-  background: rgba(100, 100, 180, 0.05);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.05);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
@@ -677,14 +678,14 @@ onUnmounted(() => {
 }
 
 .range-btn:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.25);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.25);
 }
 
 .range-btn.active {
-  color: #00E5FF;
-  background: rgba(0, 229, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.3);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.1);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 /* 空态 */
@@ -695,7 +696,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 12px;
   padding: 48px 20px;
-  color: #64748B;
+  color: $text-muted;
   font-size: 0.9rem;
   text-align: center;
 }
@@ -780,7 +781,7 @@ onUnmounted(() => {
 }
 
 .growth-item.clickable:hover .growth-name {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .growth-header {
@@ -794,7 +795,7 @@ onUnmounted(() => {
 .growth-name {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #F1F5F9;
+  color: $text-primary;
   transition: color 0.2s;
   flex: 1;
 }
@@ -826,13 +827,13 @@ onUnmounted(() => {
   font-size: 0.9rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
-  color: #00E5FF;
+  color: $accent-primary;
   flex-shrink: 0;
 }
 
 .growth-track {
   height: 8px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -849,11 +850,11 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-top: 6px;
   font-size: 0.75rem;
-  color: #64748B;
+  color: $text-muted;
 }
 
 .growth-link {
-  color: #00E5FF;
+  color: $accent-primary;
   cursor: pointer;
 }
 
@@ -872,7 +873,7 @@ onUnmounted(() => {
 .filter-select {
   padding: 7px 12px;
   background: rgba(30, 38, 56, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
   color: #C0C0E0;
   font-size: 0.82rem;
@@ -882,7 +883,7 @@ onUnmounted(() => {
 }
 
 .filter-select:hover {
-  border-color: rgba(0, 229, 255, 0.3);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .filter-search {
@@ -890,7 +891,7 @@ onUnmounted(() => {
   min-width: 160px;
   padding: 7px 12px;
   background: rgba(30, 38, 56, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
   color: #E2E8F0;
   font-size: 0.82rem;
@@ -900,19 +901,19 @@ onUnmounted(() => {
 }
 
 .filter-search::placeholder {
-  color: #64748B;
+  color: $text-muted;
 }
 
 .filter-search:focus {
-  border-color: rgba(0, 229, 255, 0.4);
+  border-color: rgba($accent-primary, 0.4);
 }
 
 .filter-btn {
   padding: 7px 16px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
@@ -921,8 +922,8 @@ onUnmounted(() => {
 }
 
 .filter-btn:hover {
-  background: rgba(0, 229, 255, 0.14);
-  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba($accent-primary, 0.14);
+  border-color: rgba($accent-primary, 0.35);
 }
 
 .records-list {
@@ -937,16 +938,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(100, 100, 180, 0.03);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.03);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .record-item:hover {
-  background: rgba(0, 229, 255, 0.03);
-  border-color: rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.03);
+  border-color: rgba($accent-primary, 0.15);
   transform: translateX(4px);
 }
 
@@ -956,7 +957,7 @@ onUnmounted(() => {
 
 .record-day {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -970,12 +971,12 @@ onUnmounted(() => {
 .record-title {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .record-duration {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .record-status {
@@ -987,10 +988,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px solid rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -998,8 +999,8 @@ onUnmounted(() => {
 }
 
 .link-btn:hover {
-  background: rgba(0, 229, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.25);
+  background: rgba($accent-primary, 0.1);
+  border-color: rgba($accent-primary, 0.25);
   transform: translateY(-1px);
 }
 

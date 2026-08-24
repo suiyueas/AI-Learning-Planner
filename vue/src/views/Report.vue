@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="report-page">
     <div class="bg-layer">
       <div class="bg-aurora">
@@ -41,6 +41,28 @@
         <div class="period-bar">
           报告期间：{{ report.periodStart }} ~ {{ report.periodEnd }}
           <span class="period-update">（数据更新于 {{ report.dataUpdateAt }}）</span>
+        </div>
+
+        <!-- AI 学习分析 -->
+        <div v-if="report.analysis" class="ai-analysis-card glass-card" :class="{ warning: report.analysis.dataConsistency === 'warning' }">
+          <div class="analysis-header">
+            <span class="analysis-icon">🧠</span>
+            <span class="analysis-title">AI 学习分析</span>
+            <span v-if="report.analysis.dataConsistency === 'warning'" class="consistency-badge">⚠️ 数据异常</span>
+          </div>
+          <div class="analysis-insights">
+            <p v-for="(insight, i) in report.analysis.insights" :key="i" class="insight-text">{{ insight }}</p>
+          </div>
+          <div v-if="report.analysis.suggestedActions?.length > 0" class="analysis-actions">
+            <button
+              v-for="(action, i) in report.analysis.suggestedActions"
+              :key="i"
+              class="action-btn-primary"
+              @click="handleAnalysisAction(action)"
+            >
+              {{ action }} →
+            </button>
+          </div>
         </div>
 
         <!-- 学习概览 -->
@@ -211,6 +233,16 @@ function handleMatrixAction() {
   }
 }
 
+function handleAnalysisAction(action) {
+  if (action.includes('设定学习目标')) {
+    router.push('/goal-setting')
+  } else if (action.includes('专项练习')) {
+    router.push('/exercise')
+  } else if (action.includes('学习路径')) {
+    router.push('/learning-path')
+  }
+}
+
 async function generateReport() {
   if (!startDate.value || !endDate.value) {
     return
@@ -218,7 +250,7 @@ async function generateReport() {
   generating.value = true
   loadError.value = false
   try {
-    const res = await apiGenerateReport(startDate.value, endDate.value, ['overview', 'matrix', 'recommendations'])
+    const res = await apiGenerateReport(startDate.value, endDate.value, ['overview', 'matrix', 'recommendations', 'analysis'])
     report.value = res?.data || null
   } catch (e) {
     loadError.value = true
@@ -237,38 +269,39 @@ onMounted(generateReport)
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .report-page {
-  min-height: calc(100vh - 68px); background: #0a0a1a; position: relative;
+  min-height: calc(100vh - 68px); background: $bg-primary; position: relative;
 }
 .bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .bg-aurora { position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba(0,245,212,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
   animation: auroraDrift 20s ease-in-out infinite;
 }
 @keyframes auroraDrift { 0%,100% { transform: scale(1) rotate(0deg); } 33% { transform: scale(1.08) rotate(0.8deg); } 66% { transform: scale(0.95) rotate(-0.6deg); } }
-.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,245,212,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
+.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
 @keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
 .page-header {
   position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; gap: 16px;
   padding: 16px 32px;
-  background: rgba(10,10,26,0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100,100,180,0.08);
+  background: rgba($bg-primary,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba($accent-secondary,0.08);
 }
 .back-btn {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.1); border-radius: 8px;
-  color: #c0c0e0; font-size: 0.82rem; cursor: pointer;
+  padding: 8px 14px; background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.1); border-radius: 8px;
+  color: $text-secondary; font-size: 0.82rem; cursor: pointer;
   transition: all 0.25s ease;
-  &:hover { border-color: rgba(0,245,212,0.2); color: #00f5d4; }
+  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; }
 }
 .page-title { flex: 1; display: flex; align-items: center; gap: 10px; }
 .title-icon { font-size: 1.3rem; }
 .title-text {
   font-size: 1.05rem; font-weight: 700;
-  background: linear-gradient(135deg, #00f5d4, #3a86ff);
+  background: linear-gradient(135deg, $accent-primary, #3a86ff);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .report-btn {
@@ -287,25 +320,83 @@ onMounted(generateReport)
   padding: 24px 32px 60px; position: relative; z-index: 1;
 }
 
+.ai-analysis-card {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  border: 1px solid rgba($accent-primary, 0.15);
+  &.warning {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.05);
+  }
+}
+.analysis-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.analysis-icon { font-size: 1.2rem; }
+.analysis-title { font-size: 0.95rem; font-weight: 700; color: $text-primary; }
+.consistency-badge {
+  margin-left: auto;
+  padding: 3px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: $radius-full;
+  font-size: 0.72rem;
+  color: #f59e0b;
+}
+.analysis-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.insight-text {
+  font-size: 0.88rem;
+  color: $text-secondary;
+  line-height: 1.6;
+  margin: 0;
+}
+.analysis-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.action-btn-primary {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.2);
+  border-radius: $radius-md;
+  color: $accent-primary;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.15);
+  }
+}
+
 .summary-row {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px;
 }
 .summary-card {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 20px 16px;
-  background: rgba(17,17,39,0.6); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.1); border-radius: 14px;
+  background: rgba($bg-primary,0.6); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.1); border-radius: 14px;
   .summary-icon { font-size: 1.5rem; }
-  .summary-label { font-size: 0.72rem; color: #9090b8; }
-  .summary-value { font-size: 1.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: #00f5d4; }
+  .summary-label { font-size: 0.72rem; color: $text-muted; }
+  .summary-value { font-size: 1.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: $accent-primary; }
 }
 
 .chart-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 .chart-card {
-  padding: 20px; background: rgba(17,17,39,0.5); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08); border-radius: 14px;
+  padding: 20px; background: rgba($bg-primary,0.5); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.08); border-radius: 14px;
 }
-.chart-title { font-size: 0.9rem; font-weight: 700; color: #e8e8ff; margin: 0 0 16px; }
+.chart-title { font-size: 0.9rem; font-weight: 700; color: $text-primary; margin: 0 0 16px; }
 
 .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 180px; }
 .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
@@ -313,48 +404,48 @@ onMounted(generateReport)
 .bar-fill {
   width: 60%; border-radius: 6px 6px 0 0; position: relative; min-height: 4px;
   transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1);
-  .bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: #c0c0e0; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+  .bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: $text-secondary; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
 }
-.bar-label { font-size: 0.7rem; color: #9090b8; }
+.bar-label { font-size: 0.7rem; color: $text-muted; }
 
 .radar-items { display: flex; flex-direction: column; gap: 14px; }
 .dimension-item { display: flex; flex-direction: column; gap: 6px; }
 .dim-header { display: flex; justify-content: space-between; }
-.dim-name { font-size: 0.8rem; color: #c0c0e0; }
-.dim-score { font-size: 0.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #e8e8ff; }
-.dim-bar { height: 6px; background: rgba(100,100,180,0.1); border-radius: 3px; overflow: hidden; }
+.dim-name { font-size: 0.8rem; color: $text-secondary; }
+.dim-score { font-size: 0.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: $text-primary; }
+.dim-bar { height: 6px; background: rgba($accent-secondary,0.1); border-radius: 3px; overflow: hidden; }
 .dim-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
 
 .suggestions {
   margin-bottom: 24px; padding: 20px;
-  background: rgba(17,17,39,0.5); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08); border-radius: 14px;
+  background: rgba($bg-primary,0.5); backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.08); border-radius: 14px;
 }
-.suggest-title { font-size: 0.9rem; font-weight: 700; color: #e8e8ff; margin: 0 0 14px; }
-.suggestion-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(100,100,180,0.04); &:last-child { border: none; } }
+.suggest-title { font-size: 0.9rem; font-weight: 700; color: $text-primary; margin: 0 0 14px; }
+.suggestion-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba($accent-secondary,0.04); &:last-child { border: none; } }
 .suggestion-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
-.suggestion-text { font-size: 0.82rem; color: #c0c0e0; line-height: 1.6; margin: 0; }
+.suggestion-text { font-size: 0.82rem; color: $text-secondary; line-height: 1.6; margin: 0; }
 
-.timeline-title { font-size: 0.9rem; font-weight: 700; color: #e8e8ff; margin: 0 0 14px; }
+.timeline-title { font-size: 0.9rem; font-weight: 700; color: $text-primary; margin: 0 0 14px; }
 .timeline-item {
   display: flex; align-items: center; gap: 14px;
   padding: 12px 16px; margin-bottom: 8px;
-  background: rgba(17,17,39,0.3); border-radius: 12px;
-  border: 1px solid rgba(100,100,180,0.04); cursor: pointer;
+  background: rgba($bg-primary,0.3); border-radius: 12px;
+  border: 1px solid rgba($accent-secondary,0.04); cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: rgba(0,245,212,0.1); }
-  &.active { border-color: rgba(0,245,212,0.2); background: rgba(0,245,212,0.03); }
+  &:hover { border-color: rgba($accent-primary,0.1); }
+  &.active { border-color: rgba($accent-primary,0.2); background: rgba($accent-primary,0.03); }
 }
-.timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: #00f5d4; flex-shrink: 0; }
+.timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: $accent-primary; flex-shrink: 0; }
 .timeline-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.timeline-date { font-size: 0.7rem; color: #8080a8; }
-.timeline-desc { font-size: 0.82rem; color: #c0c0e0; }
-.timeline-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 8px; background: rgba(0,245,212,0.1); color: #00f5d4; }
+.timeline-date { font-size: 0.7rem; color: $text-muted; }
+.timeline-desc { font-size: 0.82rem; color: $text-secondary; }
+.timeline-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 8px; background: rgba($accent-primary,0.1); color: $accent-primary; }
 
 .empty-state { text-align: center; padding: 80px 20px; }
 .empty-icon-wrap { font-size: 3.5rem; margin-bottom: 12px; }
-.empty-title { font-size: 1.2rem; font-weight: 700; color: #e8e8ff; margin: 0 0 6px; }
-.empty-desc { font-size: 0.85rem; color: #9090b8; margin: 0; }
+.empty-title { font-size: 1.2rem; font-weight: 700; color: $text-primary; margin: 0 0 6px; }
+.empty-desc { font-size: 0.85rem; color: $text-muted; margin: 0; }
 
 @media (max-width: 1024px) {
   .page-header { padding: 12px 20px; }
@@ -376,17 +467,17 @@ onMounted(generateReport)
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: rgba(17, 17, 39, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 10px;
 }
 
 .date-input {
   padding: 5px 8px;
-  background: rgba(10, 10, 26, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 6px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.78rem;
   outline: none;
   color-scheme: dark;
@@ -394,21 +485,21 @@ onMounted(generateReport)
 }
 
 .date-input:focus {
-  border-color: rgba(0, 245, 212, 0.3);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .period-sep {
   font-size: 0.78rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .period-bar {
   margin-bottom: 20px;
   padding: 10px 16px;
   font-size: 0.78rem;
-  color: #9090b8;
-  background: rgba(17, 17, 39, 0.4);
-  border: 1px dashed rgba(100, 100, 180, 0.15);
+  color: $text-muted;
+  background: rgba($bg-primary, 0.4);
+  border: 1px dashed rgba($accent-secondary, 0.15);
   border-radius: 10px;
 }
 
@@ -441,7 +532,7 @@ onMounted(generateReport)
   padding: 40px 20px;
   text-align: center;
   font-size: 0.85rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .chart-empty.with-action {
@@ -455,22 +546,22 @@ onMounted(generateReport)
 .empty-hint {
   margin: 0;
   font-size: 0.8rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .action-btn {
   padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(58,134,255,0.1));
-  border: 1px solid rgba(0,245,212,0.25);
+  background: linear-gradient(135deg, rgba($accent-primary,0.15), rgba(58,134,255,0.1));
+  border: 1px solid rgba($accent-primary,0.25);
   border-radius: 8px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.25s;
   &:hover {
-    background: linear-gradient(135deg, rgba(0,245,212,0.2), rgba(58,134,255,0.15));
+    background: linear-gradient(135deg, rgba($accent-primary,0.2), rgba(58,134,255,0.15));
     transform: translateY(-1px);
-    box-shadow: 0 0 16px rgba(0,245,212,0.1);
+    box-shadow: 0 0 16px rgba($accent-primary,0.1);
   }
 }
 
@@ -489,14 +580,14 @@ onMounted(generateReport)
 
 .progress-label {
   font-size: 0.68rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .progress-value {
   font-size: 0.85rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
-  color: #00f5d4;
+  color: $accent-primary;
 }
 
 .period-bar {
@@ -505,7 +596,7 @@ onMounted(generateReport)
   gap: 8px;
   margin-bottom: 16px;
   font-size: 0.78rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .period-update {
@@ -515,7 +606,7 @@ onMounted(generateReport)
 
 .dim-meta {
   font-size: 0.68rem;
-  color: #8080a8;
+  color: $text-muted;
   font-weight: 400;
 }
 </style>

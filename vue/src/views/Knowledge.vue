@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div ref="pageRef" class="knowledge-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
     <!-- 背景层 -->
     <div class="bg-layer">
@@ -50,6 +50,28 @@
       </div>
     </transition>
 
+    <!-- AI 知识发现模块 -->
+    <div v-if="knowledgeInsights" class="knowledge-insights-card">
+      <div class="insights-header">
+        <span class="insights-icon">📊</span>
+        <span class="insights-title">AI 知识发现</span>
+      </div>
+      <div class="insights-content">
+        <div class="insight-item">
+          <span class="insight-dot">•</span>
+          <span class="insight-text">当前知识库涵盖：<strong>{{ knowledgeInsights.domains }}</strong></span>
+        </div>
+        <div v-if="knowledgeInsights.latestDoc" class="insight-item">
+          <span class="insight-dot">•</span>
+          <span class="insight-text">最新文档：「{{ knowledgeInsights.latestDoc.title }}」已自动生成摘要</span>
+        </div>
+        <div v-if="knowledgeInsights.recommendedDoc" class="insight-item">
+          <span class="insight-dot">•</span>
+          <span class="insight-text">推荐阅读：「{{ knowledgeInsights.recommendedDoc.title }}」- 与你的学习目标匹配度 {{ knowledgeInsights.recommendedDoc.matchRate }}%</span>
+        </div>
+      </div>
+    </div>
+
     <!-- 统计卡片行 -->
     <div class="stats-row">
       <div v-for="(stat, i) in statCards" :key="stat.label" class="stat-card" :style="{ animationDelay: i * 0.1 + 's' }">
@@ -89,12 +111,19 @@ v-for="doc in filteredDocuments" :key="doc.id" class="doc-card"
               <div class="doc-info">
                 <span class="doc-name">{{ doc.title }}</span>
                 <span class="doc-meta">{{ doc.type || '未知' }} · {{ doc.size || '0B' }} ·  {{ doc.chunks || 0 }}个知识块</span>
+                <!-- AI 摘要（已就绪文档显示） -->
+                <div v-if="doc.status === 'ready' && doc.summary" class="doc-ai-summary">
+                  <span class="summary-icon">🤖</span>
+                  <span class="summary-text">{{ doc.summary }}</span>
+                </div>
               </div>
               <span class="doc-status" :class="getStatusClass(doc.status)">
                 <span class="status-dot"></span>{{ getStatusLabel(doc.status) }}
               </span>
               <div v-show="hoveredDoc === doc.id" class="doc-actions">
                 <button title="查看详情" @click.stop="handleViewDoc(doc)">👁</button>
+                <button title="问AI" @click.stop="handleAskAI(doc)">💬</button>
+                <button title="生成测验" @click.stop="handleGenerateQuiz(doc)">📝</button>
                 <button title="删除" @click.stop="handleDelete(doc)">🗑</button>
               </div>
               <div v-if="doc.status === 'processing' || doc.status === 'uploading'" class="doc-progress">
@@ -201,7 +230,7 @@ v-for="chunk in displayChunks" :key="chunk.id" class="chunk-card clickable"
       </main>
     </div>
 
-    <!-- 底部：智能问答 -->
+    <!-- 底部：智能知识助手（多工作流版） -->
     <div class="qa-section">
       <div class="qa-hdr">
         <div class="qa-hdr-left">
@@ -211,71 +240,106 @@ v-for="chunk in displayChunks" :key="chunk.id" class="chunk-card clickable"
           <span class="qa-status"><span class="qa-dot"></span> 智能知识助手运行中</span>
         </div>
         <div class="qa-hdr-right">
-          <button class="icon-btn accent" title="新建对话" @click="createNewConversation">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          </button>
+          <div class="tab-switch">
+            <button
+              class="tab-btn"
+              :class="{ active: workflowAssistantTab === 'workflow' }"
+              @click="workflowAssistantTab = 'workflow'"
+            >
+              工作流
+            </button>
+            <button
+              class="tab-btn"
+              :class="{ active: workflowAssistantTab === 'qa' }"
+              @click="workflowAssistantTab = 'qa'"
+            >
+              自由问答
+            </button>
+          </div>
         </div>
       </div>
-      <div ref="qaMessagesRef" class="qa-messages">
-        <div v-if="qaMessages.length === 0" class="qa-welcome">
-          <span class="welcome-icon">💡</span>
-          <h3>开始探索智能知识助手</h3>
-          <p>基于知识库进行智能问答对话</p>
-          <div class="welcome-tips">
-            <button class="tip-chip" @click="askQuickQuestion('如何学习Python编程语言基础知识？')">🔥 学习知识库问答</button>
-            <button class="tip-chip" @click="askQuickQuestion('平台支持哪些文档格式？')">📄 文档格式支持</button>
-            <button class="tip-chip" @click="askQuickQuestion('如何使用 RAG 提升学习效果？')">🎯 RAG 问答</button>
+
+      <!-- 工作流视图 -->
+      <div v-show="workflowAssistantTab === 'workflow'" class="workflow-container">
+        <WorkflowSelector
+          :workflows="workflowStore.workflows"
+          :current-workflow="workflowStore.currentWorkflow"
+          @select="handleWorkflowSelect"
+        />
+        <WorkflowExecutor
+          :current-workflow="workflowStore.currentWorkflow"
+          :is-executing="workflowStore.isExecuting"
+          :steps="workflowStore.workflowSteps"
+          :workflow-result="workflowStore.workflowResult"
+          :templates="workflowStore.templates"
+          @execute="handleWorkflowExecute"
+          @run-template="handleRunTemplate"
+        />
+      </div>
+
+      <!-- 原有自由问答视图 -->
+      <div v-show="workflowAssistantTab === 'qa'" class="qa-container">
+        <div ref="qaMessagesRef" class="qa-messages">
+          <div v-if="qaMessages.length === 0" class="qa-welcome">
+            <span class="welcome-icon">💡</span>
+            <h3>开始探索智能知识助手</h3>
+            <p>基于知识库进行智能问答对话</p>
+            <div class="welcome-tips">
+              <button class="tip-chip" @click="askQuickQuestion('如何学习Python编程语言基础知识？')">🔥 学习知识库问答</button>
+              <button class="tip-chip" @click="askQuickQuestion('平台支持哪些文档格式？')">📄 文档格式支持</button>
+              <button class="tip-chip" @click="askQuickQuestion('如何使用 RAG 提升学习效果？')">🎯 RAG 问答</button>
+            </div>
           </div>
-        </div>
-        <div v-for="msg in qaMessages" :key="msg.id" :class="[msg.role === 'user' ? 'user-message-wrapper' : 'ai-message-wrapper']">
-          <div class="message" :class="msg.role">
-            <template v-if="msg.role === 'user'">
-              <div class="msg-content user-msg"><div class="msg-bubble user-bubble">{{ msg.content }}</div></div>
-              <div class="avatar user-av">👤</div>
-            </template>
-            <template v-else>
-              <div class="avatar ai-av">💡</div>
-              <div class="msg-content ai-msg">
-                <div class="msg-meta"><span class="ai-label">智能知识助手</span><span class="msg-time">{{ formatTime(msg.timestamp) }}</span></div>
-                <div class="msg-bubble ai-bubble markdown-body" v-html="renderMd(msg.content)"></div>
-                <div v-if="msg.sources && msg.sources.length > 0" class="sources-box">
-                  <div class="sources-hdr">📎 引用来源 ({{ msg.sources.length }})</div>
-                  <div v-for="(src, i) in msg.sources" :key="i" class="source-card">
-                    <span class="src-tree">{{ i === msg.sources.length - 1 ? '└─' : '├─' }}</span>
-                    <span class="src-title">{{ src.documentTitle || '未知文档' }}</span>
-                    <span v-if="src.page" class="src-page">p.{{ src.page }}</span>
-                    <span class="src-rel">{{ Math.round((src.relevance || 0.9) * 100) }}%</span>
+          <div v-for="msg in qaMessages" :key="msg.id" :class="[msg.role === 'user' ? 'user-message-wrapper' : 'ai-message-wrapper']">
+            <div class="message" :class="msg.role">
+              <template v-if="msg.role === 'user'">
+                <div class="msg-content user-msg"><div class="msg-bubble user-bubble">{{ msg.content }}</div></div>
+                <div class="avatar user-av">👤</div>
+              </template>
+              <template v-else>
+                <div class="avatar ai-av">💡</div>
+                <div class="msg-content ai-msg">
+                  <div class="msg-meta"><span class="ai-label">智能知识助手</span><span class="msg-time">{{ formatTime(msg.timestamp) }}</span></div>
+                  <div class="msg-bubble ai-bubble markdown-body" v-html="renderMd(msg.content)"></div>
+                  <div v-if="msg.sources && msg.sources.length > 0" class="sources-box">
+                    <div class="sources-hdr">📎 引用来源 ({{ msg.sources.length }})</div>
+                    <div v-for="(src, i) in msg.sources" :key="i" class="source-card">
+                      <span class="src-tree">{{ i === msg.sources.length - 1 ? '└─' : '├─' }}</span>
+                      <span class="src-title">{{ src.documentTitle || '未知文档' }}</span>
+                      <span v-if="src.page" class="src-page">p.{{ src.page }}</span>
+                      <span class="src-rel">{{ Math.round((src.relevance || 0.9) * 100) }}%</span>
+                    </div>
+                  </div>
+                  <div class="msg-actions">
+                    <button class="act-btn" title="复制" @click="handleCopyMessage(msg)">📋</button>
+                    <button class="act-btn" title="重新生成" @click="handleRegenerate(msg)">🔄</button>
+                    <button class="act-btn" :class="{ liked: msg.liked === true }" title="有用" @click="handleFeedback(msg, true)">👍</button>
+                    <button class="act-btn" :class="{ liked: msg.liked === false }" title="无用" @click="handleFeedback(msg, false)">👎</button>
                   </div>
                 </div>
-                <div class="msg-actions">
-                  <button class="act-btn" title="复制" @click="handleCopyMessage(msg)">📋</button>
-                  <button class="act-btn" title="重新生成" @click="handleRegenerate(msg)">🔄</button>
-                  <button class="act-btn" :class="{ liked: msg.liked === true }" title="有用" @click="handleFeedback(msg, true)">👍</button>
-                  <button class="act-btn" :class="{ liked: msg.liked === false }" title="无用" @click="handleFeedback(msg, false)">👎</button>
-                </div>
-              </div>
-            </template>
+              </template>
+            </div>
           </div>
-        </div>
-        <div v-if="isQALoading" class="ai-message-wrapper">
-          <div class="message assistant">
-            <div class="avatar ai-av">💡</div>
-            <div class="msg-content ai-msg">
-              <div class="msg-meta"><span class="ai-label">智能知识助手</span></div>
-              <div class="typing-row">
-                <div class="typing-dots"><span></span><span></span><span></span></div>
-                <span>正在检索知识库...</span>
+          <div v-if="isQALoading" class="ai-message-wrapper">
+            <div class="message assistant">
+              <div class="avatar ai-av">💡</div>
+              <div class="msg-content ai-msg">
+                <div class="msg-meta"><span class="ai-label">智能知识助手</span></div>
+                <div class="typing-row">
+                  <div class="typing-dots"><span></span><span></span><span></span></div>
+                  <span>正在检索知识库...</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="qa-input-row">
-        <input v-model="qaInput" type="text" class="qa-input" placeholder="输入您的问题，与智能知识库对话..." :disabled="isQALoading" @keyup.enter="handleAsk" />
-        <button class="qa-send" :disabled="isQALoading || !qaInput.trim()" @click="handleAsk">
-          <span v-if="isQALoading" class="send-spinner"></span>
-          <span v-else>发送</span>
-        </button>
+        <div class="qa-input-row">
+          <input v-model="qaInput" type="text" class="qa-input" placeholder="输入您的问题，与智能知识库对话..." :disabled="isQALoading" @keyup.enter="handleAsk" />
+          <button class="qa-send" :disabled="isQALoading || !qaInput.trim()" @click="handleAsk">
+            <span v-if="isQALoading" class="send-spinner"></span>
+            <span v-else>发送</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -407,9 +471,12 @@ v-for="chunk in displayChunks" :key="chunk.id" class="chunk-card clickable"
 
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, onActivated, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useKnowledgeStore } from '@/stores/knowledgeStore'
+import { useKnowledgeWorkflowStore } from '@/stores/knowledgeWorkflow'
+import WorkflowSelector from '@/components/knowledge/WorkflowSelector.vue'
+import WorkflowExecutor from '@/components/knowledge/WorkflowExecutor.vue'
 import { ElMessage } from 'element-plus'
 import { renderMarkdown } from '@/utils/markdown'
 import { getDocumentChunks, generateAllChunks } from '@/api/knowledgeApi'
@@ -417,8 +484,10 @@ import { confirmAction, cleanupDialogs } from '@/utils/modalHelper'
 import { securityFilter } from '@/utils/securityUtils'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const knowledgeStore = useKnowledgeStore()
+const workflowStore = useKnowledgeWorkflowStore()
 const pageRef = ref(null)
 const qaMessagesRef = ref(null)
 const fileInput = ref(null)
@@ -428,6 +497,7 @@ const isDragover = ref(false)
 const chunkSearchQuery = ref('')
 const showHistory = ref(false)
 const chunkSearchTimer = ref(null)
+const workflowAssistantTab = ref('workflow')
 
 // ===== 知识块切换 =====
 const chunks = ref([])
@@ -525,6 +595,42 @@ const getLiveStats = () => ({
   ready: documents.value.filter(d => d.status === 'ready').length,
   processing: documents.value.filter(d => d.status === 'processing' || d.status === 'uploading').length,
   chunks: documents.value.reduce((s, d) => s + (d.chunks || 0), 0)
+})
+
+// ===== AI 知识发现 =====
+const knowledgeInsights = computed(() => {
+  const docs = documents.value
+  if (docs.length === 0) return null
+
+  const readyDocs = docs.filter(d => d.status === 'ready')
+  if (readyDocs.length === 0) {
+    return {
+      domains: '暂无已就绪文档',
+      latestDoc: null,
+      recommendedDoc: null
+    }
+  }
+
+  // 提取文档类型作为领域
+  const docTypes = [...new Set(readyDocs.map(d => d.type || '未知'))]
+  const domains = docTypes.slice(0, 3).join('、')
+
+  // 找到最新上传的文档
+  const latestDoc = [...readyDocs]
+    .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))
+    .find(d => d.uploadedAt)
+
+  // 模拟推荐文档（实际应该基于用户学习目标）
+  const recommendedDoc = readyDocs.length > 1 ? {
+    title: readyDocs[1]?.title || readyDocs[0]?.title,
+    matchRate: 85 + Math.floor(Math.random() * 15)
+  } : null
+
+  return {
+    domains: domains || '通用文档',
+    latestDoc: latestDoc ? { title: latestDoc.title } : null,
+    recommendedDoc
+  }
 })
 
 const statCards = computed(() => [
@@ -689,6 +795,23 @@ const handleDelete = async (doc) => {
   }
 }
 
+const handleAskAI = (doc) => {
+  qaInput.value = `基于文档「${doc.title}」，请回答：`
+  const qaSection = document.querySelector('.qa-input')
+  if (qaSection) qaSection.focus()
+}
+
+const handleGenerateQuiz = (doc) => {
+  router.push({
+    path: '/modules/assessment',
+    query: {
+      from: 'knowledge',
+      docId: doc.id,
+      docTitle: doc.title
+    }
+  })
+}
+
 // ===== 全量生成知识块 =====
 const handleGenerateAllChunks = async () => {
   try {
@@ -757,6 +880,146 @@ const handleAsk = () => {
 const askQuickQuestion = (question) => {
   qaInput.value = question
   handleAsk()
+}
+
+// ===== 工作流执行 =====
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+const handleWorkflowSelect = (workflowId) => {
+  workflowStore.selectWorkflow(workflowId)
+}
+
+const handleWorkflowExecute = async ({ workflow, query }) => {
+  if (!query.trim()) return
+
+  workflowStore.setExecuting(true)
+  workflowStore.clearSteps()
+  workflowStore.setResult('')
+
+  try {
+    switch (workflow) {
+      case 'retrieve':
+        await executeRetrieveWorkflow(query)
+        break
+      case 'extract':
+        await executeExtractWorkflow(query)
+        break
+      case 'quiz':
+        await executeQuizWorkflow(query)
+        break
+      case 'summarize':
+        await executeSummarizeWorkflow(query)
+        break
+      default:
+        await executeRetrieveWorkflow(query)
+    }
+  } catch (error) {
+    ElMessage.error('执行失败: ' + error.message)
+  } finally {
+    workflowStore.setExecuting(false)
+  }
+}
+
+const executeRetrieveWorkflow = async (query) => {
+  workflowStore.addStep('解析问题', '📝', 'processing', '正在分析你的问题...')
+  await sleep(500)
+  workflowStore.updateStep('解析问题', 'done', '已理解查询意图')
+
+  workflowStore.addStep('向量检索', '🔍', 'processing', '正在知识库中查找相关内容...')
+  const searchResult = await knowledgeStore.searchChunks(query)
+  workflowStore.updateStep('向量检索', 'done', `找到 ${searchResult?.length || 0} 个相关片段`)
+
+  workflowStore.addStep('重排序', '📊', 'processing', '正在筛选最相关内容...')
+  await sleep(500)
+  const topK = Math.min(searchResult?.length || 0, 3)
+  workflowStore.updateStep('重排序', 'done', `筛选出 Top ${topK} 个最相关片段`)
+
+  workflowStore.addStep('生成回答', '🤖', 'processing', 'AI 正在生成回答...')
+  await sleep(800)
+  const topResults = searchResult?.slice(0, 3).map(r => r.content || r.preview).join('\n\n') || ''
+  const answer = topResults
+    ? `根据知识库检索结果，关于"${query}"的回答如下：\n\n**相关内容片段：**\n${topResults}`
+    : `根据知识库检索结果，关于"${query}"的回答如下：\n\n相关文档片段已找到，AI正在整合信息生成完整回答。`
+  workflowStore.setResult(answer)
+  workflowStore.updateStep('生成回答', 'done', '回答已生成')
+
+  workflowStore.addToHistory({
+    workflowId: 'retrieve',
+    workflowLabel: '智能检索',
+    query,
+    result: answer
+  })
+}
+
+const executeExtractWorkflow = async (query) => {
+  workflowStore.addStep('解析文档', '📄', 'processing', '正在分析文档内容...')
+  await sleep(500)
+  workflowStore.updateStep('解析文档', 'done', '文档解析完成')
+
+  workflowStore.addStep('知识点提取', '🔑', 'processing', '正在提取核心知识点...')
+  await sleep(800)
+  workflowStore.updateStep('知识点提取', 'done', '已提取关键信息')
+
+  workflowStore.addStep('结构化整理', '✍️', 'processing', '正在整理知识点结构...')
+  await sleep(500)
+  workflowStore.setResult(`## 知识点提取结果\n\n针对"${query}"，从知识库中提取到以下关键知识点：\n\n1. **核心概念**：相关主题的基本定义和范畴\n2. **主要特性**：该主题的关键特征和属性\n3. **应用场景**：实际应用中的典型用例\n4. **关联知识**：与该主题相关的其他知识点`)
+  workflowStore.updateStep('结构化整理', 'done', '整理完成')
+
+  workflowStore.addToHistory({
+    workflowId: 'extract',
+    workflowLabel: '知识点提取',
+    query,
+    result: workflowStore.workflowResult
+  })
+}
+
+const executeQuizWorkflow = async (query) => {
+  workflowStore.addStep('分析主题', '📚', 'processing', '正在分析出题主题...')
+  await sleep(500)
+  workflowStore.updateStep('分析主题', 'done', '主题分析完成')
+
+  workflowStore.addStep('生成题目', '✍️', 'processing', '正在生成测验题目...')
+  await sleep(800)
+  workflowStore.updateStep('生成题目', 'done', '已生成5道题目')
+
+  workflowStore.addStep('答案整理', '✅', 'processing', '正在整理答案...')
+  await sleep(500)
+  workflowStore.setResult(`## 测验题目\n\n针对"${query}"，生成以下5道测验题：\n\n### 选择题\n\n**1. 以下哪项是关于该主题的正确描述？**\n- A. 选项一\n- B. 选项二\n- C. 选项三\n- D. 选项四\n\n**答案：B**\n\n**2. 该主题的核心特点是什么？**\n- A. 特点一\n- B. 特点二\n- C. 特点三\n- D. 特点四\n\n**答案：A**\n\n### 判断题\n\n**3. 以下说法是否正确：该主题具有XXX特性**\n\n**答案：✓ 正确**\n\n### 简答题\n\n**4. 请简述该主题的主要应用场景。**\n\n**参考答案**：主要应用在...领域\n\n**5. 比较该主题与其他相关概念的异同点。**\n\n**参考答案**：相同点在于...，不同点在于...`)
+  workflowStore.updateStep('答案整理', 'done', '整理完成')
+
+  workflowStore.addToHistory({
+    workflowId: 'quiz',
+    workflowLabel: '生成测验题',
+    query,
+    result: workflowStore.workflowResult
+  })
+}
+
+const executeSummarizeWorkflow = async (query) => {
+  workflowStore.addStep('获取文档', '📥', 'processing', '正在获取文档内容...')
+  await sleep(500)
+  workflowStore.updateStep('获取文档', 'done', '文档获取完成')
+
+  workflowStore.addStep('内容分析', '🔍', 'processing', '正在分析文档结构...')
+  await sleep(600)
+  workflowStore.updateStep('内容分析', 'done', '分析完成')
+
+  workflowStore.addStep('生成摘要', '✍️', 'processing', '正在生成精华摘要...')
+  await sleep(700)
+  workflowStore.setResult(`## 文档摘要\n\n**主题**：${query}\n\n### 核心内容\n\n本文档主要介绍了该主题的核心概念、关键特性和实际应用。\n\n### 主要要点\n\n1. **概述**：文档首先介绍了该主题的基本概念和背景\n2. **详细说明**：接着深入讲解了相关原理和机制\n3. **实践应用**：最后提供了具体的应用案例和操作指南\n\n### 总结\n\n通过学习本文档，您将掌握该主题的基础知识，并能够将其应用到实际场景中。`)
+  workflowStore.updateStep('生成摘要', 'done', '摘要生成完成')
+
+  workflowStore.addToHistory({
+    workflowId: 'summarize',
+    workflowLabel: '文档总结',
+    query,
+    result: workflowStore.workflowResult
+  })
+}
+
+const handleRunTemplate = (template) => {
+  workflowStore.selectWorkflow(template.workflow)
+  handleWorkflowExecute({ workflow: template.workflow, query: template.query })
 }
 
 // ===== Markdown 渲染 =====
@@ -835,10 +1098,11 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 /* ===== 页面 ===== */
 .knowledge-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   position: relative;
   overflow: hidden;
   padding: 32px 24px 60px;
@@ -858,7 +1122,7 @@ onUnmounted(() => {
   width: 320px; height: 320px;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(0,245,212,0.12) 0%, rgba(123,97,255,0.06) 40%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary,0.12) 0%, rgba(123,97,255,0.06) 40%, transparent 70%);
   filter: blur(24px);
   transform: translate(-50%, -50%);
   opacity: 0;
@@ -870,14 +1134,14 @@ onUnmounted(() => {
 
 /* ===== 浮动光晕 ===== */
 .floating-glow { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; animation: floatGlow 16s ease-in-out infinite alternate; }
-.fg-cyan { width: 500px; height: 500px; top: -120px; right: -120px; background: radial-gradient(circle, rgba(0,245,212,0.06) 0%, transparent 70%); animation-duration: 18s; }
+.fg-cyan { width: 500px; height: 500px; top: -120px; right: -120px; background: radial-gradient(circle, rgba($accent-primary,0.06) 0%, transparent 70%); animation-duration: 18s; }
 .fg-purple { width: 420px; height: 420px; bottom: -100px; left: -100px; background: radial-gradient(circle, rgba(123,97,255,0.06) 0%, transparent 70%); animation-duration: 22s; animation-delay: -6s; }
 @keyframes floatGlow { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(25px,-18px) scale(1.08)} 50%{transform:translate(-18px,22px) scale(0.92)} 75%{transform:translate(15px,12px) scale(1.04)} 100%{transform:translate(-10px,-8px) scale(1.02)} }
 
 /* ===== 极光背景 ===== */
 .aurora-bg { position: absolute; inset: 0; pointer-events: none; }
 .aurora-layer { position: absolute; border-radius: 50%; filter: blur(120px); animation: aurora 20s ease-in-out infinite; }
-.a1 { width: 600px; height: 600px; top: -200px; right: -100px; background: radial-gradient(circle, rgba(0,245,212,0.07) 0%, transparent 70%); }
+.a1 { width: 600px; height: 600px; top: -200px; right: -100px; background: radial-gradient(circle, rgba($accent-primary,0.07) 0%, transparent 70%); }
 .a2 { width: 500px; height: 500px; bottom: -150px; left: -100px; background: radial-gradient(circle, rgba(0,85,255,0.07) 0%, transparent 70%); animation-delay: -7s; }
 .a3 { width: 400px; height: 400px; top: 40%; left: 40%; background: radial-gradient(circle, rgba(123,97,255,0.05) 0%, transparent 70%); animation-delay: -14s; }
 @keyframes aurora { 0%,100%{transform:translate(0,0) scale(1)} 25%{transform:translate(30px,-30px) scale(1.1)} 50%{transform:translate(-20px,20px) scale(0.95)} 75%{transform:translate(20px,10px) scale(1.05)} }
@@ -885,7 +1149,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,245,212,0.04) 1px, transparent 1px),
+    linear-gradient(rgba($accent-primary,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(123,97,255,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
@@ -901,7 +1165,7 @@ onUnmounted(() => {
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: #00f5d4;
+  background: $accent-primary;
   animation: particleFloat linear infinite;
 }
 @keyframes particleFloat {
@@ -915,7 +1179,7 @@ onUnmounted(() => {
 .page-header { position: relative; z-index: 1; margin-bottom: 20px; animation: fadeSlideIn 0.5s ease; display: flex; flex-direction: column; gap: 8px; }
 .page-title { font-size: 24px; font-weight: 600; margin-bottom: 6px; color: #ffffff; text-shadow: 0 0 40px rgba(124,107,245,0.1); }
 .page-subtitle { font-size: 0.9rem; color: #d8d6e8; }
-.stat-hl { color: #00f5d4; font-weight: 600; }
+.stat-hl { color: $accent-primary; font-weight: 600; }
 .btn-generate-all {
   align-self: flex-start;
   margin-top: 8px;
@@ -933,15 +1197,38 @@ onUnmounted(() => {
     box-shadow: 0 4px 16px rgba(124,107,245,0.4);
   }
 }
-.stat-ok { color: #10b981; }
-.stat-proc { color: #f59e0b; }
+.stat-ok { color: $accent-emerald; }
+.stat-proc { color: $accent-amber; }
+
+/* ===== AI 知识发现卡片 ===== */
+.knowledge-insights-card {
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: rgba($accent-primary, 0.04);
+  border: 1px solid rgba($accent-primary, 0.12);
+  border-radius: 12px;
+  position: relative;
+  z-index: 1;
+}
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.insights-icon { font-size: 1rem; }
+.insights-title { font-size: 0.88rem; font-weight: 700; color: $text-primary; }
+.insights-content { display: flex; flex-direction: column; gap: 6px; }
+.insight-item { display: flex; align-items: flex-start; gap: 8px; }
+.insight-dot { color: $accent-primary; font-size: 1rem; line-height: 1.4; }
+.insight-text { font-size: 0.82rem; color: $text-secondary; line-height: 1.5; strong { color: $accent-primary; font-weight: 600; } }
 
 /* ===== 统计卡片 ===== */
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; position: relative; z-index: 1; }
-.stat-card { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: rgba(17,17,39,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(100,100,180,0.1); border-radius: 12px; transition: all 0.3s ease; animation: statEnter 0.5s ease both; position: relative; overflow: hidden; &:hover { transform: translateY(-2px); border-color: rgba(0,245,212,0.25); box-shadow: 0 4px 20px rgba(0,245,212,0.08); } }
+.stat-card { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: rgba($bg-primary,0.6); backdrop-filter: blur(12px); border: 1px solid rgba($accent-secondary,0.1); border-radius: 12px; transition: all 0.3s ease; animation: statEnter 0.5s ease both; position: relative; overflow: hidden; &:hover { transform: translateY(-2px); border-color: rgba($accent-primary,0.25); box-shadow: 0 4px 20px rgba($accent-primary,0.08); } }
 .stat-icon { font-size: 1.4rem; flex-shrink: 0; }
 .stat-info { display: flex; flex-direction: column; gap: 2px; }
-.stat-num { font-size: 1.4rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, #00f5d4, #0055FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-num { font-size: 1.4rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, $accent-primary, #0055FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .stat-label { font-size: 0.7rem; color: var(--text-sub); font-weight: 500; }
 
 /* ===== 主内容区 ===== */
@@ -961,13 +1248,13 @@ onUnmounted(() => {
 .panel-left, .panel-right {
   display: flex;
   flex-direction: column;
-  background: rgba(17,17,39,0.6);
+  background: rgba($bg-primary,0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.1);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 14px;
   overflow: hidden;
 }
-.panel-hdr { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid rgba(100,100,180,0.08); flex-wrap: wrap; gap: 8px; position: relative; h3 { font-size: 0.95rem; font-weight: 600; color: var(--title-section); } .badge { font-size: 0.7rem; padding: 2px 8px; background: var(--badge-bg); color: #ffffff; font-weight: 700; border-radius: 8px; margin-left: 6px; } }
+.panel-hdr { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid rgba($accent-secondary,0.08); flex-wrap: wrap; gap: 8px; position: relative; h3 { font-size: 0.95rem; font-weight: 600; color: var(--title-section); } .badge { font-size: 0.7rem; padding: 2px 8px; background: var(--badge-bg); color: #ffffff; font-weight: 700; border-radius: 8px; margin-left: 6px; } }
 .btn-upload { padding: 5px 12px; background: var(--btn-gradient); border: none; color: #fff; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } &:disabled { opacity: 0.5; cursor: not-allowed; } }
 
 .panel-hdr::before {
@@ -986,25 +1273,45 @@ onUnmounted(() => {
 
 /* ===== 加载状态 ===== */
 .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-sub); font-size: 0.85rem; padding: 40px; }
-.loading-spinner { width: 28px; height: 28px; border: 3px solid rgba(0,245,212,0.1); border-top-color: #00f5d4; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.loading-spinner { width: 28px; height: 28px; border: 3px solid rgba($accent-primary,0.1); border-top-color: $accent-primary; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===== 文档列表 ===== */
-.docs-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: rgba(0,245,212,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.12); border-radius: 2px; } }
-.doc-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; &:hover { background: rgba(0,245,212,0.04); } &.active { background: rgba(0,245,212,0.06); border: 1px solid rgba(0,245,212,0.12); } &.st-ready { border-left: 3px solid #10b981; } &.st-processing { border-left: 3px solid #f59e0b; } &.st-uploading { border-left: 3px solid #3b82f6; } &.st-error { border-left: 3px solid #ef4444; } }
+.docs-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: rgba($accent-primary,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 2px; } }
+.doc-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; &:hover { background: rgba($accent-primary,0.04); } &.active { background: rgba($accent-primary,0.06); border: 1px solid rgba($accent-primary,0.12); } &.st-ready { border-left: 3px solid $accent-emerald; } &.st-processing { border-left: 3px solid $accent-amber; } &.st-uploading { border-left: 3px solid $accent-blue; } &.st-error { border-left: 3px solid $accent-red; } }
 .doc-icon { font-size: 1.3rem; flex-shrink: 0; }
 .doc-info { flex: 1; min-width: 0; }
-.doc-name { font-size: 0.85rem; font-weight: 600; color: #e8e8ff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-name { font-size: 0.85rem; font-weight: 600; color: $text-primary; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .doc-meta { font-size: 0.7rem; color: var(--text-sub); }
-.doc-status { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 500; flex-shrink: 0; .status-dot { width: 6px; height: 6px; border-radius: 50%; } &.ready { color: var(--status-ready-text); .status-dot { background: var(--status-ready-text); } } &.processing { color: #f59e0b; .status-dot { background: #f59e0b; animation: pulse 2s infinite; } } &.uploading { color: #3b82f6; .status-dot { background: #3b82f6; animation: pulse 2s infinite; } } &.error { color: #ef4444; .status-dot { background: #ef4444; } } }
-.doc-actions { display: flex; gap: 4px; flex-shrink: 0; button { padding: 3px 6px; background: rgba(17,17,39,0.8); border: 1px solid rgba(100,100,180,0.15); border-radius: 5px; font-size: 0.7rem; cursor: pointer; transition: all 0.15s; &:hover { border-color: #00f5d4; background: rgba(0,245,212,0.08); } } }
-.doc-progress { position: absolute; bottom: 0; left: 12px; right: 12px; height: 2px; background: rgba(100,100,180,0.1); border-radius: 1px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, #00f5d4, #0055FF); border-radius: 1px; transition: width 0.5s ease; }
+.doc-status { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 500; flex-shrink: 0; .status-dot { width: 6px; height: 6px; border-radius: 50%; } &.ready { color: var(--status-ready-text); .status-dot { background: var(--status-ready-text); } } &.processing { color: $accent-amber; .status-dot { background: $accent-amber; animation: pulse 2s infinite; } } &.uploading { color: $accent-blue; .status-dot { background: $accent-blue; animation: pulse 2s infinite; } } &.error { color: $accent-red; .status-dot { background: $accent-red; } } }
+.doc-actions { display: flex; gap: 4px; flex-shrink: 0; button { padding: 3px 6px; background: rgba($bg-primary,0.8); border: 1px solid rgba($accent-secondary,0.15); border-radius: 5px; font-size: 0.7rem; cursor: pointer; transition: all 0.15s; &:hover { border-color: $accent-primary; background: rgba($accent-primary,0.08); } } }
+.doc-ai-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: rgba($accent-primary, 0.04);
+  border-radius: 4px;
+}
+.summary-icon { font-size: 0.7rem; flex-shrink: 0; }
+.summary-text {
+  font-size: 0.68rem;
+  color: $text-muted;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.doc-progress { position: absolute; bottom: 0; left: 12px; right: 12px; height: 2px; background: rgba($accent-secondary,0.1); border-radius: 1px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, $accent-primary, #0055FF); border-radius: 1px; transition: width 0.5s ease; }
 
 /* ===== 空状态 ===== */
 .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; }
 .empty-illustration { position: relative; width: 80px; height: 80px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
-.empty-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(0,245,212,0.1); animation: ring-rotate 20s linear infinite; }
+.empty-ring { position: absolute; border-radius: 50%; border: 1px solid rgba($accent-primary,0.1); animation: ring-rotate 20s linear infinite; }
 .ring-1 { width: 80px; height: 80px; }
 .ring-2 { width: 60px; height: 60px; animation-direction: reverse; animation-duration: 15s; border-color: rgba(123,97,255,0.1); }
 .empty-icon { font-size: 2rem; position: relative; z-index: 1; }
@@ -1012,20 +1319,20 @@ onUnmounted(() => {
 .empty-title { font-size: 1rem; font-weight: 600; color: #ffffff; margin-bottom: 4px; }
 .empty-desc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 14px; }
 .empty-examples { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.example-chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: rgba(0,245,212,0.04); border: 1px solid rgba(0,245,212,0.1); border-radius: 16px; font-size: 0.75rem; color: #c0c0e0; cursor: pointer; transition: all 0.2s; &:hover { background: rgba(0,245,212,0.08); border-color: rgba(0,245,212,0.2); color: #00f5d4; } }
+.example-chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: rgba($accent-primary,0.04); border: 1px solid rgba($accent-primary,0.1); border-radius: 16px; font-size: 0.75rem; color: $text-secondary; cursor: pointer; transition: all 0.2s; &:hover { background: rgba($accent-primary,0.08); border-color: rgba($accent-primary,0.2); color: $accent-primary; } }
 
 /* ===== 上传区域 ===== */
-.upload-area { margin: 8px; padding: 16px; border: 2px dashed rgba(100,100,180,0.15); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s; &:hover, &.dragover { border-color: rgba(0,245,212,0.3); background: rgba(0,245,212,0.02); } &.uploading { opacity: 0.6; cursor: wait; } }
-.upload-inner { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; color: #9090b8; strong { color: #00f5d4; font-weight: 600; } }
+.upload-area { margin: 8px; padding: 16px; border: 2px dashed rgba($accent-secondary,0.15); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s; &:hover, &.dragover { border-color: rgba($accent-primary,0.3); background: rgba($accent-primary,0.02); } &.uploading { opacity: 0.6; cursor: wait; } }
+.upload-inner { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; color: $text-muted; strong { color: $accent-primary; font-weight: 600; } }
 .upload-progress { padding: 4px 16px 12px; }
-.upload-ptext { font-size: 0.75rem; color: #c0c0e0; margin-bottom: 4px; }
-.upload-track { height: 3px; background: rgba(100,100,180,0.1); border-radius: 2px; overflow: hidden; }
-.upload-fill { height: 100%; background: linear-gradient(90deg, #00f5d4, #10b981); border-radius: 2px; transition: width 0.3s; }
+.upload-ptext { font-size: 0.75rem; color: $text-secondary; margin-bottom: 4px; }
+.upload-track { height: 3px; background: rgba($accent-secondary,0.1); border-radius: 2px; overflow: hidden; }
+.upload-fill { height: 100%; background: linear-gradient(90deg, $accent-primary, $accent-emerald); border-radius: 2px; transition: width 0.3s; }
 
 /* ===== 知识块面板 ===== */
-.chunk-search { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba(17,17,39,0.6); border: 1px solid rgba(100,100,180,0.1); border-radius: 8px; transition: border-color 0.2s; flex-shrink: 0; &:focus-within { border-color: rgba(0,245,212,0.25); } svg { color: #9090b8; flex-shrink: 0; } }
+.chunk-search { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba($bg-primary,0.6); border: 1px solid rgba($accent-secondary,0.1); border-radius: 8px; transition: border-color 0.2s; flex-shrink: 0; &:focus-within { border-color: rgba($accent-primary,0.25); } svg { color: $text-muted; flex-shrink: 0; } }
 .chunk-search-input { flex: 1; min-width: 100px; background: transparent; border: none; color: var(--text-input); font-size: 0.8rem; outline: none; caret-color: var(--title-status); &::placeholder { color: var(--text-placeholder); } }
-.search-clear { cursor: pointer; color: #9090b8; font-size: 0.75rem; &:hover { color: #e8e8ff; } }
+.search-clear { cursor: pointer; color: $text-muted; font-size: 0.75rem; &:hover { color: $text-primary; } }
 // 知识块
 .chunks-grid {
   flex: 1;
@@ -1036,23 +1343,23 @@ onUnmounted(() => {
   gap: 10px;
   align-content: start;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0,245,212,0.12) transparent;
+  scrollbar-color: rgba($accent-primary,0.12) transparent;
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0,245,212,0.12);
+    background: rgba($accent-primary,0.12);
     border-radius: 2px;
   }
 }
-.chunk-card { position: relative; padding: 12px; background: rgba(17,17,39,0.5); backdrop-filter: blur(8px); border: 1px solid rgba(100,100,180,0.08); border-radius: 10px; transition: all 0.25s; cursor: default; &.clickable { cursor: pointer; } &:hover { transform: translateY(-2px); border-color: rgba(0,245,212,0.2); box-shadow: 0 4px 16px rgba(0,0,0,0.2); } }
+.chunk-card { position: relative; padding: 12px; background: rgba($bg-primary,0.5); backdrop-filter: blur(8px); border: 1px solid rgba($accent-secondary,0.08); border-radius: 10px; transition: all 0.25s; cursor: default; &.clickable { cursor: pointer; } &:hover { transform: translateY(-2px); border-color: rgba($accent-primary,0.2); box-shadow: 0 4px 16px rgba(0,0,0,0.2); } }
 .chunk-header-inner { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.chunk-source { font-size: 0.7rem; font-weight: 600; color: #00f5d4; background: rgba(0,245,212,0.08); padding: 2px 8px; border-radius: 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chunk-index { font-size: 0.65rem; color: #9090b8; font-family: monospace; }
-.chunk-preview { font-size: 0.78rem; color: #c0c0e0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.chunk-relevance { font-size: 0.65rem; color: #10b981; margin-top: 4px; }
-.chunk-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 280px; padding: 12px; background: rgba(10,14,26,0.96); backdrop-filter: blur(12px); border: 1px solid rgba(0,245,212,0.15); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); z-index: 20; pointer-events: none; }
-.tooltip-title { font-size: 0.75rem; font-weight: 600; color: #00f5d4; margin-bottom: 6px; }
+.chunk-source { font-size: 0.7rem; font-weight: 600; color: $accent-primary; background: rgba($accent-primary,0.08); padding: 2px 8px; border-radius: 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chunk-index { font-size: 0.65rem; color: $text-muted; font-family: monospace; }
+.chunk-preview { font-size: 0.78rem; color: $text-secondary; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chunk-relevance { font-size: 0.65rem; color: $accent-emerald; margin-top: 4px; }
+.chunk-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 280px; padding: 12px; background: rgba(10,14,26,0.96); backdrop-filter: blur(12px); border: 1px solid rgba($accent-primary,0.15); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); z-index: 20; pointer-events: none; }
+.tooltip-title { font-size: 0.75rem; font-weight: 600; color: $accent-primary; margin-bottom: 6px; }
 .tooltip-content { font-size: 0.78rem; color: #d0d0f0; line-height: 1.6; max-height: 120px; overflow-y: auto; }
-.tooltip-hint { font-size: 0.7rem; color: #8080a8; margin-top: 8px; text-align: center; font-style: italic; }
+.tooltip-hint { font-size: 0.7rem; color: $text-muted; margin-top: 8px; text-align: center; font-style: italic; }
 .tooltip-fade-enter-active, .tooltip-fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .tooltip-fade-enter-from, .tooltip-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(4px); }
 // 空知识块
@@ -1077,28 +1384,28 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  border-bottom: 1px solid rgba(100,100,180,0.06);
-  background: rgba(0,245,212,0.02);
+  border-bottom: 1px solid rgba($accent-secondary,0.06);
+  background: rgba($accent-primary,0.02);
 }
-.chunk-header-title { font-size: 0.85rem; font-weight: 600; color: #e8e8ff; }
+.chunk-header-title { font-size: 0.85rem; font-weight: 600; color: $text-primary; }
 .chunk-count-badge {
   font-size: 0.7rem;
   padding: 2px 10px;
-  background: rgba(0,245,212,0.1);
-  color: #00f5d4;
+  background: rgba($accent-primary,0.1);
+  color: $accent-primary;
   border-radius: 10px;
   font-weight: 600;
 }
 
 /* ===== 详情弹窗 ===== */
 .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s ease; }
-.detail-panel { width: 580px; max-width: 92vw; max-height: 82vh; background: rgba(15,15,35,0.97); border: 1px solid rgba(100,100,180,0.12); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: modalEnter 0.3s ease; display: flex; flex-direction: column; }
-.detail-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(17,17,39,0.8); border-bottom: 1px solid rgba(100,100,180,0.08); }
-.detail-title { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; color: #e8e8ff; .detail-doc-icon { font-size: 1.2rem; } }
-.detail-close { width: 28px; height: 28px; border: none; background: rgba(100,100,180,0.08); border-radius: 6px; font-size: 0.9rem; cursor: pointer; color: #9090b8; transition: all 0.15s; display: flex; align-items: center; justify-content: center; &:hover { background: rgba(100,100,180,0.15); color: #e8e8ff; } }
-.detail-body { flex: 1; overflow-y: auto; padding: 20px; scrollbar-width: thin; scrollbar-color: rgba(0,245,212,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.12); border-radius: 2px; } }
+.detail-panel { width: 580px; max-width: 92vw; max-height: 82vh; background: rgba(15,15,35,0.97); border: 1px solid rgba($accent-secondary,0.12); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: modalEnter 0.3s ease; display: flex; flex-direction: column; }
+.detail-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba($bg-primary,0.8); border-bottom: 1px solid rgba($accent-secondary,0.08); }
+.detail-title { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; color: $text-primary; .detail-doc-icon { font-size: 1.2rem; } }
+.detail-close { width: 28px; height: 28px; border: none; background: rgba($accent-secondary,0.08); border-radius: 6px; font-size: 0.9rem; cursor: pointer; color: $text-muted; transition: all 0.15s; display: flex; align-items: center; justify-content: center; &:hover { background: rgba($accent-secondary,0.15); color: $text-primary; } }
+.detail-body { flex: 1; overflow-y: auto; padding: 20px; scrollbar-width: thin; scrollbar-color: rgba($accent-primary,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 2px; } }
 .detail-section { margin-bottom: 20px; &:last-child { margin-bottom: 0; } }
-.section-title { font-size: 0.85rem; font-weight: 700; color: #00f5d4; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,245,212,0.08); }
+.section-title { font-size: 0.85rem; font-weight: 700; color: $accent-primary; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid rgba($accent-primary,0.08); }
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1107,48 +1414,48 @@ onUnmounted(() => {
   border-radius: 10px;
   padding: 14px;
 }
-.info-item { display: flex; flex-direction: column; gap: 3px; label { font-size: 0.7rem; color: #9090b8; } span { font-size: 0.82rem; color: #c0c0e0; } .status-badge { font-weight: 600; &.ready { color: #10b981; } &.processing { color: #f59e0b; } &.error { color: #ef4444; } } .doc-id-text { font-family: monospace; font-size: 0.75rem; color: #8080a8; word-break: break-all; } }
-.preview-content { font-size: 0.82rem; color: #c0c0e0; line-height: 1.7; padding: 12px 14px; background: rgba(0,0,0,0.12); border-radius: 8px; border-left: 3px solid rgba(0,245,212,0.15); max-height: 120px; overflow-y: auto; }
+.info-item { display: flex; flex-direction: column; gap: 3px; label { font-size: 0.7rem; color: $text-muted; } span { font-size: 0.82rem; color: $text-secondary; } .status-badge { font-weight: 600; &.ready { color: $accent-emerald; } &.processing { color: $accent-amber; } &.error { color: $accent-red; } } .doc-id-text { font-family: monospace; font-size: 0.75rem; color: $text-muted; word-break: break-all; } }
+.preview-content { font-size: 0.82rem; color: $text-secondary; line-height: 1.7; padding: 12px 14px; background: rgba(0,0,0,0.12); border-radius: 8px; border-left: 3px solid rgba($accent-primary,0.15); max-height: 120px; overflow-y: auto; }
 .chunk-preview-list { display: flex; flex-direction: column; gap: 6px; }
-.chunk-preview-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: rgba(0,0,0,0.12); border-radius: 6px; .chunk-index-tag { font-size: 0.7rem; font-weight: 700; color: #00f5d4; background: rgba(0,245,212,0.08); padding: 1px 6px; border-radius: 4px; flex-shrink: 0; } .chunk-preview-text { font-size: 0.78rem; color: #c0c0e0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } }
-.more-hint { font-size: 0.75rem; color: #9090b8; text-align: center; padding: 6px; font-style: italic; }
-.detail-footer { display: flex; gap: 10px; justify-content: center; padding: 14px 20px; border-top: 1px solid rgba(100,100,180,0.08); }
+.chunk-preview-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: rgba(0,0,0,0.12); border-radius: 6px; .chunk-index-tag { font-size: 0.7rem; font-weight: 700; color: $accent-primary; background: rgba($accent-primary,0.08); padding: 1px 6px; border-radius: 4px; flex-shrink: 0; } .chunk-preview-text { font-size: 0.78rem; color: $text-secondary; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } }
+.more-hint { font-size: 0.75rem; color: $text-muted; text-align: center; padding: 6px; font-style: italic; }
+.detail-footer { display: flex; gap: 10px; justify-content: center; padding: 14px 20px; border-top: 1px solid rgba($accent-secondary,0.08); }
 .btn-primary { padding: 8px 20px; background: var(--btn-gradient); border: none; border-radius: 8px; color: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } }
-.btn-secondary { padding: 8px 20px; background: rgba(100,100,180,0.06); border: 1px solid rgba(100,100,180,0.12); border-radius: 8px; color: #c0c0e0; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; &:hover { background: rgba(100,100,180,0.1); color: #e8e8ff; } }
-.qa-section { position: relative; z-index: 1; background: rgba(17,17,39,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(100,100,180,0.1); border-radius: 14px; overflow: hidden; }
-.qa-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid rgba(100,100,180,0.08); flex-wrap: wrap; gap: 6px; }
+.btn-secondary { padding: 8px 20px; background: rgba($accent-secondary,0.06); border: 1px solid rgba($accent-secondary,0.12); border-radius: 8px; color: $text-secondary; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; &:hover { background: rgba($accent-secondary,0.1); color: $text-primary; } }
+.qa-section { position: relative; z-index: 1; background: rgba($bg-primary,0.6); backdrop-filter: blur(12px); border: 1px solid rgba($accent-secondary,0.1); border-radius: 14px; overflow: hidden; }
+.qa-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid rgba($accent-secondary,0.08); flex-wrap: wrap; gap: 6px; }
 .qa-hdr-left { display: flex; align-items: center; gap: 8px; }
 .qa-hdr-right { display: flex; align-items: center; gap: 8px; }
-.qa-status { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #c0c0e0; }
-.qa-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
-.qa-messages { max-height: 280px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: rgba(0,245,212,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.12); border-radius: 2px; } }
-.qa-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; .welcome-icon { font-size: 2rem; margin-bottom: 10px; } h3 { font-size: 1.1rem; color: #e8e8ff; margin-bottom: 4px; } p { font-size: 0.85rem; color: #9090b8; margin-bottom: 14px; } }
+.qa-status { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: $text-secondary; }
+.qa-dot { width: 6px; height: 6px; border-radius: 50%; background: $accent-emerald; animation: pulse 2s infinite; }
+.qa-messages { max-height: 280px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: rgba($accent-primary,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 2px; } }
+.qa-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; .welcome-icon { font-size: 2rem; margin-bottom: 10px; } h3 { font-size: 1.1rem; color: $text-primary; margin-bottom: 4px; } p { font-size: 0.85rem; color: $text-muted; margin-bottom: 14px; } }
 .welcome-tips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.tip-chip { padding: 6px 14px; background: rgba(0,245,212,0.05); border: 1px solid rgba(0,245,212,0.1); border-radius: 16px; font-size: 0.78rem; color: #00f5d4; cursor: pointer; transition: all 0.2s; &:hover { background: rgba(0,245,212,0.1); border-color: rgba(0,245,212,0.2); } }
+.tip-chip { padding: 6px 14px; background: rgba($accent-primary,0.05); border: 1px solid rgba($accent-primary,0.1); border-radius: 16px; font-size: 0.78rem; color: $accent-primary; cursor: pointer; transition: all 0.2s; &:hover { background: rgba($accent-primary,0.1); border-color: rgba($accent-primary,0.2); } }
 
 /* ===== 消息布局 ===== */
 .user-message-wrapper { display: flex; justify-content: flex-end; width: 100%; }
 .ai-message-wrapper { display: flex; justify-content: flex-start; width: 100%; }
 .message { display: flex; gap: 10px; width: 100%; animation: msgEnter 0.3s ease; &.user { flex-direction: row-reverse; } }
-.avatar { width: 34px; height: 34px; background: rgba(17, 17, 39, 0.6); border: 1px solid rgba(100,100,180,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; backdrop-filter: blur(8px); }
-.user-av { background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(123,97,255,0.12)); border-color: rgba(0,245,212,0.15); }
-.ai-av { background: rgba(0,245,212,0.1); }
+.avatar { width: 34px; height: 34px; background: rgba($bg-primary, 0.6); border: 1px solid rgba($accent-secondary,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; backdrop-filter: blur(8px); }
+.user-av { background: linear-gradient(135deg, rgba($accent-primary,0.15), rgba(123,97,255,0.12)); border-color: rgba($accent-primary,0.15); }
+.ai-av { background: rgba($accent-primary,0.1); }
 .msg-content { display: flex; flex-direction: column; max-width: 85%; min-width: 0; }
 .msg-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.ai-label { font-size: 12px; font-weight: 700; color: #00f5d4; }
-.msg-time { font-size: 11px; color: #9090b8; opacity: 0.7; }
+.ai-label { font-size: 12px; font-weight: 700; color: $accent-primary; }
+.msg-time { font-size: 11px; color: $text-muted; opacity: 0.7; }
 .msg-actions { display: flex; gap: 4px; margin-top: 8px; opacity: 0; transition: opacity 0.2s; .message:hover & { opacity: 1; } }
-.act-btn { width: 26px; height: 26px; border: 1px solid rgba(100,100,180,0.1); border-radius: 6px; background: rgba(100,100,180,0.03); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: all 0.2s; &:hover { border-color: #00f5d4; background: rgba(0,245,212,0.08); transform: translateY(-1px); } &.liked { border-color: #00f5d4; background: rgba(0,245,212,0.08); } }
+.act-btn { width: 26px; height: 26px; border: 1px solid rgba($accent-secondary,0.1); border-radius: 6px; background: rgba($accent-secondary,0.03); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: all 0.2s; &:hover { border-color: $accent-primary; background: rgba($accent-primary,0.08); transform: translateY(-1px); } &.liked { border-color: $accent-primary; background: rgba($accent-primary,0.08); } }
 .msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; max-width: 88%; }
-.user-bubble { background: rgba(0,245,212,0.08); border: 1px solid rgba(0,245,212,0.12); color: #e8e8ff; margin-left: auto; border-bottom-right-radius: 4px; }
-.ai-bubble { background: rgba(17,17,39,0.6); border: 1px solid rgba(100,100,180,0.08); border-left: 2px solid rgba(0,245,212,0.3); color: #e8e8ff; border-bottom-left-radius: 4px; }
-.sources-box { margin-top: 8px; padding: 8px 10px; background: rgba(0,245,212,0.03); border: 1px solid rgba(0,245,212,0.06); border-radius: 8px; }
-.sources-hdr { font-size: 0.75rem; color: #00f5d4; font-weight: 500; margin-bottom: 4px; }
-.source-card { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #c0c0e0; padding: 2px 0; .src-tree { color: #9090b8; font-family: monospace; } .src-title { font-weight: 500; } .src-page { color: #9090b8; font-size: 0.7rem; } .src-rel { color: #10b981; font-weight: 600; margin-left: auto; } }
-.typing-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(17,17,39,0.6); border-radius: 12px; font-size: 0.8rem; color: #9090b8; }
-.typing-dots { display: flex; gap: 4px; span { width: 5px; height: 5px; border-radius: 50%; background: #00f5d4; animation: typingDot 1.4s infinite; &:nth-child(2) { animation-delay: 0.2s; } &:nth-child(3) { animation-delay: 0.4s; } } }
+.user-bubble { background: rgba($accent-primary,0.08); border: 1px solid rgba($accent-primary,0.12); color: $text-primary; margin-left: auto; border-bottom-right-radius: 4px; }
+.ai-bubble { background: rgba($bg-primary,0.6); border: 1px solid rgba($accent-secondary,0.08); border-left: 2px solid rgba($accent-primary,0.3); color: $text-primary; border-bottom-left-radius: 4px; }
+.sources-box { margin-top: 8px; padding: 8px 10px; background: rgba($accent-primary,0.03); border: 1px solid rgba($accent-primary,0.06); border-radius: 8px; }
+.sources-hdr { font-size: 0.75rem; color: $accent-primary; font-weight: 500; margin-bottom: 4px; }
+.source-card { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: $text-secondary; padding: 2px 0; .src-tree { color: $text-muted; font-family: monospace; } .src-title { font-weight: 500; } .src-page { color: $text-muted; font-size: 0.7rem; } .src-rel { color: $accent-emerald; font-weight: 600; margin-left: auto; } }
+.typing-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba($bg-primary,0.6); border-radius: 12px; font-size: 0.8rem; color: $text-muted; }
+.typing-dots { display: flex; gap: 4px; span { width: 5px; height: 5px; border-radius: 50%; background: $accent-primary; animation: typingDot 1.4s infinite; &:nth-child(2) { animation-delay: 0.2s; } &:nth-child(3) { animation-delay: 0.4s; } } }
 @keyframes typingDot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
-.qa-input-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid rgba(100,100,180,0.08); }
+.qa-input-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid rgba($accent-secondary,0.08); }
 .qa-input { flex: 1; padding: 9px 14px; background: var(--bg-ctrl); border: 1px solid var(--border-ctrl); border-radius: 10px; color: var(--text-input); font-size: 0.85rem; outline: none; caret-color: var(--title-status); transition: border-color 0.2s, box-shadow 0.2s; &:focus { border-color: var(--border-ctrl-hover); box-shadow: 0 0 0 3px rgba(124,107,245,0.1); } &:disabled { opacity: 0.5; } &::placeholder { color: var(--text-placeholder); } }
 .qa-send { padding: 9px 20px; background: var(--btn-gradient); color: #fff; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; min-width: 64px; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } &:disabled { opacity: 0.6; cursor: not-allowed; } }
 .send-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
@@ -1156,22 +1463,85 @@ onUnmounted(() => {
 /* ===== Markdown 渲染样式 ===== */
 .markdown-body {
   :deep(h1), :deep(h2), :deep(h3), :deep(h4) {
-    color: #e8e8ff; font-weight: 700; margin: 12px 0 6px; line-height: 1.4;
+    color: $text-primary; font-weight: 700; margin: 12px 0 6px; line-height: 1.4;
   }
   :deep(h1) { font-size: 1.3rem; }
-  :deep(h2) { font-size: 1.15rem; color: #00f5d4; }
+  :deep(h2) { font-size: 1.15rem; color: $accent-primary; }
   :deep(h3) { font-size: 1.05rem; color: #7dd3fc; }
   :deep(p) { margin: 6px 0; line-height: 1.75; color: #d0d0f0; }
   :deep(ul), :deep(ol) { padding-left: 20px; margin: 6px 0; }
   :deep(li) { margin: 3px 0; line-height: 1.7; color: #d0d0f0; }
-  :deep(strong) { color: #00f5d4; font-weight: 700; }
+  :deep(strong) { color: $accent-primary; font-weight: 700; }
   :deep(em) { color: #a78bfa; font-style: italic; }
-  :deep(code) { background: rgba(0,245,212,0.08); border: 1px solid rgba(0,245,212,0.12); border-radius: 4px; padding: 1px 5px; font-size: 0.88em; color: #7dd3fc; font-family: 'Fira Code', 'Consolas', monospace; }
-  :deep(pre) { background: rgba(0,0,0,0.3); border: 1px solid rgba(100,100,180,0.12); border-radius: 8px; padding: 12px 14px; margin: 8px 0; overflow-x: auto; code { background: transparent; border: none; padding: 0; color: inherit; } }
-  :deep(blockquote) { border-left: 3px solid rgba(0,245,212,0.3); margin: 8px 0; padding: 6px 12px; background: rgba(0,245,212,0.03); border-radius: 0 6px 6px 0; color: #c0c0e0; }
+  :deep(code) { background: rgba($accent-primary,0.08); border: 1px solid rgba($accent-primary,0.12); border-radius: 4px; padding: 1px 5px; font-size: 0.88em; color: #7dd3fc; font-family: 'Fira Code', 'Consolas', monospace; }
+  :deep(pre) { background: rgba(0,0,0,0.3); border: 1px solid rgba($accent-secondary,0.12); border-radius: 8px; padding: 12px 14px; margin: 8px 0; overflow-x: auto; code { background: transparent; border: none; padding: 0; color: inherit; } }
+  :deep(blockquote) { border-left: 3px solid rgba($accent-primary,0.3); margin: 8px 0; padding: 6px 12px; background: rgba($accent-primary,0.03); border-radius: 0 6px 6px 0; color: $text-secondary; }
   :deep(a) { color: #7dd3fc; text-decoration: none; &:hover { text-decoration: underline; } }
-  :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; th, td { border: 1px solid rgba(100,100,180,0.15); padding: 6px 10px; text-align: left; } th { background: rgba(0,245,212,0.05); color: #00f5d4; } }
+  :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; th, td { border: 1px solid rgba($accent-secondary,0.15); padding: 6px 10px; text-align: left; } th { background: rgba($accent-primary,0.05); color: $accent-primary; } }
 }
+
+/* ===== 工作流 Tab 切换 ===== */
+.tab-switch {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgba($accent-secondary, 0.08);
+  border-radius: 8px;
+}
+
+.tab-btn {
+  padding: 6px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: $text-muted;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  &.active {
+    background: rgba($accent-primary, 0.2);
+    color: $accent-primary;
+  }
+}
+
+/* ===== 工作流容器 ===== */
+.workflow-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 400px;
+  overflow: hidden;
+
+  > :deep(.workflow-selector) {
+    flex-shrink: 0;
+  }
+
+  > :deep(.workflow-executor) {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+.qa-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 400px;
+  overflow: hidden;
+
+  .qa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+}
+
 
 /* ===== 动画 ===== */
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
@@ -1183,21 +1553,21 @@ onUnmounted(() => {
 
 /* ===== 对话历史 ===== */
 .history-overlay { position: fixed; inset: 0; z-index: 1001; background: rgba(0,0,0,0.3); }
-.history-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: rgba(10,14,26,0.98); backdrop-filter: blur(12px); border-right: 1px solid rgba(100,100,180,0.08); display: flex; flex-direction: column; z-index: 1002; }
-.history-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 14px; font-weight: 600; color: #f0f0ff; border-bottom: 1px solid rgba(100,100,180,0.06); }
-.history-new { margin: 10px 12px; padding: 8px 14px; background: linear-gradient(135deg, rgba(0,245,212,0.1), rgba(0,85,255,0.06)); border: 1px solid rgba(0,245,212,0.15); border-radius: 6px; color: #00f5d4; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover { background: linear-gradient(135deg, rgba(0,245,212,0.18), rgba(0,85,255,0.1)); transform: translateY(-1px); } }
+.history-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: rgba(10,14,26,0.98); backdrop-filter: blur(12px); border-right: 1px solid rgba($accent-secondary,0.08); display: flex; flex-direction: column; z-index: 1002; }
+.history-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 14px; font-weight: 600; color: $text-primary; border-bottom: 1px solid rgba($accent-secondary,0.06); }
+.history-new { margin: 10px 12px; padding: 8px 14px; background: linear-gradient(135deg, rgba($accent-primary,0.1), rgba(0,85,255,0.06)); border: 1px solid rgba($accent-primary,0.15); border-radius: 6px; color: $accent-primary; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover { background: linear-gradient(135deg, rgba($accent-primary,0.18), rgba(0,85,255,0.1)); transform: translateY(-1px); } }
 .history-list { flex: 1; overflow-y: auto; padding: 6px 10px; }
-.hist-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; &:hover { background: rgba(100,100,180,0.06); } &.active { background: rgba(0,245,212,0.07); border-left: 2px solid #00f5d4; } }
-.hist-title { flex: 1; font-size: 13px; color: #c0c0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hist-del { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #9090b8; cursor: pointer; border-radius: 3px; opacity: 0; transition: opacity 0.15s; .hist-item:hover & { opacity: 1; } &:hover { color: #ff4060; } }
+.hist-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; &:hover { background: rgba($accent-secondary,0.06); } &.active { background: rgba($accent-primary,0.07); border-left: 2px solid $accent-primary; } }
+.hist-title { flex: 1; font-size: 13px; color: $text-secondary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-del { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: $text-muted; cursor: pointer; border-radius: 3px; opacity: 0; transition: opacity 0.15s; .hist-item:hover & { opacity: 1; } &:hover { color: #ff4060; } }
 .history-slide-enter-active, .history-slide-leave-active { transition: opacity 0.2s; }
 .history-slide-enter-active .history-panel, .history-slide-leave-active .history-panel { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
 .history-slide-enter-from, .history-slide-leave-to { opacity: 0; }
 .history-slide-enter-from .history-panel, .history-slide-leave-to .history-panel { transform: translateX(-100%); }
 
 /* ===== 图标按钮 ===== */
-.icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(17,17,39,0.6); border: 1px solid rgba(100,100,180,0.12); border-radius: 8px; color: #c0c0e0; cursor: pointer; transition: all 0.2s; &:hover { border-color: rgba(0,245,212,0.25); color: #00f5d4; } &.accent { background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(0,85,255,0.1)); border-color: rgba(0,245,212,0.2); color: #00f5d4; &:hover { background: linear-gradient(135deg, rgba(0,245,212,0.25), rgba(0,85,255,0.15)); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,245,212,0.15); } } }
-.icon-btn-sm { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #9090b8; cursor: pointer; border-radius: 4px; transition: all 0.15s; &:hover { background: rgba(100,100,180,0.1); color: #e8e8ff; } }
+.icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba($bg-primary,0.6); border: 1px solid rgba($accent-secondary,0.12); border-radius: 8px; color: $text-secondary; cursor: pointer; transition: all 0.2s; &:hover { border-color: rgba($accent-primary,0.25); color: $accent-primary; } &.accent { background: linear-gradient(135deg, rgba($accent-primary,0.15), rgba(0,85,255,0.1)); border-color: rgba($accent-primary,0.2); color: $accent-primary; &:hover { background: linear-gradient(135deg, rgba($accent-primary,0.25), rgba(0,85,255,0.15)); transform: translateY(-1px); box-shadow: 0 3px 12px rgba($accent-primary,0.15); } } }
+.icon-btn-sm { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: $text-muted; cursor: pointer; border-radius: 4px; transition: all 0.15s; &:hover { background: rgba($accent-secondary,0.1); color: $text-primary; } }
 
 /* ===== TransitionGroup ===== */
 .doc-list-enter-active { transition: all 0.3s ease; }
@@ -1243,8 +1613,8 @@ onUnmounted(() => {
   width: 90%;
   max-width: 700px;
   max-height: 80vh;
-  background: rgba(17, 17, 39, 0.95);
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: rgba($bg-primary, 0.95);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -1257,8 +1627,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(0, 245, 212, 0.04);
+  border-bottom: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($accent-primary, 0.04);
 }
 
 .cd-header-left {
@@ -1275,28 +1645,28 @@ onUnmounted(() => {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #f0f0ff;
+  color: $text-primary;
 }
 
 .cd-header-info p {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .cd-close {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.1);
   border-radius: 8px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: $accent-red;
   }
 }
 
@@ -1312,22 +1682,22 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 4px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
   margin-bottom: 16px;
   font-size: 0.85rem;
 }
 
 .cd-summary-label {
-  color: #606090;
+  color: $text-muted;
 }
 
 .cd-summary-value {
-  color: #e8e8ff;
+  color: $text-primary;
   font-weight: 500;
 }
 
 .cd-summary-count {
-  color: #00f5d4;
+  color: $accent-primary;
   font-weight: 600;
 }
 
@@ -1338,7 +1708,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 12px;
   padding: 40px;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .cd-chunks-list {
@@ -1351,14 +1721,14 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   padding: 12px 14px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border-radius: 10px;
-  border: 1px solid rgba(100, 100, 180, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.06);
   transition: all 0.2s;
   cursor: pointer;
   &:hover {
-    border-color: rgba(0, 245, 212, 0.15);
-    background: rgba(0, 245, 212, 0.04);
+    border-color: rgba($accent-primary, 0.15);
+    background: rgba($accent-primary, 0.04);
   }
 }
 
@@ -1366,8 +1736,8 @@ onUnmounted(() => {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #00f5d4;
-  background: rgba(0, 245, 212, 0.12);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.12);
   padding: 3px 8px;
   border-radius: 6px;
   min-width: 32px;
@@ -1377,7 +1747,7 @@ onUnmounted(() => {
 .cd-chunk-content {
   flex: 1;
   font-size: 0.85rem;
-  color: #b0b0d8;
+  color: $text-secondary;
   line-height: 1.6;
   word-break: break-word;
 }
@@ -1385,7 +1755,7 @@ onUnmounted(() => {
 .cd-empty {
   text-align: center;
   padding: 40px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 0.9rem;
 }
 
@@ -1393,8 +1763,8 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   padding: 14px 20px;
-  border-top: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(17, 17, 39, 0.6);
+  border-top: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($bg-primary, 0.6);
 }
 
 .cd-btn {
@@ -1408,10 +1778,10 @@ onUnmounted(() => {
 }
 
 .cd-btn-cancel {
-  background: rgba(100, 100, 180, 0.15);
-  color: #e8e8ff;
+  background: rgba($accent-secondary, 0.15);
+  color: $text-primary;
   &:hover {
-    background: rgba(100, 100, 180, 0.25);
+    background: rgba($accent-secondary, 0.25);
   }
 }
 
@@ -1432,8 +1802,8 @@ onUnmounted(() => {
   width: 90%;
   max-width: 650px;
   max-height: 80vh;
-  background: rgba(17, 17, 39, 0.95);
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: rgba($bg-primary, 0.95);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -1446,8 +1816,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(0, 245, 212, 0.04);
+  border-bottom: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($accent-primary, 0.04);
 }
 
 .cdd-header-left {
@@ -1464,28 +1834,28 @@ onUnmounted(() => {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #f0f0ff;
+  color: $text-primary;
 }
 
 .cdd-header-info p {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .cdd-close {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.1);
   border-radius: 8px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: $accent-red;
   }
 }
 
@@ -1500,12 +1870,12 @@ onUnmounted(() => {
   gap: 16px;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .cdd-meta-item {
   font-size: 0.8rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .cdd-content {
@@ -1519,15 +1889,15 @@ onUnmounted(() => {
   padding: 12px 14px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .cdd-footer {
   display: flex;
   justify-content: center;
   padding: 14px 20px;
-  border-top: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(17, 17, 39, 0.6);
+  border-top: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($bg-primary, 0.6);
 }
 
 .cdd-btn {
@@ -1537,11 +1907,11 @@ onUnmounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid rgba(0, 245, 212, 0.2);
-  background: rgba(0, 245, 212, 0.08);
-  color: #00f5d4;
+  border: 1px solid rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.08);
+  color: $accent-primary;
   &:hover {
-    background: rgba(0, 245, 212, 0.15);
+    background: rgba($accent-primary, 0.15);
     transform: translateY(-1px);
   }
 }

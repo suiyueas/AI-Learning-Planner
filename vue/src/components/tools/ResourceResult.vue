@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="resource-result">
     <div v-if="summary" class="result-summary">
       <span class="summary-icon">📚</span>
@@ -213,6 +213,7 @@ function copyResource(res) {
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
 .resource-result {
   padding: 4px 0;
 }
@@ -222,12 +223,12 @@ function copyResource(res) {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: rgba(0, 245, 212, 0.04);
-  border: 1px solid rgba(0, 245, 212, 0.08);
+  background: rgba($accent-primary, 0.04);
+  border: 1px solid rgba($accent-primary, 0.08);
   border-radius: 10px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: #b0b0d8;
+  color: $text-secondary;
   .summary-icon { font-size: 1.1rem; }
   .summary-text { font-weight: 500; }
 }
@@ -248,7 +249,7 @@ function copyResource(res) {
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(0, 245, 212, 0.15);
+    border-color: rgba($accent-primary, 0.15);
     transform: translateY(-1px);
   }
 }
@@ -267,7 +268,7 @@ function copyResource(res) {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #f0f0ff;
+  color: $text-primary;
   font-family: 'JetBrains Mono', monospace;
   word-break: break-all;
   line-height: 1.4;
@@ -277,8 +278,8 @@ function copyResource(res) {
 .res-relevance {
   flex-shrink: 0;
   font-size: 11px;
-  color: #00f5d4;
-  background: rgba(0, 245, 212, 0.08);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.08);
   padding: 2px 8px;
   border-radius: 6px;
   font-family: 'JetBrains Mono', monospace;
@@ -291,11 +292,11 @@ function copyResource(res) {
   gap: 8px;
   margin-bottom: 6px;
   font-size: 11px;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .res-tag {
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   padding: 1px 8px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
@@ -311,7 +312,7 @@ function copyResource(res) {
 
 .resource-item-desc {
   font-size: 12px;
-  color: #606090;
+  color: $text-muted;
   line-height: 1.5;
   margin-bottom: 8px;
 }
@@ -323,19 +324,19 @@ function copyResource(res) {
 
 .res-action-btn {
   padding: 4px 12px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 6px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    color: #00f5d4;
-    border-color: rgba(0, 245, 212, 0.2);
-    background: rgba(0, 245, 212, 0.06);
+    color: $accent-primary;
+    border-color: rgba($accent-primary, 0.2);
+    background: rgba($accent-primary, 0.06);
   }
 }
 
@@ -344,17 +345,17 @@ function copyResource(res) {
   .raw-label {
     font-size: 12px;
     font-weight: 600;
-    color: #8080a8;
+    color: $text-muted;
     margin-bottom: 8px;
   }
   .raw-json {
     padding: 12px;
-    background: rgba(100, 100, 180, 0.04);
-    border: 1px solid rgba(100, 100, 180, 0.08);
+    background: rgba($accent-secondary, 0.04);
+    border: 1px solid rgba($accent-secondary, 0.08);
     border-radius: 8px;
     font-size: 12px;
     line-height: 1.6;
-    color: #c0c0e0;
+    color: $text-secondary;
     overflow-x: auto;
     font-family: 'JetBrains Mono', monospace;
     white-space: pre-wrap;
@@ -368,7 +369,7 @@ function copyResource(res) {
 .result-empty {
   text-align: center;
   padding: 24px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 13px;
 }
 
@@ -388,8 +389,8 @@ function copyResource(res) {
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
-  background: rgba(17, 17, 39, 0.95);
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: rgba($bg-primary, 0.95);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -412,8 +413,8 @@ function copyResource(res) {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(0, 245, 212, 0.04);
+  border-bottom: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($accent-primary, 0.04);
 }
 
 .rd-header-left {
@@ -430,28 +431,28 @@ function copyResource(res) {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #f0f0ff;
+  color: $text-primary;
 }
 
 .rd-header-info p {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .rd-close {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.1);
   border-radius: 8px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: $accent-red;
   }
 }
 
@@ -466,21 +467,21 @@ function copyResource(res) {
   flex-wrap: wrap;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
   margin-bottom: 16px;
 }
 
 .rd-meta-item {
   font-size: 0.8rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .meta-lbl {
-  color: #606090;
+  color: $text-muted;
 }
 
 .meta-highlight {
-  color: #00f5d4;
+  color: $accent-primary;
   font-weight: 600;
 }
 
@@ -490,11 +491,11 @@ function copyResource(res) {
   font-size: 0.75rem;
   &.ready, &.已就绪 {
     background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    color: $accent-emerald;
   }
   &.processing {
     background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    color: $accent-amber;
   }
 }
 
@@ -505,18 +506,18 @@ function copyResource(res) {
 .rd-section-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e8e8ff;
+  color: $text-primary;
   margin-bottom: 10px;
 }
 
 .rd-preview {
   font-size: 0.85rem;
-  color: #b0b0d8;
+  color: $text-secondary;
   line-height: 1.6;
   padding: 12px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border-radius: 8px;
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .rd-chunks-list {
@@ -527,7 +528,7 @@ function copyResource(res) {
     width: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 245, 212, 0.2);
+    background: rgba($accent-primary, 0.2);
     border-radius: 2px;
   }
 }
@@ -536,31 +537,31 @@ function copyResource(res) {
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border-radius: 8px;
   margin-bottom: 6px;
-  border: 1px solid rgba(100, 100, 180, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.06);
 }
 
 .chunk-index {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #00f5d4;
-  background: rgba(0, 245, 212, 0.1);
+  color: $accent-primary;
+  background: rgba($accent-primary, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .chunk-content {
   font-size: 0.8rem;
-  color: #b0b0d8;
+  color: $text-secondary;
   line-height: 1.5;
 }
 
 .more-hint {
   font-size: 0.75rem;
-  color: #606090;
+  color: $text-muted;
   text-align: center;
   padding: 8px;
 }
@@ -570,8 +571,8 @@ function copyResource(res) {
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid rgba(100, 100, 180, 0.1);
-  background: rgba(17, 17, 39, 0.6);
+  border-top: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($bg-primary, 0.6);
 }
 
 .rd-btn {
@@ -585,19 +586,19 @@ function copyResource(res) {
 }
 
 .rd-btn-ghost {
-  background: rgba(100, 100, 180, 0.1);
-  color: #b0b0d8;
+  background: rgba($accent-secondary, 0.1);
+  color: $text-secondary;
   &:hover {
-    background: rgba(0, 245, 212, 0.1);
-    color: #00f5d4;
+    background: rgba($accent-primary, 0.1);
+    color: $accent-primary;
   }
 }
 
 .rd-btn-cancel {
-  background: rgba(100, 100, 180, 0.15);
-  color: #e8e8ff;
+  background: rgba($accent-secondary, 0.15);
+  color: $text-primary;
   &:hover {
-    background: rgba(100, 100, 180, 0.25);
+    background: rgba($accent-secondary, 0.25);
   }
 }
 </style>

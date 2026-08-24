@@ -191,7 +191,7 @@ public class BenchmarkRunner {
             for (String q : queries) {
                 for (int i = 0; i < 5; i++) {
                     long start = System.nanoTime();
-                    var hits = vectorStore.similaritySearch(SearchRequest.builder().query(q).topK(5).similarityThreshold(0.7).build());
+                    vectorStore.similaritySearch(SearchRequest.builder().query(q).topK(5).similarityThreshold(0.7).build());
                     times.add(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
                 }
             }

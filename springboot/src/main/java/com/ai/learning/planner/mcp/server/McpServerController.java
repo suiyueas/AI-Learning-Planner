@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -39,7 +40,6 @@ public class McpServerController {
      */
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ObjectNode handleJsonRpc(@RequestBody ObjectNode request) {
-        String jsonrpc = request.has("jsonrpc") ? request.get("jsonrpc").asText() : "2.0";
         String id = request.has("id") ? request.get("id").asText(null) : null;
         String method = request.has("method") ? request.get("method").asText() : "";
         JsonNode params = request.get("params");
@@ -195,6 +195,7 @@ public class McpServerController {
     /**
      * 调用指定工具并返回 MCP 格式结果
      */
+    @SuppressWarnings("deprecation")
     private ObjectNode callTool(JsonNode params) throws McpException {
         if (params == null || !params.has("name")) {
             throw new McpException(-32602, "Missing required parameter: name");
@@ -203,7 +204,7 @@ public class McpServerController {
         String toolName = params.get("name").asText();
         JsonNode argsNode = params.get("arguments");
 
-        Map<String, Object> args = new ConcurrentHashMap<>();
+        Map<String, Object> args = new HashMap<>();
         if (argsNode != null && argsNode.isObject()) {
             argsNode.fields().forEachRemaining(entry ->
                     args.put(entry.getKey(), entry.getValue().asText()));

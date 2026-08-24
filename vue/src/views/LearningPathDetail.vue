@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="path-detail-page">
     <div class="bg-layer">
       <div class="bg-aurora">
@@ -101,6 +101,18 @@
             <span class="overview-value progress-text">{{ pathDetail.progress }}%</span>
           </div>
         </div>
+
+        <!-- AI 进度解读 -->
+        <div v-if="aiProgressInsight" class="ai-progress-insight">
+          <div class="insight-icon">💡</div>
+          <div class="insight-content">
+            <p class="insight-message">{{ aiProgressInsight.message }}</p>
+            <button v-if="aiProgressInsight.nextAction" class="insight-action-btn" @click="handleInsightAction">
+              {{ aiProgressInsight.nextAction.label }} →
+            </button>
+          </div>
+        </div>
+
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: pathDetail.progress + '%' }"></div>
         </div>
@@ -400,6 +412,74 @@ const aiRecommendation = computed(() => {
   }
 })
 
+// AI 进度解读：基于当前路径状态生成个性化解读
+const aiProgressInsight = computed(() => {
+  if (!pathDetail.name) return null
+
+  const totalPhases = pathDetail.phases?.length || 0
+  const totalTasks = (pathDetail.phases || []).reduce((s, p) => s + phaseTotalCount(p), 0)
+  const completedTasks = (pathDetail.phases || []).reduce((s, p) => s + phaseCompletedCount(p), 0)
+  const progress = pathDetail.progress || 0
+  const estimatedHours = pathDetail.estimatedHours || 0
+
+  // 场景1：进度为0，尚未开始
+  if (progress === 0 && totalTasks === 0) {
+    return {
+      message: `根据你的学习目标，AI 规划了 ${totalPhases} 个章节共 ${totalTasks} 个任务，预计总耗时 ${estimatedHours.toFixed(1)} 小时。`,
+      nextAction: null
+    }
+  }
+
+  // 场景2：刚开始学习，推荐第一个任务
+  if (progress > 0 && progress < 30) {
+    const firstTask = firstUnfinishedTask.value?.task
+    if (firstTask) {
+      return {
+        message: `学习进度 ${progress}%。建议今天从「${firstTask.title}」开始，这是后续章节的前置基础。`,
+        nextAction: { label: '开始第一个任务', taskId: firstTask.id }
+      }
+    }
+  }
+
+  // 场景3：学习中期，给出阶段建议
+  if (progress >= 30 && progress < 80) {
+    const currentPhase = pathDetail.phases?.find(p => p.status === 'in_progress')
+    if (currentPhase) {
+      return {
+        message: `你已完成 ${completedTasks} 个任务，正在进行「${currentPhase.title}」。继续保持当前节奏，预计还需 ${((estimatedHours * (100 - progress)) / 100).toFixed(1)} 小时完成全部内容。`,
+        nextAction: { label: '继续学习', taskId: firstUnfinishedTask.value?.task?.id }
+      }
+    }
+  }
+
+  // 场景4：接近完成
+  if (progress >= 80 && progress < 100) {
+    return {
+      message: `太棒了！学习进度已达 ${progress}%，即将完成这条路径。${totalTasks - completedTasks} 个任务等待你来攻克。`,
+      nextAction: { label: '完成最后的冲刺', taskId: firstUnfinishedTask.value?.task?.id }
+    }
+  }
+
+  // 场景5：全部完成
+  if (progress === 100) {
+    return {
+      message: `🎉 恭喜！你已完成「${pathDetail.name}」的全部学习内容。`,
+      nextAction: null
+    }
+  }
+
+  return null
+})
+
+const handleInsightAction = () => {
+  const action = aiProgressInsight.value?.nextAction
+  if (action?.taskId) {
+    scrollToTask()
+  } else {
+    generateOutline()
+  }
+}
+
 // 滚动定位到第一个未完成任务
 const scrollToTask = () => {
   const target = firstUnfinishedTask.value
@@ -546,9 +626,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .path-detail-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   position: relative;
   overflow: hidden;
   padding: 0;
@@ -561,7 +642,7 @@ onMounted(() => {
 .bg-aurora {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse at 70% 20%, rgba(0,245,212,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
   animation: auroraDrift 20s ease-in-out infinite;
@@ -574,7 +655,7 @@ onMounted(() => {
 .bg-grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(0,245,212,0.03) 1px, transparent 1px),
+    linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   animation: gridPulse 8s ease-in-out infinite alternate;
@@ -589,40 +670,40 @@ onMounted(() => {
   position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; gap: 16px;
   padding: 16px 32px;
-  background: rgba(10,10,26,0.85);
+  background: rgba($bg-primary,0.85);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100,100,180,0.06);
+  border-bottom: 1px solid rgba($accent-secondary,0.06);
 }
 .back-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px;
-  background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 8px;
-  color: #c0c0e0; font-size: 0.82rem; font-weight: 500;
+  color: $text-secondary; font-size: 0.82rem; font-weight: 500;
   cursor: pointer; transition: all 0.2s;
   &:hover {
-    border-color: rgba(0,245,212,0.2);
-    color: #00f5d4;
-    background: rgba(0,245,212,0.04);
-    box-shadow: 0 0 14px rgba(0,245,212,0.08);
+    border-color: rgba($accent-primary,0.2);
+    color: $accent-primary;
+    background: rgba($accent-primary,0.04);
+    box-shadow: 0 0 14px rgba($accent-primary,0.08);
   }
 }
 .nav-title {
   flex: 1; font-size: 1.1rem; font-weight: 700;
-  color: #e8e8ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: $text-primary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .nav-actions { display: flex; gap: 8px; }
 .icon-btn {
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 8px;
-  color: #c0c0e0; cursor: pointer;
+  color: $text-secondary; cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: rgba(0,245,212,0.2); color: #00f5d4; }
-  &.favorited { color: #f59e0b; border-color: rgba(245,158,11,0.2); }
+  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; }
+  &.favorited { color: $accent-amber; border-color: rgba(245,158,11,0.2); }
 }
 
 // ===== 路径不存在空态 =====
@@ -633,17 +714,17 @@ onMounted(() => {
   position: relative; z-index: 1;
 }
 .not-found-icon { font-size: 3.2rem; opacity: 0.85; }
-.not-found-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: #e8e8ff; }
+.not-found-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: $text-primary; }
 .not-found-desc { margin: 0; font-size: 0.88rem; color: var(--text-placeholder); }
 .not-found-btn {
   margin-top: 8px; padding: 9px 22px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(123,97,255,0.12));
-  border: 1px solid rgba(0,245,212,0.25);
+  background: linear-gradient(135deg, rgba($accent-primary,0.12), rgba(123,97,255,0.12));
+  border: 1px solid rgba($accent-primary,0.25);
   border-radius: 10px;
-  color: #00f5d4; font-size: 0.85rem; font-weight: 600;
+  color: $accent-primary; font-size: 0.85rem; font-weight: 600;
   cursor: pointer; transition: all 0.25s;
   &:hover {
-    box-shadow: 0 0 18px rgba(0,245,212,0.15);
+    box-shadow: 0 0 18px rgba($accent-primary,0.15);
     transform: translateY(-1px);
   }
 }
@@ -693,21 +774,21 @@ onMounted(() => {
 .wc-subjects {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #ef4444;
+  color: $accent-red;
 }
 
 .wc-desc {
   font-size: 0.82rem;
-  color: #9090b8;
+  color: $text-muted;
   line-height: 1.5;
 }
 
 // ===== 概览卡片 =====
 .overview-card {
   padding: 24px 28px;
-  background: rgba(17,17,39,0.55);
+  background: rgba($bg-primary,0.55);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  border: 1px solid rgba($accent-secondary,0.08);
   border-radius: 14px;
 }
 .overview-grid {
@@ -719,33 +800,104 @@ onMounted(() => {
 .overview-item {
   display: flex; flex-direction: column; gap: 4px;
 }
-.overview-label { font-size: 0.72rem; color: #9090b8; font-weight: 500; }
+.overview-label { font-size: 0.72rem; color: $text-muted; font-weight: 500; }
 .overview-value {
-  font-size: 0.95rem; font-weight: 600; color: #e8e8ff;
+  font-size: 0.95rem; font-weight: 600; color: $text-primary;
   &.difficulty {
-    &.beginner { color: #10b981; }
-    &.intermediate { color: #3b82f6; }
+    &.beginner { color: $accent-emerald; }
+    &.intermediate { color: $accent-blue; }
     &.advanced { color: #a855f7; }
   }
-  &.rating { color: #f59e0b; }
-  &.progress-text { color: #00f5d4; }
+  &.rating { color: $accent-amber; }
+  &.progress-text { color: $accent-primary; }
 }
 .progress-track {
   height: 4px;
-  background: rgba(100,100,180,0.08);
+  background: rgba($accent-secondary,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+// ===== AI 进度解读 =====
+.ai-progress-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.12);
+  border-radius: 10px;
+}
+.insight-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.insight-content { flex: 1; }
+.insight-message {
+  font-size: 0.85rem;
+  color: $text-secondary;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.insight-action-btn {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.2);
+  border-radius: 6px;
+  color: $accent-primary;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-primary, 0.15);
+  }
+}
+
+// ===== 概览卡片 =====
+.overview-card {
+  padding: 24px 28px;
+  background: rgba($bg-primary,0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary,0.08);
+  border-radius: 14px;
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.overview-item {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.overview-label { font-size: 0.72rem; color: $text-muted; font-weight: 500; }
+.overview-value {
+  font-size: 0.95rem; font-weight: 600; color: $text-primary;
+  &.difficulty {
+    &.beginner { color: $accent-emerald; }
+    &.intermediate { color: $accent-blue; }
+    &.advanced { color: #a855f7; }
+  }
+  &.rating { color: $accent-amber; }
+  &.progress-text { color: $accent-primary; }
+}
+.progress-track {
+  height: 4px;
+  background: rgba($accent-secondary,0.08);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 10px;
 }
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00f5d4, #10b981);
+  background: linear-gradient(90deg, $accent-primary, $accent-emerald);
   border-radius: 2px;
   transition: width 0.8s ease;
 }
 .overview-stats {
   display: flex; align-items: center; gap: 10px;
-  font-size: 0.78rem; color: #9090b8;
+  font-size: 0.78rem; color: $text-muted;
 }
 .stat-divider { opacity: 0.3; }
 
@@ -753,12 +905,12 @@ onMounted(() => {
 .loading-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; gap: 12px;
-  color: #9090b8; font-size: 0.85rem;
+  color: $text-muted; font-size: 0.85rem;
 }
 .loading-spinner {
   width: 28px; height: 28px;
-  border: 3px solid rgba(0,245,212,0.1);
-  border-top-color: #00f5d4;
+  border: 3px solid rgba($accent-primary,0.1);
+  border-top-color: $accent-primary;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -769,9 +921,9 @@ onMounted(() => {
   display: flex; flex-direction: column; gap: 16px;
 }
 .phase-card {
-  background: rgba(17,17,39,0.5);
+  background: rgba($bg-primary,0.5);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  border: 1px solid rgba($accent-secondary,0.08);
   border-radius: 14px;
   padding: 20px 24px;
 }
@@ -781,42 +933,42 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .phase-task-count {
-  font-size: 0.76rem; color: #9090b8;
+  font-size: 0.76rem; color: $text-muted;
 }
 .phase-progress-label {
-  font-size: 0.76rem; font-weight: 700; color: #00f5d4;
+  font-size: 0.76rem; font-weight: 700; color: $accent-primary;
 }
 .phase-title-row {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 10px;
 }
 .phase-icon { font-size: 1rem; }
-.phase-title { font-size: 0.95rem; font-weight: 700; color: #e8e8ff; flex: 1; }
+.phase-title { font-size: 0.95rem; font-weight: 700; color: $text-primary; flex: 1; }
 .phase-badge {
   font-size: 0.72rem; font-weight: 600;
   padding: 2px 10px;
   border-radius: 10px;
-  &.pending { background: rgba(100,100,180,0.1); color: #9090b8; }
-  &.in_progress { background: rgba(0,245,212,0.08); color: #00f5d4; }
-  &.completed { background: rgba(16,185,129,0.1); color: #10b981; }
+  &.pending { background: rgba($accent-secondary,0.1); color: $text-muted; }
+  &.in_progress { background: rgba($accent-primary,0.08); color: $accent-primary; }
+  &.completed { background: rgba(16,185,129,0.1); color: $accent-emerald; }
 }
 .phase-progress-row {
   display: flex; align-items: center; gap: 12px;
 }
 .phase-progress-track {
   flex: 1; height: 6px;
-  background: rgba(100,100,180,0.08);
+  background: rgba($accent-secondary,0.08);
   border-radius: 3px;
   overflow: hidden;
 }
 .phase-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00f5d4, #3b82f6);
+  background: linear-gradient(90deg, $accent-primary, $accent-blue);
   border-radius: 3px;
   transition: width 0.6s ease;
 }
 .phase-progress-text {
-  font-size: 0.82rem; font-weight: 700; color: #00f5d4;
+  font-size: 0.82rem; font-weight: 700; color: $accent-primary;
   min-width: 36px; text-align: right;
 }
 
@@ -825,8 +977,8 @@ onMounted(() => {
   display: flex; flex-direction: column; gap: 12px;
 }
 .week-section {
-  background: rgba(100,100,180,0.03);
-  border: 1px solid rgba(100,100,180,0.05);
+  background: rgba($accent-secondary,0.03);
+  border: 1px solid rgba($accent-secondary,0.05);
   border-radius: 10px;
   padding: 14px 16px;
 }
@@ -834,18 +986,18 @@ onMounted(() => {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 6px;
 }
-.week-title { font-size: 0.85rem; font-weight: 600; color: #c0c0e0; }
+.week-title { font-size: 0.85rem; font-weight: 600; color: $text-secondary; }
 .week-progress-label { font-size: 0.78rem; font-weight: 600; color: #7dd3fc; }
 .week-progress-track {
   height: 4px;
-  background: rgba(100,100,180,0.06);
+  background: rgba($accent-secondary,0.06);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 10px;
 }
 .week-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7dd3fc, #3b82f6);
+  background: linear-gradient(90deg, #7dd3fc, $accent-blue);
   border-radius: 2px;
   transition: width 0.5s ease;
 }
@@ -859,13 +1011,13 @@ onMounted(() => {
   padding: 8px 10px;
   border-radius: 8px;
   transition: background 0.2s, box-shadow 0.3s;
-  &:hover { background: rgba(100,100,180,0.05); }
+  &:hover { background: rgba($accent-secondary,0.05); }
 
   // 当前任务高亮
   &.task-current {
-    background: rgba(0,245,212,0.06);
-    border: 1px solid rgba(0,245,212,0.2);
-    box-shadow: 0 0 14px rgba(0,245,212,0.06);
+    background: rgba($accent-primary,0.06);
+    border: 1px solid rgba($accent-primary,0.2);
+    box-shadow: 0 0 14px rgba($accent-primary,0.06);
   }
 
   // 定位闪动动画
@@ -874,12 +1026,12 @@ onMounted(() => {
   }
 }
 @keyframes taskFlash {
-  0% { box-shadow: 0 0 0 0 rgba(0,245,212,0.5); }
-  70% { box-shadow: 0 0 0 10px rgba(0,245,212,0); }
-  100% { box-shadow: 0 0 0 0 rgba(0,245,212,0); }
+  0% { box-shadow: 0 0 0 0 rgba($accent-primary,0.5); }
+  70% { box-shadow: 0 0 0 10px rgba($accent-primary,0); }
+  100% { box-shadow: 0 0 0 0 rgba($accent-primary,0); }
 }
 .task-current-badge {
-  font-size: 0.68rem; font-weight: 700; color: #00f5d4;
+  font-size: 0.68rem; font-weight: 700; color: $accent-primary;
   margin-right: 6px;
 }
 // 基于薄弱点生成的任务徽标
@@ -890,7 +1042,7 @@ onMounted(() => {
   border-radius: 12px;
   font-size: 0.68rem;
   font-weight: 600;
-  color: #ef4444;
+  color: $accent-red;
   border: 1px solid rgba(239,68,68,0.2);
   background: rgba(239,68,68,0.08);
 }
@@ -898,14 +1050,14 @@ onMounted(() => {
   padding: 4px 14px;
   font-size: 0.75rem; font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, #00f5d4, #0ea5e9);
+  background: linear-gradient(135deg, $accent-primary, #0ea5e9);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.2s;
-  &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,245,212,0.25); }
+  &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba($accent-primary,0.25); }
 }
 .task-status-icon {
   width: 20px; height: 20px;
@@ -929,18 +1081,18 @@ onMounted(() => {
 .task-complete-btn {
   padding: 4px 12px;
   font-size: 0.75rem; font-weight: 600;
-  color: #00f5d4;
-  background: rgba(0,245,212,0.06);
-  border: 1px solid rgba(0,245,212,0.15);
+  color: $accent-primary;
+  background: rgba($accent-primary,0.06);
+  border: 1px solid rgba($accent-primary,0.15);
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
   flex-shrink: 0;
   &:hover:not(:disabled) {
-    background: rgba(0,245,212,0.1);
-    border-color: rgba(0,245,212,0.3);
-    box-shadow: 0 0 10px rgba(0,245,212,0.08);
+    background: rgba($accent-primary,0.1);
+    border-color: rgba($accent-primary,0.3);
+    box-shadow: 0 0 10px rgba($accent-primary,0.08);
   }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
@@ -949,32 +1101,32 @@ onMounted(() => {
 .empty-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; text-align: center;
-  background: rgba(17,17,39,0.4);
-  border: 1px solid rgba(100,100,180,0.06);
+  background: rgba($bg-primary,0.4);
+  border: 1px solid rgba($accent-secondary,0.06);
   border-radius: 14px;
 }
 .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
-.empty-title { font-size: 1rem; font-weight: 600; color: #e8e8ff; margin-bottom: 4px; }
-.empty-desc { font-size: 0.85rem; color: #9090b8; margin-bottom: 18px; }
+.empty-title { font-size: 1rem; font-weight: 600; color: $text-primary; margin-bottom: 4px; }
+.empty-desc { font-size: 0.85rem; color: $text-muted; margin-bottom: 18px; }
 
 .generate-outline-btn {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(0,85,255,0.1));
-  border: 1px solid rgba(0,245,212,0.25);
+  background: linear-gradient(135deg, rgba($accent-primary,0.12), rgba(0,85,255,0.1));
+  border: 1px solid rgba($accent-primary,0.25);
   border-radius: 10px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.85rem; font-weight: 600;
   cursor: pointer;
   transition: all 0.25s;
-  &:hover:not(:disabled) { box-shadow: 0 0 18px rgba(0,245,212,0.15); transform: translateY(-1px); }
+  &:hover:not(:disabled) { box-shadow: 0 0 18px rgba($accent-primary,0.15); transform: translateY(-1px); }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .outline-spinner {
   width: 14px; height: 14px;
-  border: 2px solid rgba(0,245,212,0.2);
-  border-top-color: #00f5d4;
+  border: 2px solid rgba($accent-primary,0.2);
+  border-top-color: $accent-primary;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -984,20 +1136,20 @@ onMounted(() => {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 16px 20px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,245,212,0.06));
+  background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba($accent-primary,0.06));
   border: 1px solid rgba(16,185,129,0.2);
   border-radius: 12px;
 }
 .all-done-icon { font-size: 1.4rem; }
 .all-done-text {
-  flex: 1; font-size: 0.9rem; font-weight: 600; color: #10b981;
+  flex: 1; font-size: 0.9rem; font-weight: 600; color: $accent-emerald;
 }
 .all-done-btn {
   padding: 6px 14px;
   background: rgba(16,185,129,0.1);
   border: 1px solid rgba(16,185,129,0.25);
   border-radius: 8px;
-  color: #10b981;
+  color: $accent-emerald;
   font-size: 0.78rem; font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -1006,20 +1158,20 @@ onMounted(() => {
 
 // ===== 文档内容 =====
 .content-card {
-  background: rgba(17,17,39,0.5);
+  background: rgba($bg-primary,0.5);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  border: 1px solid rgba($accent-secondary,0.08);
   border-radius: 14px;
   overflow: hidden;
 }
 .content-header {
   display: flex; align-items: center; gap: 8px;
   padding: 14px 20px;
-  border-bottom: 1px solid rgba(100,100,180,0.06);
+  border-bottom: 1px solid rgba($accent-secondary,0.06);
 }
 .content-title-icon { font-size: 1rem; }
-.content-title-text { font-size: 0.9rem; font-weight: 600; color: #e8e8ff; }
-.content-meta { margin-left: auto; font-size: 0.75rem; color: #9090b8; }
+.content-title-text { font-size: 0.9rem; font-weight: 600; color: $text-primary; }
+.content-meta { margin-left: auto; font-size: 0.75rem; color: $text-muted; }
 .content-body {
   padding: 24px 28px;
   min-height: 200px;
@@ -1030,43 +1182,43 @@ onMounted(() => {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
   display: flex; align-items: center; justify-content: center; gap: 12px;
   padding: 14px 32px;
-  background: rgba(10,10,26,0.88);
+  background: rgba($bg-primary,0.88);
   backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(100,100,180,0.06);
+  border-top: 1px solid rgba($accent-secondary,0.06);
 }
 .btn-primary {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #00f5d4, #0055FF);
+  background: linear-gradient(135deg, $accent-primary, #0055FF);
   border: none; border-radius: 10px;
   color: #fff; font-size: 0.9rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
-  &:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,245,212,0.2); }
+  &:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba($accent-primary,0.2); }
 }
 .btn-secondary {
   padding: 12px 28px;
-  background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.12);
+  background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.12);
   border-radius: 10px;
-  color: #c0c0e0; font-size: 0.9rem; font-weight: 500;
+  color: $text-secondary; font-size: 0.9rem; font-weight: 500;
   cursor: pointer; transition: all 0.2s;
-  &:hover { border-color: rgba(0,245,212,0.2); color: #00f5d4; background: rgba(0,245,212,0.04); }
+  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; background: rgba($accent-primary,0.04); }
 }
 
 // ===== Markdown 渲染 =====
 :deep(.markdown-body) {
-  h1, h2, h3, h4 { color: #e8e8ff; font-weight: 700; margin: 16px 0 8px; line-height: 1.4; }
+  h1, h2, h3, h4 { color: $text-primary; font-weight: 700; margin: 16px 0 8px; line-height: 1.4; }
   h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; color: #00f5d4; border-bottom: 1px solid rgba(0,245,212,0.08); padding-bottom: 6px; }
+  h2 { font-size: 1.25rem; color: $accent-primary; border-bottom: 1px solid rgba($accent-primary,0.08); padding-bottom: 6px; }
   h3 { font-size: 1.1rem; color: #7dd3fc; }
   p { margin: 8px 0; line-height: 1.75; color: #d0d0f0; }
   ul, ol { padding-left: 24px; margin: 8px 0; }
   li { margin: 4px 0; line-height: 1.7; color: #d0d0f0; }
-  strong { color: #00f5d4; font-weight: 700; }
+  strong { color: $accent-primary; font-weight: 700; }
   em { color: #a78bfa; font-style: italic; }
-  code { background: rgba(0,245,212,0.12); border: 1px solid rgba(0,245,212,0.18); border-radius: 4px; padding: 1px 5px; font-size: 0.88em; color: #7ae0ff; font-family: 'Fira Code', 'Consolas', monospace; }
+  code { background: rgba($accent-primary,0.12); border: 1px solid rgba($accent-primary,0.18); border-radius: 4px; padding: 1px 5px; font-size: 0.88em; color: #7ae0ff; font-family: 'Fira Code', 'Consolas', monospace; }
   pre {
-    background: #0d1117;
-    border: 1px solid rgba(100,100,180,0.15);
+    background: $bg-primary;
+    border: 1px solid rgba($accent-secondary,0.15);
     border-radius: 8px;
     padding: 16px 18px;
     margin: 14px 0;
@@ -1082,10 +1234,10 @@ onMounted(() => {
       line-height: 1.6;
     }
   }
-  blockquote { border-left: 3px solid rgba(0,245,212,0.3); margin: 10px 0; padding: 8px 16px; background: rgba(0,245,212,0.03); border-radius: 0 6px 6px 0; color: #c0c0e0; }
+  blockquote { border-left: 3px solid rgba($accent-primary,0.3); margin: 10px 0; padding: 8px 16px; background: rgba($accent-primary,0.03); border-radius: 0 6px 6px 0; color: $text-secondary; }
   a { color: #7dd3fc; text-decoration: none; &:hover { text-decoration: underline; } }
-  table { border-collapse: collapse; width: 100%; margin: 10px 0; th, td { border: 1px solid rgba(100,100,180,0.15); padding: 8px 12px; text-align: left; } th { background: rgba(0,245,212,0.05); color: #00f5d4; } }
-  hr { border: none; border-top: 1px solid rgba(100,100,180,0.1); margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; th, td { border: 1px solid rgba($accent-secondary,0.15); padding: 8px 12px; text-align: left; } th { background: rgba($accent-primary,0.05); color: $accent-primary; } }
+  hr { border: none; border-top: 1px solid rgba($accent-secondary,0.1); margin: 16px 0; }
   img { max-width: 100%; border-radius: 8px; }
 }
 
@@ -1099,9 +1251,9 @@ onMounted(() => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 140px;
-  background: rgba(17, 17, 39, 0.95);
+  background: rgba($bg-primary, 0.95);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 10px;
   padding: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
@@ -1123,7 +1275,7 @@ onMounted(() => {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -1131,8 +1283,8 @@ onMounted(() => {
   text-align: left;
 
   &:hover {
-    background: rgba(100, 100, 180, 0.08);
-    color: #e8e8ff;
+    background: rgba($accent-secondary, 0.08);
+    color: $text-primary;
   }
 
   &.danger {
@@ -1164,9 +1316,9 @@ onMounted(() => {
 .delete-modal {
   width: 90%;
   max-width: 420px;
-  background: rgba(17, 17, 39, 0.95);
+  background: rgba($bg-primary, 0.95);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -1193,7 +1345,7 @@ onMounted(() => {
 .delete-modal-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -1217,18 +1369,18 @@ onMounted(() => {
 
 .btn-cancel {
   padding: 10px 24px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(100, 100, 180, 0.12);
-    border-color: rgba(100, 100, 180, 0.25);
+    background: rgba($accent-secondary, 0.12);
+    border-color: rgba($accent-secondary, 0.25);
     color: #E2E8F0;
   }
 }
@@ -1295,24 +1447,24 @@ onMounted(() => {
   .guide-title {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #F1F5F9;
+    color: $text-primary;
     margin-bottom: 4px;
   }
 
   .guide-desc {
     font-size: 0.82rem;
-    color: #9090b8;
+    color: $text-muted;
   }
 
   .guide-arrow {
-    color: #9090b8;
+    color: $text-muted;
     flex-shrink: 0;
     transition: transform 0.2s ease;
   }
 
   .guide-arrow-btn {
     padding: 8px 18px;
-    background: linear-gradient(135deg, #00f5d4, #0ea5e9);
+    background: linear-gradient(135deg, $accent-primary, #0ea5e9);
     border: none;
     border-radius: 8px;
     color: #fff;
@@ -1321,7 +1473,7 @@ onMounted(() => {
     cursor: pointer;
     flex-shrink: 0;
     transition: all 0.2s;
-    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,245,212,0.25); }
+    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba($accent-primary,0.25); }
   }
 
   &:hover .guide-arrow {

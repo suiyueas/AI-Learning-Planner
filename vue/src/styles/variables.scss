@@ -1,617 +1,57 @@
 // ============================================
-// AI学习规划师 · 科技动态版设计令牌
-// 深邃宇宙 + 极光流线 · AI专属色板
+// AI学习规划师 · 智能设计令牌
+// 科技紫 + 暖金点缀 · 智能感
 // ============================================
 
 // ===== 核心色板 =====
-// 主背景 - 深空芯片质感（加深对比度）
-$bg-primary: #05080F;
-$bg-surface: #0A0E1A;
-$bg-elevated: #121830;
-$bg-card: rgba(100, 100, 180, 0.06);
+$bg-primary: #0f1118;
+$bg-surface: #161922;
+$bg-elevated: #1c2030;
+$bg-card: rgba(28, 32, 48, 0.65);
 
-// 边框 - 玻璃态描边
-$border-subtle: rgba(0, 229, 255, 0.08);
-$border-glass: rgba(0, 229, 255, 0.15);
+// 边框
+$border-subtle: rgba(124, 107, 245, 0.08);
+$border-medium: rgba(124, 107, 245, 0.15);
+$border-glow: rgba(124, 107, 245, 0.3);
 
-// 文字（高对比度版本）
-$text-primary: #FFFFFF;
-$text-secondary: #F1F5F9;  // 冰白色，比纯白稍柔
-$text-body: #E2E8F0;     // 非常亮的银灰，正文专用
-$text-muted: #94A3B8;    // 仅用于最不重要的占位符
+// 文字
+$text-primary: #f0ece4;
+$text-secondary: #b8b0a0;
+$text-muted: #787068;
 
-// 主品牌色 - 极光青 + 电光蓝
-$accent-primary: #00E5FF;
-$accent-secondary: #0055FF;
-$accent-gradient: linear-gradient(135deg, #00E5FF 0%, #0055FF 100%);
+// 主品牌色 - AI 科技紫
+$accent-primary: #7b61ff;
+$accent-secondary: #5b8a9a;
+
+// 暖金色（用于强调和点缀）
+$accent-warm: #d4a853;
 
 // 辅助色
-$accent-purple: #A855F7;
-$accent-emerald: #10B981;
-$accent-pink: #EC4899;
-$accent-amber: #F59E0B;
-$accent-blue: #3B82F6;
-$accent-red: #EF4444;
-
-// 光效
-$glow-primary: 0 0 30px rgba(0, 229, 255, 0.2);
-$glow-card: 0 0 40px rgba(0, 229, 255, 0.08);
-$glow-card-hover: 0 8px 40px rgba(0, 229, 255, 0.15), 0 0 60px rgba(0, 229, 255, 0.05);
-
-// 阴影
-$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-$shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-$shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-
-// 圆角
-$radius-sm: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 24px;
-$radius-full: 9999px;
-
-// 间距
-$space-xs: 4px;
-$space-sm: 8px;
-$space-md: 16px;
-$space-lg: 24px;
-$space-xl: 32px;
-$space-2xl: 48px;
-$space-3xl: 64px;
-
-// 字体
-$font-sans: 'Inter', -apple-system, system-ui, sans-serif;
-$font-mono: 'JetBrains Mono', monospace;
-
-// 过渡
-$transition-fast: 150ms ease;
-$transition-normal: 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-$transition-slow: 500ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-// 断点
-$breakpoint-sm: 640px;
-$breakpoint-md: 1024px;
-$breakpoint-lg: 1280px;
-$breakpoint-xl: 1536px;
-
-// ============================================
-// 导出为CSS变量（全局可用）
-// ============================================
-:root {
-  // 背景
-  --bg-primary: #{$bg-primary};
-  --bg-surface: #{$bg-surface};
-  --bg-elevated: #{$bg-elevated};
-  --bg-card: #{$bg-card};
-  --bg-deep: #{$bg-primary};
-
-  // 边框
-  --border-subtle: #{$border-subtle};
-  --border-glass: #{$border-glass};
-
-  // 文字
-  --text-primary: #{$text-primary};
-  --text-secondary: #{$text-secondary};
-  --text-body: #{$text-body};
-  --text-muted: #{$text-muted};
-  
-  // 数据高亮色（核心数据专用）
-  --data-highlight: linear-gradient(135deg, #00E5FF 0%, #38BDF8 100%);
-  --text-shadow-glow: 0 0 25px rgba(0, 229, 255, 0.25);
-  --data-glow: drop-shadow(0 0 15px rgba(0, 229, 255, 0.3));
-
-  // 主色
-  --accent-primary: #{$accent-primary};
-  --accent-secondary: #{$accent-secondary};
-  --accent-gradient: #{$accent-gradient};
-  --primary-glow: #{$accent-primary};
-  --primary-gradient: #{$accent-gradient};
-
-  // 辅助色
-  --accent-purple: #{$accent-purple};
-  --accent-emerald: #{$accent-emerald};
-  --accent-pink: #{$accent-pink};
-  --accent-amber: #{$accent-amber};
-  --accent-blue: #{$accent-blue};
-  --accent-red: #{$accent-red};
-  --accent-cyan: #{$accent-primary};
-
-  // 光效
-  --glow-primary: #{$glow-primary};
-  --glow-card: #{$glow-card};
-  --glow-card-hover: #{$glow-card-hover};
-  --shadow-neon: #{$glow-primary};
-
-  // 阴影
-  --shadow-sm: #{$shadow-sm};
-  --shadow-md: #{$shadow-md};
-  --shadow-lg: #{$shadow-lg};
-
-  // 圆角
-  --radius-sm: #{$radius-sm};
-  --radius-md: #{$radius-md};
-  --radius-lg: #{$radius-lg};
-  --radius-xl: #{$radius-xl};
-  --radius-full: #{$radius-full};
-
-  // 字体
-  --font-sans: #{$font-sans};
-  --font-mono: #{$font-mono};
-
-  // 毛玻璃（增强效果）
-  --glass-blur: blur(16px);
-
-  // ============================================
-  // 亮度优化变量（可读性增强，WCAG 2.1 AA）
-  // 在保持深色科技风前提下提升对比度
-  // ============================================
-  // 标题层级
-  --title-page: #ffffff;          // 页面主标题 + 发光
-  --title-section: #e8e6f0;       // 区块标题
-  --title-status: #a78bfa;        // 状态标题（淡紫）
-  --page-title-glow: 0 0 40px rgba(124, 107, 245, 0.1);
-
-  // 文字层级
-  --text-input: #f0ecf8;          // 输入文字/正文
-  --text-placeholder: #6a7090;    // 占位符
-  --text-hint: #5a6080;           // 底部提示等次要文字
-  --text-sub: #a0a8c8;            // 次级信息（元信息、标签）
-  --text-ctrl: #e0dce8;           // 下拉框/选择器文字
-  --text-data-blue: #60a5fa;      // 数字/数据高亮（蓝）
-  --text-data-green: #34d399;     // 数字/数据高亮（绿）
-
-  // 状态色（提亮版）
-  --status-ready-text: #34d399;
-  --status-ready-bg: rgba(52, 211, 153, 0.15);
-  --status-ready-border: rgba(52, 211, 153, 0.3);
-  --status-off-text: #f87171;     // 已关闭/不可用（淡红）
-  --status-off-bg: rgba(248, 113, 113, 0.12);
-  --status-off-border: rgba(248, 113, 113, 0.25);
-
-  // 控件（下拉框/输入框/选择器）
-  --border-ctrl: #4a5070;
-  --border-ctrl-soft: #3a4060;
-  --border-ctrl-hover: #7c6bf5;
-  --bg-ctrl: #1e2638;             // 控件背景
-
-  // 卡片与徽章
-  --bg-card-soft: rgba(30, 38, 56, 0.6);   // 状态卡片背景
-  --border-card-soft: rgba(255, 255, 255, 0.06);
-  --badge-bg: rgba(124, 107, 245, 0.25);   // 数字标签背景
-  --btn-gradient: linear-gradient(135deg, #7c6bf5 0%, #5b4bd5 100%); // 主按钮渐变
-  --bar-gradient: linear-gradient(90deg, #7c6bf5, #5b4bd5);         // 进度条渐变
-}
-
-// ============================================
-// Mixins
-// ============================================
-
-// 玻璃态卡片
-@mixin glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 229, 255, 0.1);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
-  transition: all $transition-normal;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: $glow-card-hover;
-    border-color: rgba(0, 229, 255, 0.2);
-  }
-}
-
-// 呼吸光晕
-@mixin breathing-glow($color: $accent-primary, $size: 200px) {
-  position: relative;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -($size / 2);
-    background: radial-gradient(circle, rgba($color, 0.15) 0%, transparent 70%);
-    border-radius: 50%;
-    animation: breathingGlow 3s ease-in-out infinite;
-    pointer-events: none;
-    z-index: -1;
-  }
-}
-
-// 按钮
-@mixin cyber-button($color: $accent-primary) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-sm;
-  padding: $space-sm $space-lg;
-  background: linear-gradient(135deg, rgba($color, 0.15), rgba($color, 0.05));
-  color: $color;
-  border: 1px solid rgba($color, 0.3);
-  border-radius: $radius-md;
-  font-family: $font-sans;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all $transition-normal;
-
-  &:hover {
-    background: linear-gradient(135deg, rgba($color, 0.25), rgba($color, 0.1));
-    border-color: rgba($color, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba($color, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-// 霓虹文字
-@mixin neon-text($color: $accent-primary) {
-  color: $color;
-  font-weight: 600;
-  text-shadow: 0 0 20px rgba($color, 0.3);
-}
-
-// 响应式
-@mixin respond-to($breakpoint) {
-  @if $breakpoint == sm {
-    @media (max-width: $breakpoint-sm) { @content; }
-  } @else if $breakpoint == md {
-    @media (max-width: $breakpoint-md) { @content; }
-  } @else if $breakpoint == lg {
-    @media (max-width: $breakpoint-lg) { @content; }
-  } @else if $breakpoint == xl {
-    @media (max-width: $breakpoint-xl) { @content; }
-  }
-}
-
-// 滚动条
-@mixin custom-scrollbar {
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: $bg-primary;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 229, 255, 0.15);
-    border-radius: $radius-full;
-
-    &:hover {
-      background: rgba(0, 229, 255, 0.3);
-    }
-  }
-}
-// ============================================
-// AI学习规划师 · 设计令牌
-// 高科技 · AI人机交互深色主题
-// ============================================
-
-// 背景色系（深色科技主题）
-$bg-primary: #0a0a1a;
-$bg-surface: #111127;
-$bg-elevated: #1a1a3e;
-$bg-card: rgba(17, 17, 39, 0.8);
-
-// 边框
-$border-subtle: rgba(100, 100, 180, 0.12);
-$border-accent: rgba(0, 245, 212, 0.25);
-
-// 文字色（浅色文字，深色背景）
-$text-primary: #f0f0ff;
-$text-secondary: #a0a0c8;
-$text-muted: #606090;
-
-// 主色系（霓虹青 + 紫色）
-$accent-primary: #00f5d4;
-$accent-secondary: #7b61ff;
-
-// 辅助色（统一在青蓝紫冷色调范围）
-$accent-blue: #3a86ff;
-$accent-purple: #7b61ff;
+$accent-blue: #5b9abf;
+$accent-purple: #9a82c8;
 $accent-amber: #f59e0b;
 $accent-emerald: #10b981;
-$accent-pink: #ff006e;
-$accent-cyan: #00f5d4;
-$accent-red: #ff4060;
-
-// 保持向后兼容的别名
-$accent-orange: $accent-amber;
-
-// 阴影（深色主题更柔和）
-$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-$shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-$shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-
-// 光效（霓虹发光）
-$glow-primary: 0 0 30px rgba(0, 245, 212, 0.15);
-$glow-blue: 0 0 30px rgba(58, 134, 255, 0.15);
-$glow-purple: 0 0 30px rgba(123, 97, 255, 0.15);
-$glow-pink: 0 0 30px rgba(255, 0, 110, 0.15);
-$glow-amber: 0 0 30px rgba(245, 158, 11, 0.15);
-$glow-emerald: 0 0 30px rgba(16, 185, 129, 0.15);
-
-// 保持向后兼容
-$glow-cyan: $glow-primary;
-$glow-orange: $glow-amber;
-
-// 圆角
-$radius-sm: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 24px;
-$radius-full: 9999px;
-
-// 间距
-$space-xs: 4px;
-$space-sm: 8px;
-$space-md: 16px;
-$space-lg: 24px;
-$space-xl: 32px;
-$space-2xl: 48px;
-$space-3xl: 64px;
-
-// 字体
-$font-sans: 'Inter', -apple-system, system-ui, sans-serif;
-$font-mono: 'JetBrains Mono', monospace;
-
-// 过渡
-$transition-fast: 150ms ease;
-$transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-$transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-
-// 断点
-$breakpoint-sm: 640px;
-$breakpoint-md: 1024px;
-$breakpoint-lg: 1280px;
-$breakpoint-xl: 1536px;
-
-// 导出为CSS变量
-:root {
-  // 背景
-  --bg-primary: #{$bg-primary};
-  --bg-surface: #{$bg-surface};
-  --bg-elevated: #{$bg-elevated};
-  --bg-card: #{$bg-card};
-  
-  // 边框
-  --border-subtle: #{$border-subtle};
-  --border-accent: #{$border-accent};
-  
-  // 文字
-  --text-primary: #{$text-primary};
-  --text-secondary: #{$text-secondary};
-  --text-muted: #{$text-muted};
-  
-  // 主色
-  --accent-primary: #{$accent-primary};
-  --accent-secondary: #{$accent-secondary};
-  
-  // 辅助色
-  --accent-blue: #{$accent-blue};
-  --accent-purple: #{$accent-purple};
-  --accent-amber: #{$accent-amber};
-  --accent-emerald: #{$accent-emerald};
-  --accent-pink: #{$accent-pink};
-  --accent-cyan: #{$accent-cyan};
-  --accent-red: #{$accent-red};
-  
-  // 保持向后兼容
-  --accent-cyan: #{$accent-primary};
-  --accent-orange: #{$accent-amber};
-  
-  // 阴影
-  --shadow-sm: #{$shadow-sm};
-  --shadow-md: #{$shadow-md};
-  --shadow-lg: #{$shadow-lg};
-  
-  // 光效
-  --glow-primary: #{$glow-primary};
-  --glow-blue: #{$glow-blue};
-  --glow-purple: #{$glow-purple};
-  --glow-pink: #{$glow-pink};
-  --glow-amber: #{$glow-amber};
-  --glow-emerald: #{$glow-emerald};
-  
-  // 保持向后兼容
-  --glow-cyan: #{$glow-primary};
-  --glow-orange: #{$glow-amber};
-  
-  // 圆角
-  --radius-sm: #{$radius-sm};
-  --radius-md: #{$radius-md};
-  --radius-lg: #{$radius-lg};
-  --radius-xl: #{$radius-xl};
-  --radius-full: #{$radius-full};
-  
-  // 字体
-  --font-sans: #{$font-sans};
-  --font-mono: #{$font-mono};
-  
-  // 毛玻璃效果
-  --glass-blur: blur(16px);
-  
-  // 新增：高科技主题专用
-  --color-primary: #00f5d4;
-  --color-primary-dim: rgba(0, 245, 212, 0.15);
-  --color-secondary: #7b61ff;
-  --color-accent: #3a86ff;
-  --bg-glass: rgba(100, 100, 180, 0.06);
-  --border-glow: rgba(0, 245, 212, 0.2);
-}
-
-// ============================================
-// Mixins
-// ============================================
-
-// 毛玻璃卡片（深色科技风格）
-@mixin glass-card {
-  background: rgba(17, 17, 39, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
-  transition: $transition-normal;
-  
-  &:hover {
-    box-shadow: 0 8px 32px rgba(0, 245, 212, 0.08);
-    border-color: rgba(0, 245, 212, 0.2);
-    transform: translateY(-4px);
-  }
-}
-
-// 发光边框（深色版）
-@mixin glow-border($color: $accent-primary) {
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, $color, transparent, $color);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: $transition-normal;
-    filter: blur(6px);
-  }
-  
-  &:hover::before {
-    opacity: 0.4;
-  }
-}
-
-// 按钮样式（深色科技风格）
-@mixin cyber-button($color: $accent-primary) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-sm;
-  padding: $space-sm $space-lg;
-  background: linear-gradient(135deg, rgba($color, 0.15), rgba($color, 0.05));
-  color: $color;
-  border: 1px solid rgba($color, 0.3);
-  border-radius: $radius-md;
-  font-family: $font-sans;
-  font-weight: 600;
-  cursor: pointer;
-  transition: $transition-normal;
-  
-  &:hover {
-    background: linear-gradient(135deg, rgba($color, 0.25), rgba($color, 0.1));
-    border-color: rgba($color, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba($color, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-// 文字样式（深色科技风格）
-@mixin neon-text($color: $accent-primary) {
-  color: $color;
-  font-weight: 600;
-  text-shadow: 0 0 20px rgba($color, 0.3);
-}
-
-// 响应式
-@mixin respond-to($breakpoint) {
-  @if $breakpoint == sm {
-    @media (max-width: $breakpoint-sm) { @content; }
-  } @else if $breakpoint == md {
-    @media (max-width: $breakpoint-md) { @content; }
-  } @else if $breakpoint == lg {
-    @media (max-width: $breakpoint-lg) { @content; }
-  } @else if $breakpoint == xl {
-    @media (max-width: $breakpoint-xl) { @content; }
-  }
-}
-
-// 滚动条（深色风格）
-@mixin custom-scrollbar {
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: $bg-primary;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: rgba(100, 100, 180, 0.2);
-    border-radius: $radius-full;
-    
-    &:hover {
-      background: $accent-primary;
-    }
-  }
-}
-// ============================================
-// 以下明亮主题已被弃用，深色主题为当前唯一主题
-// 保留代码仅为历史参考，不参与编译
-// ============================================
-/*
-// ============================================
-// AI学习规划师 · 设计令牌
-// 明亮科技感 + 柔和活力主题
-// ============================================
-
-// 背景色系（明亮风格）
-$bg-primary: #f0f4ff;
-$bg-surface: #ffffff;
-$bg-elevated: #f8fafc;
-$bg-card: #ffffff;
-
-// 边框
-$border-subtle: #e2e8f0;
-$border-accent: rgba(79, 70, 229, 0.3);
-
-// 文字色（深色文字）
-$text-primary: #1e293b;
-$text-secondary: #64748b;
-$text-muted: #94a3b8;
-
-// 主色系（靛蓝紫为主）
-$accent-primary: #4f46e5;
-$accent-secondary: #8b5cf6;
-
-// 辅助色（多色点缀）
-$accent-blue: #0ea5e9;
-$accent-purple: #8b5cf6;
-$accent-amber: #f59e0b;
-$accent-emerald: #10b981;
-$accent-pink: #f472b6;
-$accent-cyan: #06b6d4;
+$accent-pink: #ec4899;
 $accent-red: #ef4444;
 
-// 保持向后兼容的别名
-$accent-cyan: $accent-primary;
-$accent-orange: $accent-amber;
+// 发光效果
+$glow-primary: 0 0 20px rgba(123, 97, 255, 0.15);
+$glow-primary-strong: 0 0 40px rgba(123, 97, 255, 0.25);
+$glow-blue: 0 0 20px rgba(91, 154, 191, 0.15);
+$glow-purple: 0 0 20px rgba(123, 97, 255, 0.15);
 
-// 阴影（柔和风格）
-$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-$shadow-lg: 0 8px 30px rgba(79, 70, 229, 0.12);
+// 阴影 - 更有层次
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+$shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+$shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+$shadow-glow: 0 4px 20px rgba(123, 97, 255, 0.1), 0 0 60px rgba(123, 97, 255, 0.05);
 
-// 光效（更柔和）
-$glow-primary: 0 8px 30px rgba(79, 70, 229, 0.12);
-$glow-blue: 0 8px 30px rgba(14, 165, 233, 0.12);
-$glow-purple: 0 8px 30px rgba(139, 92, 246, 0.12);
-$glow-pink: 0 8px 30px rgba(244, 114, 182, 0.12);
-$glow-amber: 0 8px 30px rgba(245, 158, 11, 0.12);
-$glow-emerald: 0 8px 30px rgba(16, 185, 129, 0.12);
-
-// 保持向后兼容
-$glow-cyan: $glow-primary;
-$glow-orange: $glow-amber;
+// 渐变
+$gradient-primary: linear-gradient(135deg, rgba(123, 97, 255, 0.12), rgba(91, 134, 255, 0.04));
+$gradient-hero: linear-gradient(180deg, rgba(123, 97, 255, 0.06) 0%, transparent 60%);
+$gradient-card: linear-gradient(145deg, rgba(28, 32, 48, 0.8), rgba(15, 17, 24, 0.9));
+$gradient-surface: linear-gradient(135deg, rgba(123, 97, 255, 0.05), transparent);
+$gradient-btn: linear-gradient(135deg, rgba(123, 97, 255, 0.9), rgba(91, 134, 255, 0.9));
 
 // 圆角
 $radius-sm: 8px;
@@ -630,13 +70,14 @@ $space-2xl: 48px;
 $space-3xl: 64px;
 
 // 字体
-$font-sans: \'Inter\', -apple-system, system-ui, sans-serif;
-$font-mono: \'JetBrains Mono\', monospace;
+$font-display: 'Noto Serif SC', 'Source Serif 4', Georgia, serif;
+$font-sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+$font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
 // 过渡
-$transition-fast: 150ms ease;
-$transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-$transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 
 // 断点
 $breakpoint-sm: 640px;
@@ -644,143 +85,239 @@ $breakpoint-md: 1024px;
 $breakpoint-lg: 1280px;
 $breakpoint-xl: 1536px;
 
+// ============================================
 // 导出为CSS变量
+// ============================================
 :root {
-  // 背景
   --bg-primary: #{$bg-primary};
   --bg-surface: #{$bg-surface};
   --bg-elevated: #{$bg-elevated};
   --bg-card: #{$bg-card};
-  
-  // 边框
+
   --border-subtle: #{$border-subtle};
-  --border-accent: #{$border-accent};
-  
-  // 文字
+  --border-medium: #{$border-medium};
+  --border-glow: #{$border-glow};
+
   --text-primary: #{$text-primary};
   --text-secondary: #{$text-secondary};
   --text-muted: #{$text-muted};
-  
-  // 主色
+  --text-placeholder: #{$text-muted};
+  --text-sub: #{$text-muted};
+  --text-input: #{$text-primary};
+
   --accent-primary: #{$accent-primary};
   --accent-secondary: #{$accent-secondary};
-  
-  // 辅助色
+
   --accent-blue: #{$accent-blue};
   --accent-purple: #{$accent-purple};
   --accent-amber: #{$accent-amber};
   --accent-emerald: #{$accent-emerald};
   --accent-pink: #{$accent-pink};
-  --accent-cyan: #{$accent-cyan};
   --accent-red: #{$accent-red};
-  
-  // 保持向后兼容
-  --accent-cyan: #{$accent-primary};
-  --accent-orange: #{$accent-amber};
-  
-  // 阴影
+
+  --glow-primary: #{$glow-primary};
+  --glow-primary-strong: #{$glow-primary-strong};
+  --glow-blue: #{$glow-blue};
+  --glow-purple: #{$glow-purple};
+
   --shadow-sm: #{$shadow-sm};
   --shadow-md: #{$shadow-md};
   --shadow-lg: #{$shadow-lg};
-  
-  // 光效
-  --glow-primary: #{$glow-primary};
-  --glow-blue: #{$glow-blue};
-  --glow-purple: #{$glow-purple};
-  --glow-pink: #{$glow-pink};
-  --glow-amber: #{$glow-amber};
-  --glow-emerald: #{$glow-emerald};
-  
-  // 保持向后兼容
-  --glow-cyan: #{$glow-primary};
-  --glow-orange: #{$glow-amber};
-  
-  // 圆角
+  --shadow-glow: #{$shadow-glow};
+
+  --gradient-primary: #{$gradient-primary};
+  --gradient-hero: #{$gradient-hero};
+  --gradient-card: #{$gradient-card};
+  --gradient-surface: #{$gradient-surface};
+
   --radius-sm: #{$radius-sm};
   --radius-md: #{$radius-md};
   --radius-lg: #{$radius-lg};
   --radius-xl: #{$radius-xl};
   --radius-full: #{$radius-full};
-  
-  // 字体
+
+  --font-display: #{$font-display};
   --font-sans: #{$font-sans};
   --font-mono: #{$font-mono};
-  
-  // 毛玻璃效果
-  --glass-blur: blur(12px);
+
+  // Element Plus 主题色
+  --el-color-primary: #{$accent-primary};
+  --el-color-primary-light-3: #ddbe72;
+  --el-color-primary-light-5: #e6cf90;
+  --el-color-primary-light-7: #efe0b0;
+  --el-color-primary-light-8: #f3e7bc;
+  --el-color-primary-light-9: #f8f0d4;
+  --el-color-primary-dark-2: #b08a3a;
+
+  --el-color-success: #{$accent-emerald};
+  --el-color-warning: #{$accent-amber};
+  --el-color-danger: #{$accent-red};
+  --el-color-info: #{$accent-blue};
+
+  --el-bg-color: #{$bg-surface};
+  --el-bg-color-page: #{$bg-primary};
+  --el-bg-color-overlay: #{$bg-elevated};
+
+  --el-text-color-primary: #{$text-primary};
+  --el-text-color-regular: #{$text-primary};
+  --el-text-color-secondary: #{$text-secondary};
+  --el-text-color-placeholder: #{$text-muted};
+
+  --el-border-color: #{$border-medium};
+  --el-border-color-light: #{$border-subtle};
+  --el-border-radius-base: #{$radius-md};
+
+  --bg-ctrl: #{$bg-surface};
+  --border-ctrl: #{$border-medium};
+  --border-ctrl-soft: rgba(255, 255, 255, 0.08);
+  --border-ctrl-hover: rgba(124, 107, 245, 0.5);
+  --text-data-blue: #{$accent-blue};
+  --btn-gradient: linear-gradient(135deg, rgba(124, 107, 245, 0.9), rgba(91, 134, 255, 0.9));
+  --badge-bg: rgba(124, 107, 245, 0.2);
+  --status-ready-text: #34d399;
+  --status-ready-bg: rgba(52, 211, 153, 0.1);
+  --status-ready-border: rgba(52, 211, 153, 0.3);
+  --status-off-text: #9ca3af;
+  --status-off-bg: rgba(156, 163, 175, 0.1);
+  --status-off-border: rgba(156, 163, 175, 0.3);
+  --title-status: #{$accent-primary};
+  --title-section: #{$text-primary};
+  --text-hint: #{$text-muted};
 }
 
 // ============================================
 // Mixins
 // ============================================
 
-// 卡片样式（明亮风格）
-@mixin glass-card {
-  background: $bg-card;
+@mixin card-base {
+  background: $gradient-card;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid $border-subtle;
   border-radius: $radius-lg;
   box-shadow: $shadow-sm;
-  transition: $transition-normal;
-  
-  &:hover {
-    box-shadow: $shadow-lg;
-    transform: translateY(-4px);
-  }
-}
-
-// 发光边框（柔和版）
-@mixin glow-border($color: $accent-primary) {
+  transition: all $transition-normal;
   position: relative;
-  
+  overflow: hidden;
+
   &::before {
-    content: \'\';
+    content: '';
     position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, $color, transparent, $color);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: $transition-normal;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba($accent-primary, 0.15), transparent);
+    pointer-events: none;
   }
-  
-  &:hover::before {
-    opacity: 0.5;
+
+  &:hover {
+    border-color: $border-glow;
+    box-shadow: $shadow-md, $glow-primary;
+    transform: translateY(-2px);
   }
 }
 
-// 按钮样式（明亮风格）
-@mixin cyber-button($color: $accent-primary) {
+@mixin glass-panel {
+  background: rgba($bg-elevated, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+}
+
+@mixin button-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: $space-sm;
-  padding: $space-sm $space-lg;
-  background: linear-gradient(135deg, $color, lighten($color, 10%));
-  color: #ffffff;
-  border: none;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba($accent-primary, 0.08));
+  color: $accent-primary;
+  border: 1px solid rgba($accent-primary, 0.3);
   border-radius: $radius-md;
   font-family: $font-sans;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: $transition-normal;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba($color, 0.3);
+  transition: all $transition-normal;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba($accent-primary, 0.1));
+    opacity: 0;
+    transition: opacity $transition-normal;
   }
-  
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($accent-primary, 0.3), rgba($accent-primary, 0.12));
+    border-color: rgba($accent-primary, 0.5);
+    box-shadow: $glow-primary;
+    transform: translateY(-2px);
+
+    &::after { opacity: 1; }
+  }
+
   &:active {
     transform: translateY(0);
   }
 }
 
-// 文字样式（明亮风格）
-@mixin neon-text($color: $accent-primary) {
-  color: $color;
-  font-weight: 600;
+@mixin button-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  color: $text-secondary;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all $transition-normal;
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    border-color: $border-medium;
+    color: $text-primary;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: $shadow-sm;
+  }
 }
 
-// 响应式
+@mixin page-background {
+  min-height: 100vh;
+  position: relative;
+  background: $bg-primary;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba($accent-primary, 0.04), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba($accent-blue, 0.03), transparent);
+}
+
+@mixin page-header {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: $space-lg $space-xl;
+  margin-bottom: $space-lg;
+}
+
+@mixin section-title {
+  font-family: $font-display;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: 0.02em;
+}
+
 @mixin respond-to($breakpoint) {
   @if $breakpoint == sm {
     @media (max-width: $breakpoint-sm) { @content; }
@@ -793,24 +330,134 @@ $breakpoint-xl: 1536px;
   }
 }
 
-// 滚动条（明亮风格）
 @mixin custom-scrollbar {
   &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
-  
+
   &::-webkit-scrollbar-track {
-    background: $bg-primary;
+    background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
-    background: $border-subtle;
+    background: rgba($accent-primary, 0.2);
     border-radius: $radius-full;
-    
+
     &:hover {
-      background: $accent-primary;
+      background: rgba($accent-primary, 0.35);
     }
   }
 }
-*/
+
+// ===== 新增通用 Mixin =====
+
+// 输入框基础样式
+@mixin input-base {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba($bg-surface, 0.6);
+  border: 1px solid $border-subtle;
+  border-radius: $radius-md;
+  color: $text-primary;
+  font-family: $font-sans;
+  font-size: 0.9rem;
+  transition: all $transition-fast;
+  @include custom-scrollbar;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba($accent-primary, 0.5);
+    box-shadow: 0 0 0 3px rgba($accent-primary, 0.1);
+    background: rgba($bg-surface, 0.8);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 状态徽章
+@mixin status-badge($color, $bg-color, $border-color) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: $bg-color;
+  border: 1px solid $border-color;
+  border-radius: $radius-full;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $color;
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $color;
+  }
+}
+
+// 渐变文字
+@mixin gradient-text($gradient: linear-gradient(135deg, $accent-primary, $accent-blue)) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// 动画 - 脉冲发光
+@mixin pulse-glow($color: $accent-primary) {
+  animation: pulse-glow 2s ease-in-out infinite;
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba($color, 0.2);
+      border-color: rgba($color, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba($color, 0.4);
+      border-color: rgba($color, 0.6);
+    }
+  }
+}
+
+// 动画 - 旋转加载
+@mixin spin-animation($duration: 1s) {
+  animation: spin $duration linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+// 悬停上浮效果
+@mixin hover-lift {
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: $shadow-md, $glow-primary;
+  }
+}
+
+// 文本截断
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

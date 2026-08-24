@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="analyzer-page">
     <!-- 顶部导航 -->
     <header class="page-header">
@@ -193,9 +193,10 @@ const goBack = () => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .analyzer-page {
   min-height: calc(100vh - 68px);
-  background: #0a0a1a;
+  background: $bg-primary;
   position: relative;
 }
 
@@ -207,9 +208,9 @@ const goBack = () => {
   align-items: center;
   gap: 16px;
   padding: 16px 32px;
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba($bg-primary, 0.85);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
 }
 
 .back-btn {
@@ -217,18 +218,18 @@ const goBack = () => {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 8px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .back-btn:hover {
-  border-color: rgba(0, 245, 212, 0.2);
-  color: #00f5d4;
+  border-color: rgba($accent-primary, 0.2);
+  color: $accent-primary;
 }
 
 .page-title {
@@ -245,7 +246,7 @@ const goBack = () => {
 .title-text {
   font-size: 1.05rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #00f5d4, #7b61ff);
+  background: linear-gradient(135deg, $accent-primary, $accent-purple);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -253,10 +254,10 @@ const goBack = () => {
 
 .analyze-btn {
   padding: 9px 20px;
-  background: linear-gradient(135deg, rgba(0, 245, 212, 0.15), rgba(123, 97, 255, 0.1));
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(123, 97, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 10px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -265,7 +266,7 @@ const goBack = () => {
 
 .analyze-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 0 20px rgba(0, 245, 212, 0.12);
+  box-shadow: 0 0 20px rgba($accent-primary, 0.12);
 }
 
 .analyze-btn:disabled {
@@ -283,9 +284,9 @@ const goBack = () => {
 }
 
 .glass-card {
-  background: rgba(17, 17, 39, 0.5);
+  background: rgba($bg-primary, 0.5);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 16px;
   padding: 24px;
 }
@@ -301,15 +302,15 @@ const goBack = () => {
 .section-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
 }
 
 .language-dropdown {
   padding: 6px 12px;
-  background: rgba(10, 10, 26, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
-  color: #c0c0e0;
+  color: $text-secondary;
   font-size: 0.8rem;
   outline: none;
   cursor: pointer;
@@ -319,10 +320,10 @@ const goBack = () => {
   width: 100%;
   min-height: 260px;
   padding: 16px;
-  background: rgba(10, 10, 26, 0.7);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($bg-primary, 0.7);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 12px;
-  color: #e8e8ff;
+  color: $text-primary;
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.85rem;
   line-height: 1.7;
@@ -332,7 +333,7 @@ const goBack = () => {
 }
 
 .code-input:focus {
-  border-color: rgba(0, 245, 212, 0.3);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .input-meta {
@@ -341,7 +342,7 @@ const goBack = () => {
   align-items: center;
   margin-top: 10px;
   font-size: 0.75rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .sample-link {
@@ -351,7 +352,7 @@ const goBack = () => {
 }
 
 .sample-link:hover {
-  color: #00f5d4;
+  color: $accent-primary;
 }
 
 /* 结果区 */
@@ -369,12 +370,12 @@ const goBack = () => {
 
 .summary-label {
   font-size: 0.72rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .summary-text {
   font-size: 0.9rem;
-  color: #e8e8ff;
+  color: $text-primary;
   line-height: 1.7;
   margin: 6px 0 0;
 }
@@ -390,27 +391,27 @@ const goBack = () => {
   align-items: center;
   gap: 4px;
   padding: 12px 18px;
-  background: rgba(100, 100, 180, 0.05);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.05);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 10px;
 }
 
 .chip-label {
   font-size: 0.68rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .chip-value {
   font-size: 1rem;
   font-weight: 700;
-  color: #00f5d4;
+  color: $accent-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .card-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 16px;
 }
 
@@ -422,17 +423,17 @@ const goBack = () => {
   padding: 12px 14px;
   margin-bottom: 10px;
   border-radius: 10px;
-  background: rgba(100, 100, 180, 0.03);
+  background: rgba($accent-secondary, 0.03);
   border-left: 3px solid #94a3b8;
   flex-wrap: wrap;
 }
 
 .issue-item.critical {
-  border-left-color: #ef4444;
+  border-left-color: $accent-red;
 }
 
 .issue-item.warning {
-  border-left-color: #f59e0b;
+  border-left-color: $accent-amber;
 }
 
 .issue-item.info {
@@ -449,12 +450,12 @@ const goBack = () => {
 
 .issue-severity.critical {
   background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  color: $accent-red;
 }
 
 .issue-severity.warning {
   background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  color: $accent-amber;
 }
 
 .issue-severity.info {
@@ -472,7 +473,7 @@ const goBack = () => {
 
 .issue-line {
   font-size: 0.7rem;
-  color: #9090b8;
+  color: $text-muted;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -480,7 +481,7 @@ const goBack = () => {
   flex: 1;
   min-width: 200px;
   font-size: 0.85rem;
-  color: #c0c0e0;
+  color: $text-secondary;
   margin: 0;
 }
 
@@ -492,7 +493,7 @@ const goBack = () => {
 
 .suggestion-item {
   font-size: 0.85rem;
-  color: #c0c0e0;
+  color: $text-secondary;
   line-height: 1.7;
   margin-bottom: 6px;
 }
@@ -507,27 +508,27 @@ const goBack = () => {
 
 .copy-btn {
   padding: 5px 12px;
-  background: rgba(0, 245, 212, 0.08);
-  border: 1px solid rgba(0, 245, 212, 0.2);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 8px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .copy-btn:hover {
-  background: rgba(0, 245, 212, 0.15);
+  background: rgba($accent-primary, 0.15);
 }
 
 .optimized-code {
   max-height: 320px;
   overflow: auto;
   padding: 16px;
-  background: rgba(10, 10, 26, 0.7);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($bg-primary, 0.7);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 10px;
-  color: #10b981;
+  color: $accent-emerald;
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.7;
@@ -550,13 +551,13 @@ const goBack = () => {
 .empty-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 8px;
 }
 
 .empty-desc {
   font-size: 0.85rem;
-  color: #9090b8;
+  color: $text-muted;
   margin: 0;
 }
 
@@ -569,7 +570,7 @@ const goBack = () => {
   background: rgba(239, 68, 68, 0.06);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 12px;
-  color: #ef4444;
+  color: $accent-red;
   font-size: 0.9rem;
 }
 
@@ -578,7 +579,7 @@ const goBack = () => {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 8px;
-  color: #ef4444;
+  color: $accent-red;
   font-size: 0.85rem;
   cursor: pointer;
   white-space: nowrap;

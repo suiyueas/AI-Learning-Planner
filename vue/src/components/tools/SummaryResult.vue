@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="summary-result">
     <div v-if="title" class="summary-header">
       <span class="summary-icon">📝</span>
@@ -99,6 +99,7 @@ function toggleOrigin() {
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
 .summary-result {
   padding: 4px 0;
 }
@@ -115,7 +116,7 @@ function toggleOrigin() {
 .summary-title {
   font-size: 14px;
   font-weight: 600;
-  color: #f0f0ff;
+  color: $text-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -130,7 +131,7 @@ function toggleOrigin() {
 .content-text {
   font-size: 13px;
   line-height: 1.7;
-  color: #c0c0e0;
+  color: $text-secondary;
   white-space: pre-wrap;
 }
 
@@ -141,7 +142,7 @@ function toggleOrigin() {
 .keywords-label {
   font-size: 12px;
   font-weight: 600;
-  color: #8080a8;
+  color: $text-muted;
   margin-bottom: 8px;
 }
 
@@ -153,11 +154,11 @@ function toggleOrigin() {
 
 .keyword-tag {
   padding: 3px 10px;
-  background: rgba(0, 245, 212, 0.06);
-  border: 1px solid rgba(0, 245, 212, 0.1);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.1);
   border-radius: 6px;
   font-size: 11px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -167,41 +168,41 @@ function toggleOrigin() {
 
 .origin-toggle {
   padding: 6px 14px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 6px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.2);
-    color: #00f5d4;
-    background: rgba(0, 245, 212, 0.06);
+    border-color: rgba($accent-primary, 0.2);
+    color: $accent-primary;
+    background: rgba($accent-primary, 0.06);
   }
 }
 
 .origin-content {
   margin-top: 10px;
   padding: 12px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 8px;
 }
 
 .origin-label {
   font-size: 11px;
   font-weight: 600;
-  color: #8080a8;
+  color: $text-muted;
   margin-bottom: 6px;
 }
 
 .origin-text {
   font-size: 12px;
   line-height: 1.6;
-  color: #9090b8;
+  color: $text-muted;
   white-space: pre-wrap;
 }
 
@@ -210,17 +211,17 @@ function toggleOrigin() {
   .raw-label {
     font-size: 12px;
     font-weight: 600;
-    color: #8080a8;
+    color: $text-muted;
     margin-bottom: 8px;
   }
   .raw-json {
     padding: 12px;
-    background: rgba(100, 100, 180, 0.04);
-    border: 1px solid rgba(100, 100, 180, 0.08);
+    background: rgba($accent-secondary, 0.04);
+    border: 1px solid rgba($accent-secondary, 0.08);
     border-radius: 8px;
     font-size: 12px;
     line-height: 1.6;
-    color: #c0c0e0;
+    color: $text-secondary;
     overflow-x: auto;
     font-family: 'JetBrains Mono', monospace;
     white-space: pre-wrap;
@@ -234,7 +235,7 @@ function toggleOrigin() {
 .result-empty {
   text-align: center;
   padding: 24px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 13px;
 }
 </style>

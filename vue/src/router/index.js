@@ -1,12 +1,12 @@
 // ============================================
 // 路由配置 - 精简版
-// 6个核心页面路由定义
+// 以学习流程为核心
 // ============================================
 
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// 路由定义 - 使用静态导入
+// 路由定义
 export const routes = [
   {
     path: '/',
@@ -17,27 +17,21 @@ export const routes = [
     name: 'Home',
     component: () => import('@/views/Home.vue'),
     meta: {
-      title: '首页',
+      title: '仪表盘',
       requiresAuth: true,
     },
   },
   {
-    path: '/chat',
-    name: 'Chat',
-    component: () => import('@/views/Chat.vue'),
-    meta: {
-      title: '智能对话',
-      requiresAuth: true,
-    },
+    path: '/learning-path',
+    name: 'LearningPathList',
+    component: () => import('@/views/LearningPathList.vue'),
+    meta: { title: '学习路径', requiresAuth: true },
   },
   {
-    path: '/tools',
-    name: 'Tools',
-    component: () => import('@/views/Tools.vue'),
-    meta: {
-      title: '工具中心',
-      requiresAuth: true,
-    },
+    path: '/learning-path/:id',
+    name: 'LearningPathDetail',
+    component: () => import('@/views/LearningPathDetail.vue'),
+    meta: { title: '学习路径详情', requiresAuth: true },
   },
   {
     path: '/knowledge',
@@ -49,23 +43,76 @@ export const routes = [
     },
   },
   {
-    path: '/agents',
-    name: 'Agents',
-    component: () => import('@/views/Agents.vue'),
+    path: '/assessment',
+    name: 'Assessment',
+    component: () => import('@/views/Assessment.vue'),
+    meta: { title: '测评', requiresAuth: true },
+  },
+  {
+    path: '/chat',
+    redirect: '/agents',
+  },
+  {
+    path: '/exercise',
+    name: 'Exercise',
+    component: () => import('@/views/Exercise.vue'),
+    meta: { title: '习题练习', requiresAuth: true },
+  },
+  {
+    path: '/goal-setting',
+    name: 'GoalSetting',
+    component: () => import('@/views/GoalSetting.vue'),
+    meta: { title: '目标设定', requiresAuth: true },
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/Profile.vue'),
     meta: {
-      title: '智能体',
+      title: '个人中心',
       requiresAuth: true,
     },
   },
   {
-    path: '/modules',
-    name: 'AllModules',
-    component: () => import('@/views/AllModules.vue'),
-    meta: {
-      title: '全部功能',
-      requiresAuth: true,
-    },
+    path: '/statistics',
+    name: 'Statistics',
+    component: () => import('@/views/Statistics.vue'),
+    meta: { title: '学习统计', requiresAuth: true },
   },
+  {
+    path: '/achievements',
+    name: 'Achievements',
+    component: () => import('@/views/Achievements.vue'),
+    meta: { title: '成就打卡', requiresAuth: true },
+  },
+  {
+    path: '/calendar',
+    name: 'LearningCalendar',
+    component: () => import('@/views/LearningCalendar.vue'),
+    meta: { title: '学习日历', requiresAuth: true },
+  },
+  {
+    path: '/study-notes',
+    name: 'StudyNotes',
+    component: () => import('@/views/StudyNotes.vue'),
+    meta: { title: '学习笔记', requiresAuth: true },
+  },
+  {
+    path: '/code-analyze',
+    name: 'CodeAnalyzer',
+    component: () => import('@/views/CodeAnalyzer.vue'),
+    meta: { title: '代码解析', requiresAuth: true },
+  },
+  {
+    path: '/agents',
+    name: 'Agents',
+    component: () => import('@/views/Agents.vue'),
+    meta: { title: '智能体中心', requiresAuth: true },
+  },
+  // 旧路由重定向
+  { path: '/report', redirect: '/home' },
+  { path: '/tools', redirect: '/agents' },
+  { path: '/all-modules', redirect: '/home' },
   {
     path: '/login',
     name: 'Login',
@@ -84,58 +131,7 @@ export const routes = [
       layout: 'auth',
     },
   },
-  {
-    path: '/statistics',
-    name: 'Statistics',
-    component: () => import('@/views/Statistics.vue'),
-    meta: { title: '学习统计', requiresAuth: true },
-  },
-  {
-    path: '/profile',
-    name: 'Profile',
-    component: () => import('@/views/Profile.vue'),
-    meta: {
-      title: '个人中心',
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/learning-path',
-    name: 'LearningPathList',
-    component: () => import('@/views/LearningPathList.vue'),
-    meta: { title: '学习路径', requiresAuth: true },
-  },
-  {
-    path: '/learning-path/:id',
-    name: 'LearningPathDetail',
-    component: () => import('@/views/LearningPathDetail.vue'),
-    meta: { title: '学习路径详情', requiresAuth: true },
-  },
-  {
-    path: '/calendar',
-    name: 'LearningCalendar',
-    component: () => import('@/views/LearningCalendar.vue'),
-    meta: { title: '学习日历', requiresAuth: true },
-  },
-  {
-    path: '/learning-paths',
-    name: 'LearningPathBrowser',
-    component: () => import('@/views/LearningPathBrowser.vue'),
-    meta: { title: '学习路径浏览', requiresAuth: true },
-  },
-  {
-    path: '/study-notes',
-    name: 'StudyNotes',
-    component: () => import('@/views/StudyNotes.vue'),
-    meta: { title: '学习笔记', requiresAuth: true },
-  },
-  {
-    path: '/learning-records',
-    name: 'LearningRecords',
-    component: () => import('@/views/LearningRecords.vue'),
-    meta: { title: '学习记录', requiresAuth: true },
-  },
-  // ===== 核心能力详情页 =====
+  // 能力诊断子页面
   {
     path: '/capability/diagnosis',
     name: 'DiagnosisDetail',
@@ -146,74 +142,31 @@ export const routes = [
     path: '/capability/weakness',
     name: 'WeaknessDetail',
     component: () => import('@/views/capability/WeaknessDetail.vue'),
-    meta: { title: '薄弱知识点专项分析', requiresAuth: true },
-  },
-  {
-    path: '/capability/planning',
-    name: 'PlanningDetail',
-    component: () => import('@/views/capability/PlanningDetail.vue'),
-    meta: { title: '动态规划', requiresAuth: true },
+    meta: { title: '薄弱点分析', requiresAuth: true },
   },
   {
     path: '/capability/progress',
     name: 'ProgressDetail',
     component: () => import('@/views/capability/ProgressDetail.vue'),
-    meta: { title: '进度追踪', requiresAuth: true },
+    meta: { title: '学习进度', requiresAuth: true },
+  },
+  {
+    path: '/capability/planning',
+    name: 'PlanningDetail',
+    component: () => import('@/views/capability/PlanningDetail.vue'),
+    meta: { title: '学习规划', requiresAuth: true },
+  },
+  {
+    path: '/capability/adaptive-history',
+    name: 'AdaptiveHistory',
+    component: () => import('@/views/capability/AdaptiveHistory.vue'),
+    meta: { title: '自适应历史', requiresAuth: true },
   },
   {
     path: '/capability/adaptive',
     name: 'AdaptiveDetail',
     component: () => import('@/views/capability/AdaptiveDetail.vue'),
     meta: { title: '自适应学习', requiresAuth: true },
-  },
-  {
-    path: '/capability/adaptive/history',
-    name: 'AdaptiveHistory',
-    component: () => import('@/views/capability/AdaptiveHistory.vue'),
-    meta: { title: '自适应调整历史', requiresAuth: true },
-  },
-  // ===== 功能页面路由 =====
-  {
-    path: '/assessment',
-    name: 'Assessment',
-    component: () => import('@/views/Assessment.vue'),
-    meta: { title: '能力测评', requiresAuth: true },
-  },
-  {
-    path: '/goal-setting',
-    name: 'GoalSetting',
-    component: () => import('@/views/GoalSetting.vue'),
-    meta: { title: '目标设定', requiresAuth: true },
-  },
-  {
-    path: '/exercise',
-    name: 'Exercise',
-    component: () => import('@/views/Exercise.vue'),
-    meta: { title: '习题生成', requiresAuth: true },
-  },
-  {
-    path: '/report',
-    name: 'Report',
-    component: () => import('@/views/Report.vue'),
-    meta: { title: '学情报告', requiresAuth: true },
-  },
-  {
-    path: '/achievements',
-    name: 'Achievements',
-    component: () => import('@/views/Achievements.vue'),
-    meta: { title: '成就打卡', requiresAuth: true },
-  },
-  {
-    path: '/web-fetch',
-    name: 'WebFetch',
-    component: () => import('@/views/FeaturePlaceholder.vue'),
-    meta: { title: '网页抓取', featureName: '网页抓取', requiresAuth: true },
-  },
-  {
-    path: '/code-analyze',
-    name: 'CodeAnalyzer',
-    component: () => import('@/views/CodeAnalyzer.vue'),
-    meta: { title: '代码解析', requiresAuth: true },
   },
   // 404 路由
   {

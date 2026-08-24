@@ -1,186 +1,251 @@
-<template>
-  <div ref="pageRef" class="home-page">
-    <!-- 深空背景 -->
+﻿<template>
+  <div class="home-page">
     <div class="bg-aurora">
       <div class="aurora-layer aurora-1"></div>
       <div class="aurora-layer aurora-2"></div>
-      <div class="aurora-layer aurora-3"></div>
     </div>
-    <div class="grid-bg"></div>
-    <div class="cursor-glow" :style="{ left: mouseX + 'px', top: mouseY + 'px' }"></div>
 
-    <!-- ===== Hero区域 ===== -->
-    <section class="hero">
-      <div class="hero-content">
-        <div class="hero-decoration">
-          <div class="decoration-ring ring-1"></div>
-          <div class="decoration-ring ring-2"></div>
-          <div class="decoration-ring ring-3"></div>
+    <!-- STATUS BAR -->
+    <header class="status-bar glass-panel">
+      <div class="status-left">
+        <div class="greeting">
+          <span class="greeting-text">{{ greetingText }}，<strong>{{ displayName }}</strong></span>
         </div>
-        <div class="tech-tags">
-          <span class="tech-tag">Spring AI</span>
-          <span class="tech-divider">+</span>
-          <span class="tech-tag">MCP</span>
-          <span class="tech-divider">+</span>
-          <span class="tech-tag">ReAct Agent</span>
-        </div>
-        <h1 class="hero-title">
-          <span class="title-line">智能学习</span>
-          <span class="title-line gradient-text streaming-text">新纪元</span>
-        </h1>
-        <div class="hero-subtitle-wrap">
-          <div class="subtitle-bar"></div>
-          <div class="subtitle-text">
-            <p class="hero-subtitle">基于大模型的自主智能体，精准诊断、动态规划、引导式教学</p>
-            <p class="hero-desc">为你打造千人千面的个性化学习路径</p>
-          </div>
-        </div>
-
-        <!-- 数字滚动统计 -->
-        <div class="hero-stats">
-          <div class="stat-item">
-            <span class="stat-value" :class="{ 'animating': isAnimating }">{{ displayStats.learners }}</span>
-            <div class="stat-trend"><TrendingUp :size="14" /><span>+12%</span></div>
-            <span class="stat-label">活跃学习者</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value" :class="{ 'animating': isAnimating }">{{ displayStats.satisfaction }}%</span>
-            <div class="stat-trend"><TrendingUp :size="14" /><span>+3%</span></div>
-            <span class="stat-label">满意度</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value">24/7</span>
-            <div class="stat-trend"><Activity :size="14" /><span>持续</span></div>
-            <span class="stat-label">在线服务</span>
-          </div>
-        </div>
-
-        <div class="hero-actions">
-          <button class="btn-primary breathing-glow" @click="router.push('/chat')">
-            <MessageSquare :size="18" />
-            <span class="btn-text">开始对话</span>
-            <ArrowRight :size="16" class="btn-icon" />
-          </button>
-          <button class="btn-secondary sweep-card" @click="router.push('/knowledge')">
-            <BookOpen :size="18" />
-            <span class="btn-text">探索知识库</span>
-          </button>
+        <div class="agent-status">
+          <span class="status-dot-alive"></span>
+          <span class="status-text">{{ agentStatusText }}</span>
         </div>
       </div>
-      <div class="hero-floating-cards">
-        <div class="floating-card card-1">
-          <Target :size="18" class="card-icon-svg" />
-          <div class="card-text">智能规划</div>
+      <div class="status-right">
+        <CheckinButton @refresh="handleCheckinRefresh" />
+        <div class="stat-chip" v-if="continuousDays > 0">
+          <Flame :size="14" />
+          <span>{{ continuousDays }}天连续</span>
         </div>
-        <div class="floating-card card-2">
-          <BookOpen :size="18" class="card-icon-svg" />
-          <div class="card-text">知识检索</div>
+        <div class="stat-chip" v-if="todayHours > 0">
+          <Clock :size="14" />
+          <span>今日 {{ todayHours }}h</span>
         </div>
-        <div class="floating-card card-3">
-          <Sparkles :size="18" class="card-icon-svg" />
-          <div class="card-text">精准答疑</div>
+        <div class="avatar-wrap" @click="router.push('/profile')">
+          <img v-if="hasAvatar" :src="avatarUrl" class="avatar-img" />
+          <span v-else class="avatar-fallback">{{ avatarLetter }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 快捷入口 -->
+    <section class="quick-access-section">
+      <div class="quick-access-grid">
+        <div class="quick-access-item" @click="router.push('/learning-path')">
+          <span class="qa-icon">📚</span>
+          <span class="qa-label">学习路径</span>
+        </div>
+        <div class="quick-access-item" @click="router.push('/knowledge')">
+          <span class="qa-icon">📖</span>
+          <span class="qa-label">知识库</span>
+        </div>
+        <div class="quick-access-item" @click="router.push('/assessment')">
+          <span class="qa-icon">📝</span>
+          <span class="qa-label">能力测评</span>
+        </div>
+        <div class="quick-access-item" @click="router.push('/agents')">
+          <span class="qa-icon">🤖</span>
+          <span class="qa-label">智能体中心</span>
+        </div>
+        <div class="quick-access-item" @click="router.push('/achievements')">
+          <span class="qa-icon">🏆</span>
+          <span class="qa-label">成就打卡</span>
         </div>
       </div>
     </section>
 
-    <!-- ===== 核心能力 ===== -->
-    <section class="capabilities">
-      <div class="section-header">
-        <span class="section-badge"><Zap :size="14" /> 核心能力</span>
-        <h2 class="section-title">AI 驱动的学习体验</h2>
+    <!-- 学习报告摘要 -->
+    <section class="report-summary-section" v-if="reportStats">
+      <div class="report-summary-card glass-card">
+        <div class="rs-header">
+          <span class="rs-icon">📊</span>
+          <h3 class="rs-title">学习报告摘要</h3>
+        </div>
+        <div class="rs-stats">
+          <div class="rs-stat-item">
+            <span class="rs-stat-value">{{ reportStats.totalHours || 0 }}h</span>
+            <span class="rs-stat-label">学习时长</span>
+          </div>
+          <div class="rs-stat-item">
+            <span class="rs-stat-value">{{ reportStats.completedTasks || 0 }}</span>
+            <span class="rs-stat-label">完成任务</span>
+          </div>
+          <div class="rs-stat-item">
+            <span class="rs-stat-value">{{ reportStats.checkinDays || 0 }}天</span>
+            <span class="rs-stat-label">打卡天数</span>
+          </div>
+          <div class="rs-stat-item">
+            <span class="rs-stat-value">{{ reportStats.avgAccuracy || '--' }}{{ reportStats.avgAccuracy ? '%' : '' }}</span>
+            <span class="rs-stat-label">平均正确率</span>
+          </div>
+        </div>
+        <button class="rs-link-btn" @click="router.push('/statistics')">查看完整报告 →</button>
       </div>
-      <div class="capabilities-grid">
-        <div v-for="(cap, index) in capabilities" :key="index" class="capability-card glass-card sweep-card" @click="navigateToCapability(cap.path)">
-          <div class="cap-status">
-            <span class="cap-status-dot"></span>
-            <span class="cap-status-text">{{ cap.status }}</span>
+    </section>
+
+    <!-- AI 智能洞察 -->
+    <AIAssistantCard />
+
+    <!-- AGENT FOCUS CARD -->
+    <section class="agent-focus">
+      <div v-if="activePath" class="focus-card glass-card sweep-card">
+        <div class="focus-header">
+          <div class="focus-agent">
+            <div class="agent-avatar"><Bot :size="20" /><span class="agent-pulse"></span></div>
+            <div class="agent-speech">
+              <span class="speech-label">AI 学习助手</span>
+              <p class="speech-text">{{ agentFocusText }}</p>
+            </div>
           </div>
-          <div class="cap-icon-wrapper">
-            <component :is="cap.icon" :size="28" class="cap-icon-svg" />
+        </div>
+        <div class="focus-content" @click="router.push(`/learning-path/${activePath.id}`)">
+          <div class="focus-path-info">
+            <h2 class="focus-title">{{ activePath.name }}</h2>
+            <div class="focus-next" v-if="activePath.nextNode">
+              <Zap :size="14" class="next-icon" />
+              <span>下一步：<strong>{{ activePath.nextNode }}</strong></span>
+            </div>
           </div>
-          <h3 class="cap-title">{{ cap.title }}</h3>
-          <p class="cap-desc">{{ cap.desc }}</p>
-          <div class="cap-metric">
-            <span class="metric-value">{{ cap.metric }}</span>
-            <span class="metric-label">{{ cap.metricLabel }}</span>
+          <div class="focus-progress">
+            <div class="progress-ring-wrap">
+              <svg class="progress-ring" viewBox="0 0 60 60">
+                <circle class="ring-bg" cx="30" cy="30" r="26" />
+                <circle class="ring-fill" cx="30" cy="30" r="26" :style="{ strokeDasharray: `${activePath.progress * 1.634} 163.4` }" />
+              </svg>
+              <span class="ring-text">{{ activePath.progress }}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="focus-actions">
+          <button class="btn-primary" @click.stop="router.push(`/learning-path/${activePath.id}`)"><Play :size="16" /> 继续学习</button>
+          <button class="btn-ghost" @click.stop="router.push('/chat')"><MessageSquare :size="16" /> 问 AI</button>
+        </div>
+      </div>
+      <div v-else class="focus-card glass-card">
+        <div class="focus-header">
+          <div class="focus-agent">
+            <div class="agent-avatar"><Bot :size="20" /><span class="agent-pulse"></span></div>
+            <div class="agent-speech">
+              <span class="speech-label">AI 学习助手</span>
+              <p class="speech-text">我还没有为你规划学习路径。告诉我你的目标，我来帮你制定专属计划。</p>
+            </div>
+          </div>
+        </div>
+        <div class="focus-empty">
+          <div class="empty-icon">🎯</div>
+          <h2 class="empty-title">开启你的学习旅程</h2>
+          <p class="empty-desc">告诉我你想学什么，我会为你诊断水平、规划路径、生成练习</p>
+        </div>
+        <div class="focus-actions">
+          <button class="btn-primary" @click="router.push('/goal-setting')"><Target :size="16" /> 设定目标</button>
+          <button class="btn-ghost" @click="router.push('/chat')"><MessageSquare :size="16" /> 先聊聊</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPETENCY MAP -->
+    <section class="competency-section" v-if="competencies.length > 0">
+      <div class="section-header">
+        <div class="section-title-wrap"><Radar :size="18" class="section-icon" /><h2 class="section-title">你的能力地图</h2></div>
+        <button class="link-btn" @click="router.push('/statistics')">查看详情 <ArrowRight :size="14" /></button>
+      </div>
+      <div class="competency-grid">
+        <div v-for="item in competencies" :key="item.name" class="competency-card glass-card">
+          <div class="comp-header">
+            <span class="comp-name">{{ item.name }}</span>
+            <span class="comp-level" :class="item.level">{{ item.levelText }}</span>
+          </div>
+          <div class="comp-bar-wrap">
+            <div class="comp-bar"><div class="comp-bar-fill" :style="{ width: item.mastery + '%' }" :class="item.level"></div></div>
+            <span class="comp-percent">{{ item.mastery }}%</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===== 快速开始 ===== -->
-    <section class="quick-entry">
+    <!-- TODAY'S TASKS -->
+    <section class="tasks-section" v-if="todayTasks.length > 0">
       <div class="section-header">
-        <span class="section-badge"><Compass :size="14" /> 快速开始</span>
-        <h2 class="section-title">探索 AI 能力</h2>
+        <div class="section-title-wrap"><ClipboardList :size="18" class="section-icon" /><h2 class="section-title">Agent 今日为你安排</h2></div>
+        <span class="task-count">{{ todayTasks.length }}项 · 约 {{ estimatedMinutes }} 分钟</span>
       </div>
-      <div class="entry-grid">
-        <div v-for="(entry, index) in quickEntries" :key="index" class="entry-card glass-card sweep-card" @click="router.push(entry.path)">
-          <div class="entry-header">
-            <div class="entry-icon-wrap">
-              <component :is="entry.icon" :size="24" class="entry-icon-svg" />
-            </div>
-            <div class="entry-status" :class="entry.status">
-              <span class="status-dot-pulse"></span>
-              {{ entry.statusText }}
-            </div>
+      <div class="tasks-list glass-card">
+        <div v-for="(task, idx) in todayTasks" :key="task.id" class="task-item" :class="{ completed: task.status === 'COMPLETED', current: idx === currentTaskIndex }">
+          <div class="task-num" :class="{ done: task.status === 'COMPLETED' }">
+            <CheckCircle2 v-if="task.status === 'COMPLETED'" :size="16" />
+            <span v-else>{{ idx + 1 }}</span>
           </div>
-          <h3 class="entry-title">{{ entry.title }}</h3>
-          <p class="entry-desc">{{ entry.desc }}</p>
-          <div class="entry-link"><span>探索</span><ArrowRight :size="14" /></div>
+          <div class="task-info">
+            <span class="task-name">{{ task.title || task.name || '学习任务' }}</span>
+            <span class="task-meta">
+              <span v-if="task.estimatedMinutes" class="task-time"><Clock :size="11" /> {{ task.estimatedMinutes }}min</span>
+              <span v-if="task.priority" class="task-priority" :class="task.priority.toLowerCase()">{{ task.priority === 'HIGH' ? '重点' : task.priority === 'MEDIUM' ? '巩固' : '回顾' }}</span>
+            </span>
+          </div>
+          <div v-if="idx === currentTaskIndex && task.status !== 'COMPLETED'" class="task-current-badge"><Zap :size="12" /> 当前</div>
+        </div>
+        <button class="start-learning-btn" @click="startLearning"><Play :size="16" /> {{ currentTaskIndex >= 0 ? '继续当前任务' : '开始学习' }}</button>
+      </div>
+    </section>
+
+    <!-- AGENT CENTER ENTRANCE -->
+    <section class="agent-center-section">
+      <div class="section-header">
+        <div class="section-title-wrap"><Bot :size="18" class="section-icon" /><h2 class="section-title">🤖 智能体中心</h2></div>
+        <button class="link-btn" @click="router.push('/agents')">进入中心 <ArrowRight :size="14" /></button>
+      </div>
+      <div class="agent-center-card glass-card" @click="router.push('/agents')">
+        <div class="center-header">
+          <div class="center-intro">
+            <p class="center-desc">7 个专业助手为你服务</p>
+            <p class="center-hint">点击进入智能体中心，或直接输入需求让 AI 自动分配</p>
+          </div>
+        </div>
+        <div class="agent-icons-row">
+          <div class="agent-icon-item" title="诊断Agent"><span class="agent-icon-badge">🔍</span><span class="agent-icon-label">诊断</span></div>
+          <div class="agent-icon-item" title="规划Agent"><span class="agent-icon-badge">🗺️</span><span class="agent-icon-label">规划</span></div>
+          <div class="agent-icon-item" title="答疑Agent"><span class="agent-icon-badge">💬</span><span class="agent-icon-label">答疑</span></div>
+          <div class="agent-icon-item" title="报告Agent"><span class="agent-icon-badge">📊</span><span class="agent-icon-label">报告</span></div>
+          <div class="agent-icon-item" title="干预Agent"><span class="agent-icon-badge">🛡️</span><span class="agent-icon-label">干预</span></div>
+          <div class="agent-icon-item" title="激励Agent"><span class="agent-icon-badge">🏆</span><span class="agent-icon-label">激励</span></div>
+          <div class="agent-icon-item" title="更多功能"><span class="agent-icon-badge">⚡</span><span class="agent-icon-label">更多</span></div>
+        </div>
+        <div class="center-footer">
+          <div class="smart-input-hint">💡 不确定选哪个？直接输入你的需求，AI 帮你分配</div>
         </div>
       </div>
     </section>
 
-    <!-- ===== 热门推荐 ===== -->
-    <section class="courses">
+    <!-- AGENT SCENARIOS -->
+    <section class="agent-scenarios">
       <div class="section-header">
-        <span class="section-badge"><Flame :size="14" /> 热门推荐</span>
-        <h2 class="section-title">精品学习路径</h2>
+        <div class="section-title-wrap"><Wand2 :size="18" class="section-icon" /><h2 class="section-title">让 Agent 帮你</h2></div>
       </div>
-      <div class="courses-grid">
-        <div v-for="course in displayCourses" :key="course.id" class="course-card glass-card" :class="{ 'guide-card': course.source === 'guide' }" @click="goToPathDetail(course)">
-          <div class="course-gradient" :style="{ background: course.gradient }"></div>
-          <div class="course-content">
-            <div class="course-top">
-              <span v-if="course.source === 'guide'" class="course-guide-badge">
-                <Sparkles :size="12" /> 示例 · 去创建
-              </span>
-              <span v-else-if="course.recommended || course.isTodayRecommend" class="course-recommended">
-                {{ course.isTodayRecommend ? '今日推荐' : '推荐' }}
-              </span>
-              <span class="course-difficulty" :class="course.level">{{ course.levelText }}</span>
-            </div>
-            <h3 class="course-title">{{ course.title }}</h3>
-            <div class="course-meta">
-              <span v-if="course.source !== 'guide'" class="course-learners"><Users :size="14" /> {{ course.studentsFormatted }} 学习者</span>
-              <span class="course-rating"><Star :size="14" /> {{ course.rating }}</span>
-            </div>
-            <div v-if="course.source !== 'guide'" class="course-progress">
-              <div class="course-progress-bar">
-                <div class="course-progress-fill" :style="{ width: course.progress + '%' }"></div>
-              </div>
-              <span class="course-progress-text">已学 {{ course.progress }}%</span>
-            </div>
-            <div v-if="course.source !== 'guide' && course.nextNodeName" class="course-next-node">
-              <span class="next-node-label">下一节点：</span>
-              <span class="next-node-name">{{ course.nextNodeName }}</span>
-            </div>
-            <div v-if="course.source === 'guide'" class="course-action">
-              <button class="course-start-btn" @click.stop="goToPathDetail(course)">
-                <Plus :size="14" />
-                去创建
-              </button>
-            </div>
-            <div v-else-if="course.isTodayRecommend && course.progress === 0" class="course-action">
-              <button class="course-start-btn" @click.stop="goToPathDetail(course)">
-                <Compass :size="14" />
-                开始学习
-              </button>
-            </div>
-          </div>
+      <div class="scenario-grid">
+        <div class="scenario-card glass-card sweep-card" @click="router.push('/capability/diagnosis')">
+          <div class="scenario-icon" style="background: rgba(212,168,83,0.12)"><Stethoscope :size="22" class="scenario-ico" /></div>
+          <div class="scenario-info"><h3 class="scenario-title">诊断我的水平</h3><p class="scenario-desc">AI 分析你的知识薄弱点</p></div>
+          <ArrowRight :size="16" class="scenario-arrow" />
+        </div>
+        <div class="scenario-card glass-card sweep-card" @click="router.push('/chat')">
+          <div class="scenario-icon" style="background: rgba(91,154,191,0.12)"><MessageCircle :size="22" class="scenario-ico" /></div>
+          <div class="scenario-info"><h3 class="scenario-title">问 AI 一个问题</h3><p class="scenario-desc">苏格拉底式引导，不直接给答案</p></div>
+          <ArrowRight :size="16" class="scenario-arrow" />
+        </div>
+        <div class="scenario-card glass-card sweep-card" @click="router.push('/goal-setting')">
+          <div class="scenario-icon" style="background: rgba(154,130,200,0.12)"><Route :size="22" class="scenario-ico" /></div>
+          <div class="scenario-info"><h3 class="scenario-title">规划学习路径</h3><p class="scenario-desc">AI 根据目标生成专属路径</p></div>
+          <ArrowRight :size="16" class="scenario-arrow" />
+        </div>
+        <div class="scenario-card glass-card sweep-card" @click="router.push('/exercise')">
+          <div class="scenario-icon" style="background: rgba(90,171,138,0.12)"><Dumbbell :size="22" class="scenario-ico" /></div>
+          <div class="scenario-info"><h3 class="scenario-title">生成练习题</h3><p class="scenario-desc">针对薄弱点出题，即时反馈</p></div>
+          <ArrowRight :size="16" class="scenario-arrow" />
         </div>
       </div>
     </section>
@@ -188,178 +253,129 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Target, BookOpen, Sparkles, MessageSquare, ArrowRight,
-  TrendingUp, Activity, Zap, Compass, Flame, Users, Star,
-  Brain, Map, LineChart, RefreshCw, PenTool,
-  BarChart3, Plus
+  Flame, Clock, Bot, Play, MessageSquare, Target, Zap,
+  ClipboardList, CheckCircle2, ArrowRight, Radar, Wand2,
+  Stethoscope, MessageCircle, Route, Dumbbell
 } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import { useStatsStore } from '@/stores/statsStore'
+import { useDailyTaskStore } from '@/stores/dailyTaskStore'
 import { getActivePath } from '@/api/learningPath'
+import { getProgressCompetency } from '@/api/statsApi'
+import AIAssistantCard from '@/components/AIAssistantCard.vue'
+import CheckinButton from '@/components/CheckinButton.vue'
 
 const router = useRouter()
-
-const navigateToCapability = (path) => {
-  if (path) {
-    router.push(path)
-  }
-}
-const pageRef = ref(null)
-const mouseX = ref(0)
-const mouseY = ref(0)
-
+const authStore = useAuthStore()
 const statsStore = useStatsStore()
+const dailyTaskStore = useDailyTaskStore()
 
-const displayStats = ref({ learners: '0K+', satisfaction: '0' })
-const isAnimating = ref(false)
+const displayName = computed(() => authStore.displayName || '同学')
+const hasAvatar = computed(() => authStore.hasAvatar)
+const avatarUrl = computed(() => authStore.user?.avatarUrl || '')
+const avatarLetter = computed(() => displayName.value.charAt(0))
+const continuousDays = computed(() => authStore.user?.learningStats?.continuousDays || statsStore.dashboardStats?.continuousDays || 0)
+const todayHours = computed(() => statsStore.dashboardStats?.todayHours || 0)
 
-const capabilities = [
-  { icon: Brain, title: '智能诊断', desc: 'AI 精准分析你的知识水平，找出薄弱环节', metric: '98%', metricLabel: '诊断准确率', status: '运行中', path: '/capability/diagnosis' },
-  { icon: Map, title: '动态规划', desc: '根据学习进度实时调整学习路径和计划', metric: '500+', metricLabel: '学习路径', status: '运行中', path: '/capability/planning' },
-  { icon: LineChart, title: '进度追踪', desc: '可视化学习数据，掌握每一步进展', metric: '24/7', metricLabel: '实时监控', status: '运行中', path: '/capability/progress' },
-  { icon: RefreshCw, title: '自适应学习', desc: 'AI 根据你的反馈自动优化教学策略', metric: '3.0', metricLabel: '智能版本', status: '运行中', path: '/capability/adaptive' }
-]
-
-const quickEntries = [
-  { icon: MessageSquare, title: 'AI 对话', desc: '与 AI 学习助手实时对话，获取个性化指导', path: '/chat', status: 'active', statusText: '在线' },
-  { icon: BookOpen, title: '知识库', desc: '浏览和搜索丰富的学习资源与知识文档', path: '/knowledge', status: 'active', statusText: '在线' },
-  { icon: PenTool, title: '学习路径', desc: '查看和管理你的个性化学习计划', path: '/learning-path', status: 'ready', statusText: '就绪' },
-  { icon: BarChart3, title: '学习统计', desc: '分析学习数据，了解你的成长轨迹', path: '/statistics', status: 'ready', statusText: '就绪' }
-]
-
-// 示例引导卡片：真实路径不足 4 条时补齐展示，点击跳转目标设定页生成专属路径
-const guideCourses = [
-  { id: 'guide-1', title: '机器学习实战', rating: '4.9', level: 'advanced', levelText: '高级', recommended: false, progress: 0, gradient: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(0,229,255,0.06))', source: 'guide' },
-  { id: 'guide-2', title: 'Web 全栈开发', rating: '4.7', level: 'intermediate', levelText: '中级', recommended: false, progress: 0, gradient: 'linear-gradient(135deg, rgba(0,85,255,0.08), rgba(168,85,247,0.06))', source: 'guide' },
-  { id: 'guide-3', title: '云原生架构', rating: '4.8', level: 'advanced', levelText: '高级', recommended: false, progress: 0, gradient: 'linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,229,255,0.08))', source: 'guide' },
-  { id: 'guide-4', title: '数据结构与算法', rating: '4.9', level: 'intermediate', levelText: '中级', recommended: false, progress: 0, gradient: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(0,85,255,0.08))', source: 'guide' }
-]
-
-// 用户真实学习路径（P3：首页卡片与真实路径一致，点击直达详情）
-const realCourses = ref([])
-
-// 方案 A：真实路径优先展示，不足 4 条时用示例引导卡片补齐（点击跳转目标设定页）
-const displayCourses = computed(() => {
-  const real = realCourses.value.slice(0, 4)
-  if (real.length >= 4) return real
-  const guides = guideCourses.slice(0, 4 - real.length)
-  return [...real, ...guides]
+const greetingText = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return '夜深了'
+  if (h < 12) return '早上好'
+  if (h < 14) return '中午好'
+  if (h < 18) return '下午好'
+  return '晚上好'
 })
 
-// 拉取用户真实学习路径（使用统一数据源，解决卡片与详情页数据不一致问题）
-const fetchRealPaths = async () => {
-  try {
-    const res = await getActivePath()
-    const data = res?.data ?? res
+const activePath = ref(null)
 
-    // 无路径时显示引导卡片
-    if (!data || !data.hasPath) {
-      realCourses.value = []
-      return
-    }
-
-    // 根据路径状态构建显示数据
-    const path = data.path
-    const progress = data.progress || { percentage: 0, completedNodes: 0, totalNodes: 0 }
-    const nextNode = data.nextNode
-
-    realCourses.value = [{
-      id: path?.id,
-      title: (path?.name || '未命名学习路径').replace(/^【[^】]*】/, ''),
-      studentsFormatted: '—',
-      rating: '4.5',
-      level: 'intermediate',
-      levelText: '中级',
-      recommended: data.status === 'IN_PROGRESS',
-      isTodayRecommend: true,
-      progress: progress.percentage || 0,
-      completedNodes: progress.completedNodes || 0,
-      totalNodes: progress.totalNodes || 0,
-      nextNodeName: nextNode?.nodeName || null,
-      status: data.status,
-      gradient: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(0,85,255,0.08))',
-      source: 'real'
-    }]
-  } catch (e) {
-    console.warn('加载真实学习路径失败:', e.message)
+const reportStats = computed(() => {
+  const stats = statsStore.dashboardStats
+  if (!stats) return null
+  return {
+    totalHours: stats.totalHours || stats.todayHours || 0,
+    completedTasks: stats.completedTasks || 0,
+    checkinDays: stats.continuousDays || 0,
+    avgAccuracy: stats.avgAccuracy || '--'
   }
+})
+
+const handleCheckinRefresh = () => {
+  statsStore.fetchDashboardStats()
 }
 
-const goToPathDetail = (course) => {
-  if (course?.source === 'real') {
-    // 真实路径：直接进入对应路径详情页
-    router.push(`/learning-path/${course.id}`)
-  } else {
-    // 示例引导卡片：跳转目标设定页，引导生成自己的学习路径
-    router.push('/goal-setting')
-  }
-}
+const agentStatusText = computed(() => {
+  if (activePath.value) return `正在监控你的「${activePath.value.name}」学习进度`
+  return '等待你的学习目标，随时准备出发'
+})
 
-function fetchPopularPaths() {
-}
+const agentFocusText = computed(() => {
+  if (!activePath.value) return ''
+  const p = activePath.value.progress
+  if (p === 0) return '你刚开启这条路，我帮你拆解了第一步，准备好了就出发。'
+  if (p < 30) return '你正在打基础，保持节奏，我帮你巩固刚学的知识点。'
+  if (p < 70) return '进展不错！接下来的内容有点难度，我会重点帮你练习。'
+  if (p < 100) return '快到终点了！最后的冲刺阶段，我帮你做一次全面复习。'
+  return '恭喜完成！我帮你整理了学习报告，要不要回顾一下？'
+})
 
-const handleMouseMove = (e) => {
-  if (pageRef.value) {
-    const rect = pageRef.value.getBoundingClientRect()
-    mouseX.value = e.clientX - rect.left
-    mouseY.value = e.clientY - rect.top
-  }
+const competencies = ref([])
+const todayTasks = computed(() => dailyTaskStore.todayPlan?.tasks || [])
+const estimatedMinutes = computed(() => todayTasks.value.reduce((sum, t) => sum + (t.estimatedMinutes || 10), 0))
+const currentTaskIndex = computed(() => todayTasks.value.findIndex(t => t.status !== 'COMPLETED'))
+
+const startLearning = () => {
+  if (activePath.value) router.push(`/learning-path/${activePath.value.id}`)
+  else router.push('/goal-setting')
 }
 
 onMounted(async () => {
-  document.addEventListener('mousemove', handleMouseMove)
-
+  await statsStore.fetchDashboardStats()
   try {
-    await Promise.all([
-      statsStore.fetchDashboardStats(),
-      fetchPopularPaths(),
-      fetchRealPaths()
-    ])
-
-    const stats = statsStore.dashboardStats
-    displayStats.value.learners = Math.round(stats.totalLearners / 1000) + 'K+'
-    displayStats.value.satisfaction = stats.satisfaction
-  } catch (error) {
-    console.error('加载首页数据失败:', error)
-  }
-
-  setTimeout(() => {
-    isAnimating.value = true
-    const dur = 1500, t0 = performance.now()
-    const anim = (t) => {
-      const p = Math.min((t - t0) / dur, 1)
-      const e = 1 - Math.pow(1 - p, 3)
-      displayStats.value.learners = Math.round(18 * e) + 'K+'
-      displayStats.value.satisfaction = Math.round(98 * e)
-      if (p < 1) {
-        requestAnimationFrame(anim)
-      } else {
-        isAnimating.value = false
+    const res = await getActivePath()
+    const data = res?.data ?? res
+    if (data?.hasPath && data?.path) {
+      activePath.value = {
+        id: data.path.id,
+        name: (data.path.name || '学习路径').replace(/^【[^】]*】/, ''),
+        progress: data.progress?.percentage || 0,
+        nextNode: data.nextNode?.nodeName || null,
+        status: data.status
       }
+      dailyTaskStore.fetchTodayTasks(data.path.id).catch(() => {})
     }
-    requestAnimationFrame(anim)
-  }, 300)
+  } catch (e) {
+    console.warn('加载学习路径失败:', e.message)
+  }
+  try {
+    const res = await getProgressCompetency()
+    const data = res?.data ?? res
+    if (Array.isArray(data) && data.length > 0) {
+      competencies.value = data.slice(0, 5).map(item => ({
+        name: item.name,
+        mastery: item.mastery || 0,
+        level: item.mastery >= 80 ? 'advanced' : item.mastery >= 50 ? 'intermediate' : 'beginner',
+        levelText: item.mastery >= 80 ? '精通' : item.mastery >= 50 ? '进阶' : '入门'
+      }))
+    }
+  } catch (e) { /* silent */ }
 })
-
-onUnmounted(() => { document.removeEventListener('mousemove', handleMouseMove) })
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
+
 .home-page {
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
-  padding-bottom: 80px;
-  animation: fadeIn 0.6s ease;
+  padding: 24px 32px;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
+// ---- Aurora background ----
 .bg-aurora {
   position: fixed;
   inset: 0;
@@ -375,766 +391,933 @@ onUnmounted(() => { document.removeEventListener('mousemove', handleMouseMove) }
 }
 
 .aurora-1 {
-  width: 600px; height: 600px;
-  top: -200px; right: -100px;
-  background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
+  width: 700px;
+  height: 700px;
+  top: -250px;
+  right: -150px;
+  background: radial-gradient(circle, rgba($accent-primary, 0.07) 0%, transparent 70%);
 }
 
 .aurora-2 {
-  width: 500px; height: 500px;
-  bottom: -150px; left: -100px;
-  background: radial-gradient(circle, rgba(0,85,255,0.08) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  bottom: -200px;
+  left: -150px;
+  background: radial-gradient(circle, rgba($accent-blue, 0.07) 0%, transparent 70%);
   animation-delay: -7s;
 }
 
-.aurora-3 {
-  width: 400px; height: 400px;
-  top: 40%; left: 40%;
-  background: radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 70%);
-  animation-delay: -14s;
-}
-
 @keyframes aurora {
-  0%,100% { transform: translate(0,0) scale(1); }
-  25% { transform: translate(30px,-30px) scale(1.1); }
-  50% { transform: translate(-20px,20px) scale(0.95); }
-  75% { transform: translate(20px,10px) scale(1.05); }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -30px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(20px, 10px) scale(1.05); }
 }
 
-@keyframes data-breathe {
-  0%, 100% {
-    filter: var(--data-glow);
-    text-shadow: var(--text-shadow-glow);
-  }
-  50% {
-    filter: drop-shadow(0 0 25px rgba(0, 229, 255, 0.5));
-    text-shadow: 0 0 35px rgba(0, 229, 255, 0.4);
-  }
+// ---- Glass utilities ----
+.glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba($bg-elevated, 0.7);
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
 }
 
-.grid-bg {
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,229,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,229,255,0.015) 1px, transparent 1px);
-  background-size: 60px 60px;
-  pointer-events: none;
-  z-index: -1;
+.glass-card {
+  @include card-base;
 }
 
-.cursor-glow {
-  position: absolute;
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(0,229,255,0.03) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  transform: translate(-50%,-50%);
-  transition: left 0.3s ease, top 0.3s ease;
-  z-index: 0;
-}
-
-.hero {
-  position: relative;
-  min-height: 100vh;
+// ---- Status bar ----
+.status-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 100px 48px 60px;
+  justify-content: space-between;
+  padding: 14px 20px;
 }
 
-.hero-content {
-  max-width: 800px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-decoration {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-  pointer-events: none;
-}
-
-.decoration-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(0,229,255,0.06);
-  animation: ring-rotate 30s linear infinite;
-}
-
-.ring-1 { width: 600px; height: 600px; top: -300px; left: -300px; }
-.ring-2 { width: 500px; height: 500px; top: -250px; left: -250px; animation-direction: reverse; animation-duration: 25s; }
-.ring-3 { width: 400px; height: 400px; top: -200px; left: -200px; animation-duration: 20s; }
-
-@keyframes ring-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.tech-tags {
+.status-left {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 32px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.tech-tag {
-  padding: 8px 16px;
-  background: rgba(0,229,255,0.06);
-  border: 1px solid rgba(0,229,255,0.12);
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--accent-primary);
-  letter-spacing: 0.02em;
-}
-
-.tech-divider { color: var(--text-muted); font-size: 0.85rem; }
-
-.hero-title {
-  font-size: 4.5rem;
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 32px;
-}
-
-.title-line { display: block; }
-
-.gradient-text {
-  background: linear-gradient(135deg, #00E5FF 0%, #0055FF 50%, #A855F7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 5s ease infinite;
-  background-size: 200% 200%;
-}
-
-.streaming-text {
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.3), transparent);
-    animation: streaming-glow 3s ease-in-out infinite;
-  }
-}
-
-@keyframes streaming-glow {
-  0% { left: -100%; }
-  50% { left: 100%; }
-  100% { left: 100%; }
-}
-
-@keyframes gradient-shift {
-  0%,100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.hero-subtitle-wrap {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 48px;
-  text-align: left;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.subtitle-bar {
-  width: 3px;
-  min-height: 50px;
-  background: linear-gradient(180deg, #00E5FF, #0055FF);
-  border-radius: 2px;
-  flex-shrink: 0;
-  margin-top: 4px;
-  box-shadow: 0 0 8px rgba(0,229,255,0.3);
-}
-
-.hero-subtitle {
-  font-size: 1.2rem;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-  font-weight: 500;
-  line-height: 1.6;
-  text-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
-}
-
-.hero-desc {
+.greeting-text {
   font-size: 1rem;
-  color: var(--text-body);
-  line-height: 1.6;
-  opacity: 0.9;
-}
+  color: $text-primary;
 
-.hero-stats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  margin-bottom: 48px;
-}
-
-.stat-item { text-align: center; }
-
-.stat-value {
-  display: block;
-  font-size: 2.5rem;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  line-height: 1;
-  margin-bottom: 4px;
-  background: var(--data-highlight);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: var(--data-glow);
-  text-shadow: var(--text-shadow-glow);
-  animation: data-breathe 3s ease-in-out infinite;
-
-  &.animating {
-    color: #FFFFFF;
-    -webkit-text-fill-color: #FFFFFF;
-    text-shadow: 0 0 30px rgba(0, 229, 255, 0.6), 0 0 60px rgba(0, 229, 255, 0.3);
-    filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.5));
+  strong {
+    font-weight: 700;
+    color: #fff;
   }
 }
 
-.stat-trend {
+.agent-status {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-bottom: 6px;
-  svg { color: var(--accent-emerald); }
-  span { font-size: 0.75rem; font-weight: 600; color: var(--accent-emerald); }
-}
-
-.stat-label { font-size: 0.85rem; color: var(--text-muted); }
-
-.stat-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--border-subtle);
-}
-
-.hero-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 32px;
-  background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(0,85,255,0.1));
-  backdrop-filter: blur(12px);
-  color: var(--accent-primary);
-  border: 1px solid rgba(0,229,255,0.25);
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, #00E5FF, #0055FF);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    filter: blur(8px);
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(0,229,255,0.4);
-    box-shadow: 0 0 24px rgba(0,229,255,0.15);
-    color: var(--accent-primary);
-
-    &::before { opacity: 0.3; }
-    .btn-icon { transform: translateX(4px); }
-  }
-
-  &:active { transform: scale(0.98) translateY(-1px); }
-  .btn-icon { transition: transform 0.3s ease; }
-}
-
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 32px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(12px);
-
-  &:hover {
-    border-color: rgba(0,229,255,0.25);
-    color: var(--accent-primary);
-    background: rgba(0,229,255,0.04);
-    transform: translateY(-2px);
-  }
-
-  &:active { transform: scale(0.98); }
-}
-
-.hero-floating-cards {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.floating-card {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  background: rgba(15,20,40,0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0,229,255,0.08);
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-  animation: float 6s ease-in-out infinite;
-}
-
-.card-1 { top: 20%; left: 5%; }
-.card-2 { top: 60%; right: 5%; animation-delay: -2s; }
-.card-3 { bottom: 15%; left: 10%; animation-delay: -4s; }
-
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-.card-icon-svg { color: var(--accent-primary); }
-.card-text { font-size: 0.9rem; font-weight: 500; color: var(--text-primary); }
-
-.section-header {
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-.section-badge {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: rgba(0,229,255,0.08);
-  border: 1px solid rgba(0,229,255,0.15);
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #00E5FF;
-  margin-bottom: 16px;
 }
 
-.section-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #FFFFFF;
+.status-dot-alive {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: $accent-emerald;
+  animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba($accent-emerald, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba($accent-emerald, 0); }
+}
+
+.status-text {
+  font-size: 0.8rem;
+  color: $text-secondary;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: $radius-full;
+  background: rgba($accent-primary, 0.06);
+  font-size: 0.78rem;
+  color: $text-secondary;
+}
+
+.avatar-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $accent-primary, $accent-blue);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform $transition-normal, box-shadow $transition-normal;
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 14px rgba($accent-primary, 0.35);
+  }
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3d2e10;
+}
+
+// ---- Quick Access Section ----
+.quick-access-section {
+  margin-top: 20px;
+}
+
+.quick-access-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-access-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: rgba($bg-elevated, 0.6);
+  border: 1px solid $border-subtle;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 90px;
+
+  &:hover {
+    background: rgba($accent-primary, 0.08);
+    border-color: rgba($accent-primary, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .qa-icon {
+    font-size: 1.5rem;
+  }
+
+  .qa-label {
+    font-size: 0.8rem;
+    color: $text-secondary;
+    font-weight: 500;
+  }
+}
+
+// ---- Report Summary Section ----
+.report-summary-section {
+  margin-top: 20px;
+}
+
+.report-summary-card {
+  padding: 20px 24px;
+}
+
+.rs-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  .rs-icon {
+    font-size: 1.3rem;
+  }
+
+  .rs-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0;
+  }
+}
+
+.rs-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.rs-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .rs-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: $accent-primary;
+  }
+
+  .rs-stat-label {
+    font-size: 0.75rem;
+    color: $text-muted;
+  }
+}
+
+.rs-link-btn {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: $accent-primary;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+// ---- Agent Focus Card ----
+.agent-focus {
+  margin-top: 24px;
+}
+
+.focus-card {
+  padding: 24px 28px;
+}
+
+.focus-header {
+  display: flex;
+  align-items: flex-start;
+}
+
+.focus-agent {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.agent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, $accent-primary, $accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  color: #fff;
+}
+
+.agent-pulse {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: $accent-emerald;
+  border: 2px solid $bg-elevated;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.agent-speech {
+  flex: 1;
+}
+
+.speech-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $accent-primary;
+  margin-bottom: 4px;
+}
+
+.speech-text {
+  font-size: 0.92rem;
+  color: $text-secondary;
+  line-height: 1.55;
   margin: 0;
 }
 
-.capabilities {
-  padding: 64px 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-  animation: fadeInUp 0.6s ease 0.2s both;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.capabilities-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
-
-.capability-card {
-  position: relative;
-  padding: 32px 24px;
-  text-align: center;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #00E5FF, transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover::before { opacity: 1; }
-}
-
-.cap-status {
-  position: absolute;
-  top: 16px; left: 16px;
+.focus-content {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.cap-status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.cap-status-text { font-size: 0.75rem; font-weight: 500; color: #94A3B8; }
-
-.cap-icon-wrapper {
-  position: relative;
-  width: 64px; height: 64px;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,229,255,0.12);
-  border: 1px solid rgba(0,229,255,0.2);
-  border-radius: 16px;
-}
-
-.cap-icon-svg {
-  color: var(--accent-primary);
-  filter: drop-shadow(0 0 8px rgba(0,229,255,0.5));
-}
-
-.cap-title { font-size: 1.1rem; font-weight: 600; color: #FFFFFF; margin-bottom: 10px; text-shadow: 0 0 20px rgba(0, 229, 255, 0.15); }
-.cap-desc { font-size: 0.9rem; color: #E2E8F0; line-height: 1.6; margin-bottom: 20px; opacity: 1; }
-
-.cap-metric {
-  padding-top: 16px;
-  border-top: 1px solid rgba(0,229,255,0.06);
-}
-
-.metric-value {
-  display: block;
-  font-size: 2rem;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  margin-bottom: 4px;
-  background: var(--data-highlight);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: var(--data-glow);
-  text-shadow: var(--text-shadow-glow);
-}
-
-.metric-label { font-size: 0.85rem; color: #94A3B8; }
-
-.quick-entry {
-  padding: 64px 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-  animation: fadeInUp 0.6s ease 0.4s both;
-}
-
-.entry-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
-
-.entry-card {
-  position: relative;
-  padding: 28px;
-  cursor: pointer;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(0,229,255,0.03) 0%, transparent 60%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover::before { opacity: 1; }
-
-  &:hover .entry-link {
-    opacity: 1;
-    transform: translateX(0);
-    svg { transform: translateX(0); }
-  }
-}
-
-.entry-header {
-  display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
-}
+  margin-top: 22px;
+  padding: 18px 22px;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid $border-subtle;
+  cursor: pointer;
+  transition: border-color $transition-normal, background $transition-normal;
 
-.entry-icon-wrap {
-  width: 52px; height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,229,255,0.1);
-  border: 1px solid rgba(0,229,255,0.2);
-  border-radius: 14px;
-}
-
-.entry-icon-svg { color: var(--accent-primary); filter: drop-shadow(0 0 6px rgba(0,229,255,0.4)); }
-
-.entry-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-
-  &.active {
-    background: rgba(16,185,129,0.1);
-    color: var(--accent-emerald);
-    .status-dot-pulse { background: var(--accent-emerald); box-shadow: 0 0 6px rgba(16,185,129,0.5); }
-  }
-
-  &.ready {
-    background: rgba(0,229,255,0.08);
-    color: #94A3B8;
-    .status-dot-pulse { background: #94A3B8; }
+  &:hover {
+    border-color: $border-medium;
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 
-.status-dot-pulse {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+.focus-path-info {
+  flex: 1;
 }
 
-.entry-title { font-size: 1.1rem; font-weight: 600; color: #FFFFFF; margin-bottom: 8px; text-shadow: 0 0 15px rgba(0, 229, 255, 0.1); }
-.entry-desc { font-size: 0.9rem; color: #CBD5E1; line-height: 1.5; margin-bottom: 16px; opacity: 1; }
+.focus-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+}
 
-.entry-link {
+.focus-next {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--accent-primary);
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: all 0.3s ease;
-  svg { transition: transform 0.3s ease; }
+  color: $text-secondary;
+
+  strong {
+    color: $accent-primary;
+  }
 }
 
-.courses {
-  padding: 64px 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-  animation: fadeInUp 0.6s ease 0.6s both;
+.next-icon {
+  color: $accent-primary;
+}
+
+.focus-progress {
+  flex-shrink: 0;
+  margin-left: 24px;
+}
+
+.progress-ring-wrap {
   position: relative;
+  width: 60px;
+  height: 60px;
 }
 
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 20px 0;
+.progress-ring {
+  width: 60px;
+  height: 60px;
+  transform: rotate(-90deg);
 }
 
-.course-card {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
+.ring-bg {
+  fill: none;
+  stroke: rgba($accent-primary, 0.1);
+  stroke-width: 4;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: $accent-primary;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s ease;
+}
+
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: $accent-primary;
+}
+
+.focus-empty {
+  text-align: center;
+  padding: 32px 16px 24px;
+}
+
+.empty-icon {
+  font-size: 2.8rem;
+  margin-bottom: 14px;
+}
+
+.empty-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.empty-desc {
+  font-size: 0.9rem;
+  color: $text-secondary;
+  margin: 0;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.55;
+}
+
+.focus-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+// ---- Buttons ----
+.btn-primary {
+  @include button-primary;
+}
+
+.btn-ghost {
+  @include button-ghost;
+}
+
+// ---- Competency Section ----
+.competency-section {
+  margin-top: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  color: $accent-primary;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.link-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: $accent-primary;
+  font-family: $font-sans;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  transition: color $transition-normal;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  &:active {
-    transform: scale(0.98);
+    color: #e4c476;
   }
 }
 
-.course-gradient { position: absolute; inset: 0; }
+.competency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
 
-.course-content {
-  position: relative;
-  padding: 20px;
-  background: rgba(15,20,40,0.4);
-  backdrop-filter: blur(8px);
+.competency-card {
+  padding: 16px 18px;
+}
+
+.comp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.comp-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.comp-level {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+
+  &.advanced {
+    background: rgba($accent-emerald, 0.1);
+    color: $accent-emerald;
+  }
+
+  &.intermediate {
+    background: rgba($accent-amber, 0.1);
+    color: $accent-amber;
+  }
+
+  &.beginner {
+    background: rgba($accent-blue, 0.1);
+    color: $accent-blue;
+  }
+}
+
+.comp-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comp-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.comp-bar-fill {
   height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+
+  &.advanced {
+    background: $accent-emerald;
+  }
+
+  &.intermediate {
+    background: $accent-amber;
+  }
+
+  &.beginner {
+    background: $accent-blue;
+  }
+}
+
+.comp-percent {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: $text-muted;
+  min-width: 30px;
+  text-align: right;
+}
+
+// ---- Tasks Section ----
+.tasks-section {
+  margin-top: 32px;
+}
+
+.task-count {
+  font-size: 0.85rem;
+  color: $text-muted;
+}
+
+.tasks-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid $border-subtle;
+  transition: background $transition-fast;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(#fff, 0.02);
+  }
+
+  &.completed {
+    opacity: 0.5;
+  }
+
+  &.current {
+    background: rgba($accent-primary, 0.03);
+  }
+}
+
+.task-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: $text-muted;
+  background: rgba(255, 255, 255, 0.04);
+  margin-right: 14px;
+  flex-shrink: 0;
+
+  &.done {
+    background: transparent;
+    color: $accent-emerald;
+  }
+}
+
+.task-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.course-top { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-
-.course-difficulty {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border: 1px solid;
-
-  &.beginner { color: var(--accent-emerald); border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); }
-  &.intermediate { color: var(--accent-blue); border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.08); }
-  &.advanced { color: var(--accent-purple); border-color: rgba(168,85,247,0.2); background: rgba(168,85,247,0.08); }
+.task-name {
+  font-size: 0.9rem;
+  color: $text-primary;
 }
 
-.course-recommended {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  border: 1px solid rgba(0,229,255,0.2);
-  background: rgba(0,229,255,0.08);
+.task-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: $text-muted;
 }
 
-.course-guide-badge {
-  display: inline-flex;
+.task-time {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--accent-purple);
-  border: 1px dashed rgba(168,85,247,0.35);
-  background: rgba(168,85,247,0.08);
-  svg { color: var(--accent-purple); }
+  gap: 3px;
 }
 
-.course-card.guide-card {
-  border: 1px dashed rgba(168,85,247,0.25);
+.task-priority {
+  padding: 2px 8px;
+  border-radius: $radius-full;
 
-  &:hover {
-    border-color: rgba(168,85,247,0.5);
-    box-shadow: 0 12px 40px rgba(168,85,247,0.12);
+  &.high {
+    background: rgba($accent-red, 0.1);
+    color: $accent-red;
   }
 
-  .course-action { margin-top: auto; }
+  &.medium {
+    background: rgba($accent-amber, 0.1);
+    color: $accent-amber;
+  }
+
+  &.low {
+    background: rgba($accent-blue, 0.1);
+    color: $accent-blue;
+  }
 }
 
-.course-title { font-size: 1rem; font-weight: 600; color: #FFFFFF; margin-bottom: 10px; line-height: 1.3; text-shadow: 0 0 20px rgba(0, 229, 255, 0.1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.course-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.course-learners, .course-rating {
+.task-current-badge {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.8rem;
-  color: #E2E8F0;
-  svg { color: #94A3B8; }
+  padding: 3px 10px;
+  border-radius: $radius-full;
+  background: rgba($accent-primary, 0.1);
+  color: $accent-primary;
+  font-size: 0.72rem;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.course-rating svg { color: var(--accent-amber); }
+.start-learning-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: none;
+  background: rgba($accent-primary, 0.08);
+  color: $accent-primary;
+  font-family: $font-sans;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all $transition-normal;
 
-.course-progress { margin-top: auto; display: flex; align-items: center; gap: 12px; }
-.course-progress-bar { flex: 1; height: 4px; background: rgba(0,229,255,0.08); border-radius: 2px; overflow: hidden; }
-.course-progress-fill { height: 100%; background: linear-gradient(90deg, #00E5FF, #10B981); border-radius: 2px; transition: width 1s ease; }
-.course-progress-text { font-size: 0.75rem; font-weight: 500; color: var(--accent-emerald); white-space: nowrap; }
-.course-next-node { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 0.75rem; }
-.next-node-label { color: rgba(255,255,255,0.5); }
-.next-node-name { color: var(--accent-cyan); font-weight: 500; }
-
-.course-action {
-  margin-top: 12px;
+  &:hover {
+    background: rgba($accent-primary, 0.15);
+  }
 }
 
-.course-start-btn {
-  display: inline-flex;
+// ---- Agent Center ----
+.agent-center-section {
+  margin-top: 32px;
+  margin-bottom: 8px;
+}
+
+.agent-center-card {
+  padding: 24px 28px;
+  cursor: pointer;
+  transition: all $transition-normal;
+  border: 1px solid rgba($accent-primary, 0.1);
+
+  &:hover {
+    border-color: rgba($accent-primary, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba($accent-primary, 0.1);
+  }
+}
+
+.center-header {
+  margin-bottom: 20px;
+}
+
+.center-desc {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.center-hint {
+  font-size: 0.82rem;
+  color: $text-muted;
+  margin: 0;
+}
+
+.agent-icons-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.agent-icon-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 85, 255, 0.1));
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  border-radius: 8px;
-  color: #00E5FF;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  padding: 12px 16px;
+  background: rgba($bg-card, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all $transition-normal;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 85, 255, 0.2));
+    background: rgba($accent-primary, 0.1);
+    border-color: rgba($accent-primary, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 229, 255, 0.15);
   }
 }
 
-@media (max-width: 1200px) {
-  .courses-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+.agent-icon-badge {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.agent-icon-label {
+  font-size: 0.72rem;
+  color: $text-secondary;
+  font-weight: 500;
+}
+
+.center-footer {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.smart-input-hint {
+  font-size: 0.82rem;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ---- Agent Scenarios ----
+.agent-scenarios {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.scenario-card {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  cursor: pointer;
+}
+
+.scenario-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+  margin-right: 16px;
+}
+
+.scenario-ico {
+  color: $accent-primary;
+}
+
+.scenario-info {
+  flex: 1;
+}
+
+.scenario-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 3px;
+}
+
+.scenario-desc {
+  font-size: 0.78rem;
+  color: $text-muted;
+  margin: 0;
+}
+
+.scenario-arrow {
+  color: $text-muted;
+  flex-shrink: 0;
+  margin-left: 8px;
+  transition: color $transition-normal, transform $transition-normal;
+
+  .scenario-card:hover & {
+    color: $accent-primary;
+    transform: translateX(3px);
   }
 }
 
-@media (max-width: 1024px) {
-  .hero { padding: 100px 24px 60px; }
-  .hero-title { font-size: 3.5rem; }
-  .capabilities-grid, .entry-grid { grid-template-columns: repeat(2, 1fr); }
-  .hero-floating-cards { display: none; }
-  .courses-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+// ---- Sweep animation (reused from existing) ----
+.sweep-card {
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+  }
+
+  &:hover::after {
+    left: 125%;
   }
 }
 
-@media (max-width: 640px) {
-  .hero { padding: 80px 16px 40px; }
-  .hero-title { font-size: 2.5rem; }
-  .hero-stats { gap: 24px; flex-wrap: wrap; }
-  .stat-value { font-size: 1.8rem; }
-  .hero-actions { flex-direction: column; width: 100%; }
-  .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
-  .capabilities-grid, .entry-grid { grid-template-columns: 1fr; }
-  .section-title { font-size: 1.6rem; }
-  .tech-tags { flex-wrap: wrap; gap: 8px; }
-  .capabilities, .quick-entry, .courses { padding-left: 24px; padding-right: 24px; }
-  .courses-grid {
+// ---- Responsive ----
+@media (max-width: 768px) {
+  .home-page {
+    padding: 16px;
+  }
+
+  .stat-chip {
+    display: none;
+  }
+
+  .scenario-grid {
     grid-template-columns: 1fr;
+  }
+
+  .competency-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .focus-title {
+    font-size: 1.2rem;
+  }
+
+  .focus-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .focus-progress {
+    margin-left: 0;
+    align-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-bar {
+    flex-wrap: wrap;
     gap: 12px;
+  }
+
+  .focus-card {
+    padding: 20px;
+  }
+
+  .focus-actions {
+    flex-direction: column;
+
+    .btn-primary,
+    .btn-ghost {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .competency-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

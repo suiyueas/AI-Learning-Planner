@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-dialog
     v-model="visible"
     title="调整学习计划"
@@ -353,6 +353,7 @@ const handleResetConfirm = async (pathId) => {
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .dialog-content {
   padding: 8px 0;
 }
@@ -371,12 +372,12 @@ const handleResetConfirm = async (pathId) => {
   justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
+  border-bottom: 1px solid rgba($accent-secondary, 0.1);
 }
 
 .info-label {
   font-size: 0.85rem;
-  color: #00E5FF;
+  color: $accent-primary;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -385,8 +386,8 @@ const handleResetConfirm = async (pathId) => {
 .active-badge {
   font-size: 0.7rem;
   padding: 2px 8px;
-  background: rgba(0, 229, 255, 0.1);
-  color: #00E5FF;
+  background: rgba($accent-primary, 0.1);
+  color: $accent-primary;
   border-radius: 4px;
 }
 
@@ -398,18 +399,18 @@ const handleResetConfirm = async (pathId) => {
 }
 
 .info-row:not(:last-child) {
-  border-bottom: 1px solid rgba(100, 100, 180, 0.06);
+  border-bottom: 1px solid rgba($accent-secondary, 0.06);
 }
 
 .row-label {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   flex-shrink: 0;
 }
 
 .row-value {
   font-size: 0.9rem;
-  color: #F1F5F9;
+  color: $text-primary;
   font-weight: 500;
   text-align: right;
 }
@@ -425,14 +426,14 @@ const handleResetConfirm = async (pathId) => {
 .progress-track {
   width: 100px;
   height: 6px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00E5FF, #10B981);
+  background: linear-gradient(90deg, $accent-primary, #10B981);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -447,7 +448,7 @@ const handleResetConfirm = async (pathId) => {
 
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(100, 100, 180, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, rgba($accent-secondary, 0.15), transparent);
   margin: 24px 0;
 }
 
@@ -462,8 +463,8 @@ const handleResetConfirm = async (pathId) => {
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -472,14 +473,14 @@ const handleResetConfirm = async (pathId) => {
 
 .option-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 229, 255, 0.25);
-  background: rgba(0, 229, 255, 0.04);
+  border-color: rgba($accent-primary, 0.25);
+  background: rgba($accent-primary, 0.04);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .option-card.active {
-  border-color: rgba(0, 229, 255, 0.5);
-  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba($accent-primary, 0.5);
+  background: rgba($accent-primary, 0.08);
 }
 
 .option-icon {
@@ -489,13 +490,13 @@ const handleResetConfirm = async (pathId) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 10px;
   flex-shrink: 0;
 }
 
 .option-card.active .option-icon {
-  background: rgba(0, 229, 255, 0.12);
+  background: rgba($accent-primary, 0.12);
 }
 
 .option-content {
@@ -505,20 +506,20 @@ const handleResetConfirm = async (pathId) => {
 .option-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin-bottom: 3px;
 }
 
 .option-desc {
   font-size: 0.78rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .option-check {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00E5FF, #0055FF);
+  background: linear-gradient(135deg, $accent-primary, #0055FF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -536,14 +537,14 @@ const handleResetConfirm = async (pathId) => {
 .switch-plan-section {
   margin-top: 10px;
   padding: 14px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 10px;
 }
 
 .section-tip {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
   margin-bottom: 10px;
 }
 
@@ -551,7 +552,7 @@ const handleResetConfirm = async (pathId) => {
 .switch-empty {
   text-align: center;
   padding: 16px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.85rem;
 }
 
@@ -576,15 +577,15 @@ const handleResetConfirm = async (pathId) => {
   justify-content: space-between;
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .path-item:hover:not(.selected):not(.current) {
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .path-item.selected {
@@ -593,8 +594,8 @@ const handleResetConfirm = async (pathId) => {
 }
 
 .path-item.current {
-  border-color: rgba(0, 229, 255, 0.3);
-  background: rgba(0, 229, 255, 0.06);
+  border-color: rgba($accent-primary, 0.3);
+  background: rgba($accent-primary, 0.06);
   cursor: not-allowed;
 }
 
@@ -604,14 +605,14 @@ const handleResetConfirm = async (pathId) => {
 
 .path-item-name {
   font-size: 0.85rem;
-  color: #e8e8ff;
+  color: $text-primary;
   font-weight: 500;
   margin-bottom: 3px;
 }
 
 .path-item-meta {
   font-size: 0.75rem;
-  color: #94A3B8;
+  color: $text-secondary;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -625,8 +626,8 @@ const handleResetConfirm = async (pathId) => {
 .path-current-badge {
   font-size: 0.7rem;
   padding: 1px 6px;
-  background: rgba(0, 229, 255, 0.1);
-  color: #00E5FF;
+  background: rgba($accent-primary, 0.1);
+  color: $accent-primary;
   border-radius: 4px;
 }
 
@@ -634,7 +635,7 @@ const handleResetConfirm = async (pathId) => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00E5FF, #0055FF);
+  background: linear-gradient(135deg, $accent-primary, #0055FF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -646,8 +647,8 @@ const handleResetConfirm = async (pathId) => {
 .generate-section {
   margin-top: 10px;
   padding: 14px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -662,7 +663,7 @@ const handleResetConfirm = async (pathId) => {
 
 .generate-label {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-weight: 500;
 }
 
@@ -672,58 +673,58 @@ const handleResetConfirm = async (pathId) => {
 
 .generate-input {
   --el-input-bg-color: rgba(255, 255, 255, 0.04);
-  --el-input-border-color: rgba(100, 100, 180, 0.15);
-  --el-input-hover-border-color: rgba(0, 229, 255, 0.3);
-  --el-input-focus-border-color: #00E5FF;
-  --el-input-text-color: #F1F5F9;
-  --el-input-placeholder-color: #94A3B8;
+  --el-input-border-color: rgba($accent-secondary, 0.15);
+  --el-input-hover-border-color: rgba($accent-primary, 0.3);
+  --el-input-focus-border-color: $accent-primary;
+  --el-input-text-color: $text-primary;
+  --el-input-placeholder-color: $text-secondary;
 }
 
 .generate-input .el-textarea__inner {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.15);
-  color: #F1F5F9;
+  border: 1px solid rgba($accent-secondary, 0.15);
+  color: $text-primary;
   border-radius: 8px;
   font-size: 0.85rem;
   resize: vertical;
 }
 
 .generate-input .el-textarea__inner:focus {
-  border-color: #00E5FF;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.1);
+  border-color: $accent-primary;
+  box-shadow: 0 0 8px rgba($accent-primary, 0.1);
 }
 
 .generate-select {
-  --el-select-border-color-hover: rgba(0, 229, 255, 0.3);
-  --el-select-input-focus-border-color: #00E5FF;
+  --el-select-border-color-hover: rgba($accent-primary, 0.3);
+  --el-select-input-focus-border-color: $accent-primary;
 }
 
 .generate-select .el-input__wrapper {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
   box-shadow: none;
 }
 
 .generate-select .el-input__wrapper:hover {
-  border-color: rgba(0, 229, 255, 0.3);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .generate-select .el-input.is-focus .el-input__wrapper {
-  border-color: #00E5FF;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.1);
+  border-color: $accent-primary;
+  box-shadow: 0 0 8px rgba($accent-primary, 0.1);
 }
 
 .generate-select .el-input__inner {
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 /* 手动调整 */
 .manual-section {
   margin-top: 10px;
   padding: 14px 16px;
-  background: rgba(0, 229, 255, 0.04);
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.04);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 10px;
 }
 
@@ -732,7 +733,7 @@ const handleResetConfirm = async (pathId) => {
   align-items: flex-start;
   gap: 10px;
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.5;
 }
 
@@ -755,7 +756,7 @@ const handleResetConfirm = async (pathId) => {
   align-items: flex-start;
   gap: 10px;
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
   line-height: 1.5;
 }
 
@@ -775,25 +776,25 @@ const handleResetConfirm = async (pathId) => {
 
 .btn-cancel {
   padding: 10px 24px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.2);
-  color: #94A3B8;
+  background: rgba($accent-secondary, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.2);
+  color: $text-secondary;
   border-radius: 8px;
   font-size: 0.9rem;
   transition: all 0.25s ease;
 }
 
 .btn-cancel:hover {
-  color: #F1F5F9;
-  border-color: rgba(100, 100, 180, 0.3);
-  background: rgba(100, 100, 180, 0.12);
+  color: $text-primary;
+  border-color: rgba($accent-secondary, 0.3);
+  background: rgba($accent-secondary, 0.12);
 }
 
 .btn-confirm {
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 85, 255, 0.15));
-  border: 1px solid rgba(0, 229, 255, 0.3);
-  color: #00E5FF;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 85, 255, 0.15));
+  border: 1px solid rgba($accent-primary, 0.3);
+  color: $accent-primary;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -802,8 +803,8 @@ const handleResetConfirm = async (pathId) => {
 
 .btn-confirm:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 229, 255, 0.2);
-  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 4px 20px rgba($accent-primary, 0.2);
+  border-color: rgba($accent-primary, 0.5);
 }
 
 .btn-confirm:disabled {
@@ -814,31 +815,31 @@ const handleResetConfirm = async (pathId) => {
 
 <style>
 .adjust-plan-dialog.el-dialog {
-  background: rgba(17, 17, 39, 0.95);
+  background: rgba($bg-primary, 0.95);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 16px;
 }
 
 .adjust-plan-dialog .el-dialog__header {
   padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
+  border-bottom: 1px solid rgba($accent-secondary, 0.1);
   margin-right: 0;
 }
 
 .adjust-plan-dialog .el-dialog__title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
 }
 
 .adjust-plan-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 1.2rem;
 }
 
 .adjust-plan-dialog .el-dialog__headerbtn:hover .el-dialog__close {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .adjust-plan-dialog .el-dialog__body {

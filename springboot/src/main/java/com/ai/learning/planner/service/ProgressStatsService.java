@@ -476,4 +476,98 @@ public class ProgressStatsService {
             return null;
         }
     }
+
+    // ==================== AI 学习洞察 ====================
+
+    /**
+     * AI 学习洞察：根据用户学习数据生成个性化建议
+     * 规则优先级：
+     * 1. 超过3天未学习 → 恢复节奏建议
+     * 2. 存在薄弱知识点 → 专项练习建议
+     * 3. 有进行中的路径 → 继续学习建议
+     * 4. 默认 → 欢迎/引导建议
+     */
+    public Map<String, Object> getAISuggestion(String userId) {
+        try {
+            int daysSinceLastLearning = getDaysSinceLastLearning(userId);
+            List<Map<String, Object>> weakPoints = getWeakPoints(userId, 3);
+            boolean hasActivePath = hasActiveLearningPath(userId);
+
+            String message;
+            List<Map<String, String>> actions = new ArrayList<>();
+
+            if (daysSinceLastLearning > 3) {
+                message = String.format("检测到你已 %d 天未学习，建议今日完成一个小任务恢复节奏。", daysSinceLastLearning);
+                actions.add(Map.of("label", "继续学习", "target", "/learning-path"));
+                actions.add(Map.of("label", "查看详情", "target", "/statistics"));
+            } else if (!weakPoints.isEmpty()) {
+                String weakPointNames = weakPoints.stream()
+                        .map(m -> String.valueOf(m.get("name")))
+                        .collect(Collectors.joining("、"));
+                message = String.format("你的薄弱点：%s，建议优先复习。已为你生成专项练习题。", weakPointNames);
+                actions.add(Map.of("label", "开始练习", "target", "/exercise"));
+                actions.add(Map.of("label", "查看详情", "target", "/report"));
+            } else if (hasActivePath) {
+                message = "你的学习进度进展顺利！继续保持，或挑战新的学习目标。";
+                actions.add(Map.of("label", "继续学习", "target", "/learning-path"));
+                actions.add(Map.of("label", "查看报告", "target", "/report"));
+            } else {
+                message = "开始学习吧！告诉我你的目标，我来帮你制定专属计划。";
+                actions.add(Map.of("label", "设定目标", "target", "/goal-setting"));
+                actions.add(Map.of("label", "浏览路径", "target", "/learning-path"));
+            }
+
+            return Map.of(
+                    "message", message,
+                    "actions", actions
+            );
+        } catch (Exception e) {
+            log.warn("[ProgressStats] AI建议生成失败: {}", e.getMessage());
+            return Map.of(
+                    "message", "开始学习吧！AI 将为你提供智能建议 🚀",
+                    "actions", List.of(Map.of("label", "查看学习路径", "target", "/learning-path"))
+            );
+        }
+    }
+
+    private int getDaysSinceLastLearning(String userId) {
+        try {
+            List<LearningRecord> records = learningRecordRepository
+                    .findByUserIdAndStatusAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, COMPLETED);
+            if (!records.isEmpty() && records.get(0).getCompletedAt() != null) {
+                LocalDate lastDate = records.get(0).getCompletedAt().toLocalDate();
+                return (int) ChronoUnit.DAYS.between(lastDate, LocalDate.now());
+            }
+
+            Long userIdLong = Long.valueOf(userId);
+            Optional<CheckinRecord> latestCheckin = checkinRecordRepository.findTopByUserIdOrderByCheckinDateDesc(userIdLong);
+            if (latestCheckin.isPresent()) {
+                return (int) ChronoUnit.DAYS.between(latestCheckin.get().getCheckinDate(), LocalDate.now());
+            }
+        } catch (Exception e) {
+            log.debug("[ProgressStats] 获取最近学习天数失败: {}", e.getMessage());
+        }
+        return 0;
+    }
+
+    private List<Map<String, Object>> getWeakPoints(String userId, int limit) {
+        List<Map<String, Object>> competency = getCompetency(userId);
+        return competency.stream()
+                .filter(m -> {
+                    int mastery = m.containsKey("mastery") ? ((Number) m.get("mastery")).intValue() : 0;
+                    return mastery < 60;
+                })
+                .limit(limit)
+                .toList();
+    }
+
+    private boolean hasActiveLearningPath(String userId) {
+        try {
+            List<LearningRecord> records = learningRecordRepository
+                    .findByUserIdAndStatusAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, COMPLETED);
+            return !records.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

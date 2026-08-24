@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="calendar-page">
     <!-- ===== 背景层 ===== -->
     <div class="bg-layer">
@@ -650,21 +650,22 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
 // ===== 变量 =====
-$bg-deep: #0a0a1a;
-$cyan: #00f5d4;
-$cyan-dim: rgba(0, 245, 212, 0.15);
-$cyan-glow: rgba(0, 245, 212, 0.25);
-$purple: #7b61ff;
+$bg-deep: $bg-primary;
+$cyan: $accent-primary;
+$cyan-dim: rgba($accent-primary, 0.15);
+$cyan-glow: rgba($accent-primary, 0.25);
+$purple: $accent-purple;
 $blue: #0055ff;
-$text-primary: #e8e8ff;
-$text-secondary: #c0c0e0;
+$text-primary: $text-primary;
+$text-secondary: $text-secondary;
 $text-muted: #8080b0;
 $card-bg: rgba(15, 18, 45, 0.55);
-$border-subtle: rgba(100, 100, 180, 0.08);
-$border-glass: rgba(100, 100, 180, 0.12);
+$border-subtle: rgba($accent-secondary, 0.08);
+$border-glass: rgba($accent-secondary, 0.12);
 
 // ===== 字体 =====
 $font-display: 'Orbitron', 'Courier New', monospace;
@@ -692,7 +693,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 70% 15%, rgba(0, 245, 212, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 15%, rgba($accent-primary, 0.07) 0%, transparent 50%),
     radial-gradient(ellipse at 25% 75%, rgba(123, 97, 255, 0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 45%, rgba(0, 85, 255, 0.04) 0%, transparent 50%);
   animation: auroraDrift 20s ease-in-out infinite;
@@ -708,7 +709,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 245, 212, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba($accent-primary, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(123, 97, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   animation: gridPulse 8s ease-in-out infinite alternate;
@@ -726,8 +727,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 245, 212, 0.008) 2px,
-    rgba(0, 245, 212, 0.008) 4px
+    rgba($accent-primary, 0.008) 2px,
+    rgba($accent-primary, 0.008) 4px
   );
   pointer-events: none;
 }
@@ -752,7 +753,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: center;
   gap: 16px;
   padding: 16px 32px;
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba($bg-primary, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid $border-subtle;
@@ -763,7 +764,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border: 1px solid $border-subtle;
   border-radius: 8px;
   color: $text-secondary;
@@ -776,8 +777,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   &:hover {
     border-color: $cyan-dim;
     color: $cyan;
-    background: rgba(0, 245, 212, 0.04);
-    box-shadow: 0 0 14px rgba(0, 245, 212, 0.08);
+    background: rgba($accent-primary, 0.04);
+    box-shadow: 0 0 14px rgba($accent-primary, 0.08);
   }
 }
 
@@ -795,7 +796,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   .nav-title-icon {
     font-size: 1.2rem;
-    filter: drop-shadow(0 0 6px rgba(0, 245, 212, 0.3));
+    filter: drop-shadow(0 0 6px rgba($accent-primary, 0.3));
   }
 
   .nav-title-text {
@@ -823,7 +824,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: linear-gradient(135deg, rgba(0, 245, 212, 0.15), rgba(0, 85, 255, 0.1));
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
   border: 1px solid $cyan-dim;
   border-radius: 10px;
   color: $cyan;
@@ -835,9 +836,9 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   letter-spacing: 0.3px;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(0, 245, 212, 0.25), rgba(0, 85, 255, 0.18));
+    background: linear-gradient(135deg, rgba($accent-primary, 0.25), rgba(0, 85, 255, 0.18));
     border-color: $cyan-glow;
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
+    box-shadow: 0 0 20px rgba($accent-primary, 0.15);
     transform: translateY(-1px);
   }
 
@@ -846,7 +847,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   svg {
-    filter: drop-shadow(0 0 4px rgba(0, 245, 212, 0.4));
+    filter: drop-shadow(0 0 4px rgba($accent-primary, 0.4));
   }
 }
 
@@ -886,7 +887,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   justify-content: center;
   width: 38px;
   height: 38px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border: 1px solid $border-subtle;
   border-radius: 10px;
   color: $text-secondary;
@@ -896,8 +897,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   &:hover {
     border-color: $cyan-dim;
     color: $cyan;
-    background: rgba(0, 245, 212, 0.04);
-    box-shadow: 0 0 12px rgba(0, 245, 212, 0.08);
+    background: rgba($accent-primary, 0.04);
+    box-shadow: 0 0 12px rgba($accent-primary, 0.08);
     transform: scale(1.05);
   }
 
@@ -939,7 +940,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   gap: 5px;
   margin: 0 auto 16px;
   padding: 5px 14px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border: 1px solid transparent;
   border-radius: 20px;
   color: $text-muted;
@@ -950,7 +951,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   &:hover {
     border-color: $cyan-dim;
     color: $cyan;
-    background: rgba(0, 245, 212, 0.04);
+    background: rgba($accent-primary, 0.04);
   }
 
   &.is-today-month {
@@ -999,7 +1000,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: rgba(100, 100, 180, 0.02);
+  background: rgba($accent-secondary, 0.02);
   border: 1px solid transparent;
   min-height: 52px;
 
@@ -1009,8 +1010,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &:hover:not(.is-other-month) {
-    background: rgba(0, 245, 212, 0.05);
-    border-color: rgba(0, 245, 212, 0.15);
+    background: rgba($accent-primary, 0.05);
+    border-color: rgba($accent-primary, 0.15);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
@@ -1020,9 +1021,9 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &.is-selected {
-    background: rgba(0, 245, 212, 0.08);
+    background: rgba($accent-primary, 0.08);
     border-color: $cyan;
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.12), inset 0 0 20px rgba(0, 245, 212, 0.02);
+    box-shadow: 0 0 20px rgba($accent-primary, 0.12), inset 0 0 20px rgba($accent-primary, 0.02);
 
     .date-number {
       color: $cyan;
@@ -1038,7 +1039,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
     .date-number {
       color: #fff;
       font-weight: 800;
-      text-shadow: 0 0 12px rgba(0, 245, 212, 0.5);
+      text-shadow: 0 0 12px rgba($accent-primary, 0.5);
     }
 
     .today-badge {
@@ -1120,7 +1121,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   &.dot-completed {
     background: $cyan;
-    box-shadow: 0 0 4px rgba(0, 245, 212, 0.4);
+    box-shadow: 0 0 4px rgba($accent-primary, 0.4);
   }
 
   &.dot-in-progress {
@@ -1145,7 +1146,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   height: 7px;
   border-radius: 50%;
   background: $cyan;
-  box-shadow: 0 0 6px rgba(0, 245, 212, 0.6);
+  box-shadow: 0 0 6px rgba($accent-primary, 0.6);
   position: relative;
   z-index: 1;
   margin-top: 1px;
@@ -1154,8 +1155,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
 // ===== 真实学习统计 chip =====
 .real-stat {
-  border-color: rgba(0, 245, 212, 0.25) !important;
-  background: rgba(0, 245, 212, 0.04) !important;
+  border-color: rgba($accent-primary, 0.25) !important;
+  background: rgba($accent-primary, 0.04) !important;
 
   strong {
     color: $cyan;
@@ -1170,8 +1171,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   gap: 8px;
   padding: 10px 14px;
   margin-bottom: 14px;
-  background: rgba(0, 245, 212, 0.04);
-  border: 1px solid rgba(0, 245, 212, 0.15);
+  background: rgba($accent-primary, 0.04);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 10px;
 }
 
@@ -1183,7 +1184,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
     font-size: 0.65rem;
     padding: 2px 8px;
     border-radius: 8px;
-    background: rgba(0, 245, 212, 0.1);
+    background: rgba($accent-primary, 0.1);
     color: $cyan;
   }
 }
@@ -1204,7 +1205,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border: 1px solid $border-subtle;
   border-radius: 20px;
   font-size: 0.72rem;
@@ -1258,7 +1259,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
 .tasks-icon {
   font-size: 1.3rem;
-  filter: drop-shadow(0 0 6px rgba(0, 245, 212, 0.2));
+  filter: drop-shadow(0 0 6px rgba($accent-primary, 0.2));
 }
 
 .tasks-title-group {
@@ -1284,7 +1285,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   font-size: 0.8rem;
   color: $cyan;
   padding: 3px 10px;
-  background: rgba(0, 245, 212, 0.06);
+  background: rgba($accent-primary, 0.06);
   border: 1px solid $cyan-dim;
   border-radius: 12px;
   white-space: nowrap;
@@ -1303,7 +1304,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  background: rgba(100, 100, 180, 0.03);
+  background: rgba($accent-secondary, 0.03);
   border: 1px solid $border-subtle;
   border-radius: 12px;
   transition: all 0.25s ease;
@@ -1323,8 +1324,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &:hover {
-    border-color: rgba(100, 100, 180, 0.2);
-    background: rgba(100, 100, 180, 0.06);
+    border-color: rgba($accent-secondary, 0.2);
+    background: rgba($accent-secondary, 0.06);
     transform: translateX(2px);
 
     .task-delete {
@@ -1334,12 +1335,12 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &.is-completed {
-    border-color: rgba(0, 245, 212, 0.1);
-    background: rgba(0, 245, 212, 0.02);
+    border-color: rgba($accent-primary, 0.1);
+    background: rgba($accent-primary, 0.02);
 
     &::before {
       background: $cyan;
-      box-shadow: 0 0 8px rgba(0, 245, 212, 0.3);
+      box-shadow: 0 0 8px rgba($accent-primary, 0.3);
     }
 
     .task-name {
@@ -1371,7 +1372,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   margin-top: 1px;
 
   &:hover {
-    background: rgba(100, 100, 180, 0.08);
+    background: rgba($accent-secondary, 0.08);
     transform: scale(1.1);
   }
 
@@ -1385,7 +1386,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   transition: all 0.3s ease;
 
   &.completed {
-    filter: drop-shadow(0 0 4px rgba(0, 245, 212, 0.4));
+    filter: drop-shadow(0 0 4px rgba($accent-primary, 0.4));
   }
 
   &.in-progress {
@@ -1440,9 +1441,9 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &.completed {
-    background: rgba(0, 245, 212, 0.08);
+    background: rgba($accent-primary, 0.08);
     color: $cyan;
-    border: 1px solid rgba(0, 245, 212, 0.15);
+    border: 1px solid rgba($accent-primary, 0.15);
   }
 }
 
@@ -1474,7 +1475,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 // 进度条
 .task-progress-track {
   height: 3px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 2px;
   overflow: hidden;
   margin-top: 2px;
@@ -1486,8 +1487,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   &.fill-completed {
-    background: linear-gradient(90deg, $cyan, #10b981);
-    box-shadow: 0 0 6px rgba(0, 245, 212, 0.3);
+    background: linear-gradient(90deg, $cyan, $accent-emerald);
+    box-shadow: 0 0 6px rgba($accent-primary, 0.3);
   }
 
   &.fill-half {
@@ -1519,7 +1520,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   margin-top: 1px;
 
   &:hover {
-    color: #ef4444;
+    color: $accent-red;
     background: rgba(239, 68, 68, 0.08);
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.1);
   }
@@ -1541,7 +1542,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border: 1px solid $border-subtle;
   border-radius: 16px;
   margin-bottom: 12px;
@@ -1646,7 +1647,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border: 1px solid $border-subtle;
   border-radius: 8px;
   color: $text-muted;
@@ -1655,8 +1656,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   &:hover {
     color: $text-primary;
-    border-color: rgba(100, 100, 180, 0.2);
-    background: rgba(100, 100, 180, 0.1);
+    border-color: rgba($accent-secondary, 0.2);
+    background: rgba($accent-secondary, 0.1);
   }
 }
 
@@ -1686,7 +1687,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
 .form-input {
   padding: 10px 14px;
-  background: rgba(100, 100, 180, 0.06);
+  background: rgba($accent-secondary, 0.06);
   border: 1px solid $border-subtle;
   border-radius: 10px;
   color: $text-primary;
@@ -1702,8 +1703,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   &:focus {
     border-color: $cyan-dim;
-    background: rgba(0, 245, 212, 0.03);
-    box-shadow: 0 0 12px rgba(0, 245, 212, 0.06);
+    background: rgba($accent-primary, 0.03);
+    box-shadow: 0 0 12px rgba($accent-primary, 0.06);
   }
 
   &[type="date"],
@@ -1735,7 +1736,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border: 1px solid $border-subtle;
   border-radius: 20px;
   color: $text-secondary;
@@ -1750,13 +1751,13 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 
   &:hover {
-    border-color: rgba(100, 100, 180, 0.2);
-    background: rgba(100, 100, 180, 0.08);
+    border-color: rgba($accent-secondary, 0.2);
+    background: rgba($accent-secondary, 0.08);
   }
 
   &.active {
     border-color: var(--cat-color, $cyan);
-    background: rgba(0, 245, 212, 0.06);
+    background: rgba($accent-primary, 0.06);
     color: var(--cat-color, $cyan);
     box-shadow: 0 0 10px rgba(var(--cat-color), 0.08);
   }
@@ -1772,7 +1773,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
 .btn-cancel {
   padding: 9px 20px;
-  background: rgba(100, 100, 180, 0.04);
+  background: rgba($accent-secondary, 0.04);
   border: 1px solid $border-subtle;
   border-radius: 10px;
   color: $text-muted;
@@ -1783,8 +1784,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   &:hover {
     color: $text-secondary;
-    border-color: rgba(100, 100, 180, 0.2);
-    background: rgba(100, 100, 180, 0.08);
+    border-color: rgba($accent-secondary, 0.2);
+    background: rgba($accent-secondary, 0.08);
   }
 }
 
@@ -1804,7 +1805,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 245, 212, 0.25);
+    box-shadow: 0 4px 16px rgba($accent-primary, 0.25);
   }
 
   &:disabled {

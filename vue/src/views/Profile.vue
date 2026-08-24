@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profile-page">
     <div class="bg-aurora">
       <div class="aurora-layer aurora-1"></div>
@@ -606,12 +606,13 @@ async function handleLogout() {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .profile-page {
   min-height: calc(100vh - 80px);
   position: relative;
   overflow: hidden;
   padding: 24px;
-  background: #0a0a1a;
+  background: $bg-primary;
 }
 
 .bg-aurora {
@@ -633,7 +634,7 @@ async function handleLogout() {
   height: 500px;
   top: -100px;
   right: -50px;
-  background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-primary, 0.08) 0%, transparent 70%);
 }
 
 .aurora-2 {
@@ -675,27 +676,27 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 12px;
-  color: #c0c0e0;
+  color: $text-secondary;
   cursor: pointer;
   transition: all 0.25s ease;
   flex-shrink: 0;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.3);
-    color: #00f5d4;
+    border-color: rgba($accent-primary, 0.3);
+    color: $accent-primary;
     transform: translateX(-2px);
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.12);
+    box-shadow: 0 0 20px rgba($accent-primary, 0.12);
   }
 }
 
 .header-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   flex: 1;
 }
 
@@ -710,33 +711,33 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 10px;
-  color: #c0c0e0;
+  color: $text-secondary;
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
-    border-color: rgba(0, 245, 212, 0.25);
-    color: #00f5d4;
-    box-shadow: 0 0 16px rgba(0, 245, 212, 0.1);
+    border-color: rgba($accent-primary, 0.25);
+    color: $accent-primary;
+    box-shadow: 0 0 16px rgba($accent-primary, 0.1);
   }
 }
 
 .glass-card {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.25s ease;
 
   &:hover {
-    box-shadow: 0 8px 32px rgba(0, 245, 212, 0.08);
-    border-color: rgba(0, 245, 212, 0.15);
+    box-shadow: 0 8px 32px rgba($accent-primary, 0.08);
+    border-color: rgba($accent-primary, 0.15);
   }
 }
 
@@ -755,7 +756,7 @@ async function handleLogout() {
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: linear-gradient(90deg, rgba(100,100,180,0.1) 25%, rgba(100,100,180,0.2) 50%, rgba(100,100,180,0.1) 75%);
+  background: linear-gradient(90deg, rgba($accent-secondary,0.1) 25%, rgba($accent-secondary,0.2) 50%, rgba($accent-secondary,0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -768,31 +769,31 @@ async function handleLogout() {
 .profile-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 4px;
 }
 
 .profile-username {
   font-size: 0.85rem;
-  color: #9090b8;
+  color: $text-muted;
   margin: 0 0 10px;
 }
 
 .profile-goal {
   display: inline-block;
   font-size: 0.9rem;
-  color: #00f5d4;
+  color: $accent-primary;
   font-weight: 500;
   padding: 6px 16px;
-  background: rgba(0, 245, 212, 0.08);
-  border: 1px solid rgba(0, 245, 212, 0.12);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.12);
   border-radius: 20px;
   margin-bottom: 8px;
 }
 
 .profile-join-date {
   font-size: 0.8rem;
-  color: #8080a8;
+  color: $text-muted;
   margin: 0;
 }
 
@@ -809,14 +810,14 @@ async function handleLogout() {
   align-items: center;
   gap: 4px;
   padding: 14px 8px;
-  background: rgba(100, 100, 180, 0.05);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.05);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
   transition: all 0.25s ease;
 
   &:hover {
-    background: rgba(0, 245, 212, 0.04);
-    border-color: rgba(0, 245, 212, 0.12);
+    background: rgba($accent-primary, 0.04);
+    border-color: rgba($accent-primary, 0.12);
     transform: translateY(-2px);
   }
 }
@@ -825,7 +826,7 @@ async function handleLogout() {
   font-size: 1.5rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
-  background: linear-gradient(135deg, #00f5d4, #3a86ff);
+  background: linear-gradient(135deg, $accent-primary, #3a86ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -840,7 +841,7 @@ async function handleLogout() {
 
 .stat-card-unit {
   font-size: 0.7rem;
-  color: #8080a8;
+  color: $text-muted;
 }
 
 .skeleton-stat {
@@ -865,10 +866,10 @@ async function handleLogout() {
 .card-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   margin: 0 0 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.08);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -895,22 +896,22 @@ async function handleLogout() {
 .form-input,
 .form-textarea {
   padding: 10px 14px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #e8e8ff;
+  color: $text-primary;
   outline: none;
   transition: all 0.25s ease;
   font-family: inherit;
 
   &:focus {
-    border-color: rgba(0, 245, 212, 0.25);
-    box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.06);
+    border-color: rgba($accent-primary, 0.25);
+    box-shadow: 0 0 0 3px rgba($accent-primary, 0.06);
   }
 
   &::placeholder {
-    color: #8080a8;
+    color: $text-muted;
   }
 
   &:disabled {
@@ -936,7 +937,7 @@ async function handleLogout() {
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #00f5d4, #3a86ff);
+  background: linear-gradient(135deg, $accent-primary, #3a86ff);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -944,12 +945,12 @@ async function handleLogout() {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 245, 212, 0.2);
+  box-shadow: 0 4px 16px rgba($accent-primary, 0.2);
   align-self: flex-start;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 245, 212, 0.3);
+    box-shadow: 0 8px 24px rgba($accent-primary, 0.3);
   }
 
   &:disabled {
@@ -969,7 +970,7 @@ async function handleLogout() {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.06);
+  border-bottom: 1px solid rgba($accent-secondary, 0.06);
 
   &:last-child {
     border-bottom: none;
@@ -995,14 +996,14 @@ async function handleLogout() {
 .stats-row-value {
   font-size: 1rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: $text-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .progress-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 100, 180, 0.06);
+  border-top: 1px solid rgba($accent-secondary, 0.06);
 }
 
 .progress-header {
@@ -1020,20 +1021,20 @@ async function handleLogout() {
 .progress-percent {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #00f5d4;
+  color: $accent-primary;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .progress-bar {
   height: 8px;
-  background: rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.08);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00f5d4, #3a86ff);
+  background: linear-gradient(90deg, $accent-primary, #3a86ff);
   border-radius: 4px;
   transition: width 1s ease;
 }
@@ -1057,10 +1058,10 @@ async function handleLogout() {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 3px 10px;
-  background: rgba(0, 245, 212, 0.1);
-  border: 1px solid rgba(0, 245, 212, 0.15);
+  background: rgba($accent-primary, 0.1);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 20px;
-  color: #00f5d4;
+  color: $accent-primary;
   margin-left: auto;
   font-family: 'JetBrains Mono', monospace;
 }
@@ -1070,7 +1071,7 @@ async function handleLogout() {
   width: 100px;
   height: 20px;
   border-radius: 20px;
-  background: linear-gradient(90deg, rgba(100,100,180,0.1) 25%, rgba(100,100,180,0.2) 50%, rgba(100,100,180,0.1) 75%);
+  background: linear-gradient(90deg, rgba($accent-secondary,0.1) 25%, rgba($accent-secondary,0.2) 50%, rgba($accent-secondary,0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   margin-left: auto;
@@ -1088,22 +1089,22 @@ async function handleLogout() {
   align-items: center;
   gap: 8px;
   padding: 16px 12px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
   text-align: center;
   transition: all 0.25s ease;
   position: relative;
 
   &.unlocked {
-    background: rgba(0, 245, 212, 0.04);
-    border-color: rgba(0, 245, 212, 0.12);
+    background: rgba($accent-primary, 0.04);
+    border-color: rgba($accent-primary, 0.12);
 
     &:hover {
-      background: rgba(0, 245, 212, 0.08);
-      border-color: rgba(0, 245, 212, 0.2);
+      background: rgba($accent-primary, 0.08);
+      border-color: rgba($accent-primary, 0.2);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 245, 212, 0.1);
+      box-shadow: 0 8px 24px rgba($accent-primary, 0.1);
     }
   }
 
@@ -1122,7 +1123,7 @@ async function handleLogout() {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(90deg, rgba(100,100,180,0.1) 25%, rgba(100,100,180,0.2) 50%, rgba(100,100,180,0.1) 75%);
+  background: linear-gradient(90deg, rgba($accent-secondary,0.1) 25%, rgba($accent-secondary,0.2) 50%, rgba($accent-secondary,0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -1134,15 +1135,15 @@ async function handleLogout() {
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
   flex-shrink: 0;
   transition: all 0.3s ease;
 
   .unlocked & {
-    background: rgba(0, 245, 212, 0.08);
-    border-color: rgba(0, 245, 212, 0.15);
+    background: rgba($accent-primary, 0.08);
+    border-color: rgba($accent-primary, 0.15);
   }
 
   &.locked {
@@ -1163,12 +1164,12 @@ async function handleLogout() {
 .achievement-name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #e8e8ff;
+  color: $text-primary;
 }
 
 .achievement-desc {
   font-size: 0.7rem;
-  color: #8080a8;
+  color: $text-muted;
   line-height: 1.3;
 }
 
@@ -1186,7 +1187,7 @@ async function handleLogout() {
   gap: 8px;
   padding: 14px;
   border: 1px solid rgba(255, 64, 96, 0.25);
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(12px);
   color: #ff4060;
   border-radius: 12px;
@@ -1224,7 +1225,7 @@ async function handleLogout() {
 .skeleton-text {
   height: 14px;
   border-radius: 4px;
-  background: linear-gradient(90deg, rgba(100,100,180,0.1) 25%, rgba(100,100,180,0.2) 50%, rgba(100,100,180,0.1) 75%);
+  background: linear-gradient(90deg, rgba($accent-secondary,0.1) 25%, rgba($accent-secondary,0.2) 50%, rgba($accent-secondary,0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -1268,7 +1269,7 @@ async function handleLogout() {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.06);
+  border-bottom: 1px solid rgba($accent-secondary, 0.06);
 }
 
 .skeleton-stats-label {
@@ -1284,7 +1285,7 @@ async function handleLogout() {
 .skeleton-progress {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(100, 100, 180, 0.06);
+  border-top: 1px solid rgba($accent-secondary, 0.06);
   height: 30px;
 }
 
@@ -1364,7 +1365,7 @@ async function handleLogout() {
 /* ===== 智能干预设置 ===== */
 .intervention-desc {
   font-size: 0.8rem;
-  color: #9090b8;
+  color: $text-muted;
   margin: 0 0 16px;
 }
 
@@ -1374,8 +1375,8 @@ async function handleLogout() {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   margin-bottom: 16px;
 }
@@ -1390,12 +1391,12 @@ async function handleLogout() {
 .setting-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e8e8ff;
+  color: $text-primary;
 }
 
 .setting-hint {
   font-size: 0.7rem;
-  color: #9090b8;
+  color: $text-muted;
   line-height: 1.4;
 }
 
@@ -1417,7 +1418,7 @@ async function handleLogout() {
   .toggle-slider {
     position: absolute;
     inset: 0;
-    background: rgba(100, 100, 180, 0.2);
+    background: rgba($accent-secondary, 0.2);
     border-radius: 12px;
     transition: all 0.3s ease;
 
@@ -1435,7 +1436,7 @@ async function handleLogout() {
   }
 
   input:checked + .toggle-slider {
-    background: linear-gradient(135deg, #00f5d4, #0ea5e9);
+    background: linear-gradient(135deg, $accent-primary, #0ea5e9);
 
     &::before {
       transform: translateX(20px);
@@ -1462,7 +1463,7 @@ async function handleLogout() {
     right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #9090b8;
+    color: $text-muted;
     font-size: 0.8rem;
     pointer-events: none;
   }

@@ -9,7 +9,7 @@ import { get } from './request'
  * @param {string} style 风格 standard
  * @returns {Promise} { generatedAt, periodStart, periodEnd, overview, matrix, recommendations }
  */
-export const generateReport = (startDate, endDate, sections = ['overview', 'matrix', 'recommendations'], style = 'standard') => {
+export const generateReport = (startDate, endDate, sections = ['overview', 'matrix', 'recommendations', 'analysis'], style = 'standard') => {
   return get('/report/generate', { startDate, endDate, sections, style })
 }
 

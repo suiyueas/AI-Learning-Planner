@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="records-page">
     <!-- 顶部导航栏 -->
     <header class="records-header">
@@ -186,9 +186,10 @@ loadData()
 </script>
 
 <style scoped>
+@use '../styles/variables' as *;
 .records-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   padding-bottom: 80px;
 }
 
@@ -197,9 +198,9 @@ loadData()
   align-items: center;
   justify-content: space-between;
   padding: 20px 48px;
-  background: rgba(17, 17, 39, 0.8);
+  background: rgba($bg-primary, 0.8);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.12);
+  border-bottom: 1px solid rgba($accent-secondary, 0.12);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -216,19 +217,19 @@ loadData()
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .btn-back:hover {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.2);
-  background: rgba(0, 229, 255, 0.04);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.2);
+  background: rgba($accent-primary, 0.04);
 }
 
 .header-title {
@@ -237,17 +238,17 @@ loadData()
   gap: 10px;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
 .header-icon {
-  color: #00E5FF;
+  color: $accent-primary;
 }
 
 .header-total {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -262,9 +263,9 @@ loadData()
 
 /* 筛选区 */
 .filter-bar {
-  background: rgba(17, 17, 39, 0.6);
+  background: rgba($bg-primary, 0.6);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
   padding: 20px 24px;
 }
@@ -281,7 +282,7 @@ loadData()
 .filter-search {
   padding: 8px 12px;
   background: rgba(30, 38, 56, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
   color: #C0C0E0;
   font-size: 0.85rem;
@@ -293,7 +294,7 @@ loadData()
 .filter-select:hover,
 .filter-date:hover,
 .filter-search:hover {
-  border-color: rgba(0, 229, 255, 0.3);
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .filter-search {
@@ -302,7 +303,7 @@ loadData()
 }
 
 .filter-search::placeholder {
-  color: #64748B;
+  color: $text-muted;
 }
 
 .filter-date {
@@ -310,16 +311,16 @@ loadData()
 }
 
 .date-sep {
-  color: #64748B;
+  color: $text-muted;
   font-size: 0.85rem;
 }
 
 .filter-btn {
   padding: 8px 18px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 8px;
-  color: #00E5FF;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -328,19 +329,19 @@ loadData()
 }
 
 .filter-btn:hover {
-  background: rgba(0, 229, 255, 0.14);
-  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba($accent-primary, 0.14);
+  border-color: rgba($accent-primary, 0.35);
 }
 
 .filter-btn.ghost {
   background: transparent;
-  border-color: rgba(100, 100, 180, 0.2);
-  color: #94A3B8;
+  border-color: rgba($accent-secondary, 0.2);
+  color: $text-secondary;
 }
 
 .filter-btn.ghost:hover {
   color: #E2E8F0;
-  border-color: rgba(100, 100, 180, 0.35);
+  border-color: rgba($accent-secondary, 0.35);
 }
 
 /* 空态 */
@@ -351,11 +352,11 @@ loadData()
   justify-content: center;
   gap: 12px;
   padding: 72px 20px;
-  color: #64748B;
+  color: $text-muted;
   font-size: 0.9rem;
   text-align: center;
-  background: rgba(17, 17, 39, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba($accent-secondary, 0.12);
   border-radius: 16px;
 }
 
@@ -405,15 +406,15 @@ loadData()
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
-  background: rgba(17, 17, 39, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
   transition: all 0.25s ease;
 }
 
 .record-item:hover {
-  background: rgba(0, 229, 255, 0.02);
-  border-color: rgba(0, 229, 255, 0.15);
+  background: rgba($accent-primary, 0.02);
+  border-color: rgba($accent-primary, 0.15);
   transform: translateX(4px);
 }
 
@@ -423,7 +424,7 @@ loadData()
 
 .record-day {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -443,7 +444,7 @@ loadData()
 .record-title {
   font-size: 0.92rem;
   font-weight: 500;
-  color: #F1F5F9;
+  color: $text-primary;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -457,12 +458,12 @@ loadData()
 
 .record-duration {
   font-size: 0.8rem;
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .record-path-link {
   font-size: 0.78rem;
-  color: #00E5FF;
+  color: $accent-primary;
   cursor: pointer;
 }
 
@@ -481,7 +482,7 @@ loadData()
 }
 
 .record-status.skipped {
-  color: #94A3B8;
+  color: $text-secondary;
 }
 
 .record-status.in_progress {
@@ -489,7 +490,7 @@ loadData()
 }
 
 .record-status.pending {
-  color: #64748B;
+  color: $text-muted;
 }
 
 /* 分页 */
@@ -507,18 +508,18 @@ loadData()
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.06);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
 
 .page-btn:hover:not(:disabled) {
-  color: #00E5FF;
-  border-color: rgba(0, 229, 255, 0.3);
+  color: $accent-primary;
+  border-color: rgba($accent-primary, 0.3);
 }
 
 .page-btn:disabled {
@@ -528,7 +529,7 @@ loadData()
 
 .page-info {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: $text-secondary;
   font-family: 'JetBrains Mono', monospace;
 }
 

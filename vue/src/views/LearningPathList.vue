@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="path-list-page">
     <div class="bg-layer">
       <div class="bg-aurora">
@@ -414,9 +414,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../styles/variables' as *;
 .path-list-page {
   min-height: 100vh;
-  background: #0a0a1a;
+  background: $bg-primary;
   position: relative;
   padding: 0 32px 60px;
 }
@@ -426,7 +427,7 @@ onMounted(() => {
 .bg-aurora {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse at 70% 20%, rgba(0,245,212,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
   animation: auroraDrift 20s ease-in-out infinite;
@@ -439,7 +440,7 @@ onMounted(() => {
 .bg-grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(0,245,212,0.03) 1px, transparent 1px),
+    linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px);
   background-size: 40px 40px;
 }
@@ -453,16 +454,16 @@ onMounted(() => {
 .back-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px; flex-shrink: 0; margin-top: 4px;
-  background: rgba(100,100,180,0.06);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($accent-secondary,0.06);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 8px;
-  color: #c0c0e0; font-size: 0.82rem; font-weight: 500;
+  color: $text-secondary; font-size: 0.82rem; font-weight: 500;
   cursor: pointer; transition: all 0.2s;
-  &:hover { border-color: rgba(0,245,212,0.2); color: #00f5d4; box-shadow: 0 0 14px rgba(0,245,212,0.08); }
+  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; box-shadow: 0 0 14px rgba($accent-primary,0.08); }
 }
 .header-text { flex: 1; }
-.page-title { font-size: 1.8rem; font-weight: 800; color: #e8e8ff; margin-bottom: 6px; }
-.page-subtitle { font-size: 0.9rem; color: #9090b8; }
+.page-title { font-size: 1.8rem; font-weight: 800; color: $text-primary; margin-bottom: 6px; }
+.page-subtitle { font-size: 0.9rem; color: $text-muted; }
 
 // 卡片网格
 .paths-grid {
@@ -500,84 +501,84 @@ onMounted(() => {
 .path-difficulty {
   display: inline-block; padding: 4px 10px; border-radius: 20px;
   font-size: 0.75rem; font-weight: 600; border: 1px solid;
-  &.beginner { color: #10b981; border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); }
-  &.intermediate { color: #3b82f6; border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.08); }
+  &.beginner { color: $accent-emerald; border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); }
+  &.intermediate { color: $accent-blue; border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.08); }
   &.advanced { color: #a855f7; border-color: rgba(168,85,247,0.2); background: rgba(168,85,247,0.08); }
 }
 .path-badge {
   display: inline-block; padding: 4px 10px; border-radius: 20px;
   font-size: 0.75rem; font-weight: 600;
-  color: #00f5d4; border: 1px solid rgba(0,245,212,0.2); background: rgba(0,245,212,0.08);
+  color: $accent-primary; border: 1px solid rgba($accent-primary,0.2); background: rgba($accent-primary,0.08);
 }
 
 // 薄弱点专项徽标
 .path-badge.weakness-tag {
-  color: #ef4444; border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.08);
+  color: $accent-red; border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.08);
 }
 
 // 状态标签
 .path-status {
   display: inline-block; padding: 4px 10px; border-radius: 20px;
   font-size: 0.75rem; font-weight: 600; border: 1px solid;
-  &.in-progress { color: #f59e0b; border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.08); }
-  &.not-started { color: #9090b8; border-color: rgba(100,100,180,0.2); background: rgba(100,100,180,0.08); }
-  &.completed { color: #10b981; border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); }
+  &.in-progress { color: $accent-amber; border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.08); }
+  &.not-started { color: $text-muted; border-color: rgba($accent-secondary,0.2); background: rgba($accent-secondary,0.08); }
+  &.completed { color: $accent-emerald; border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.08); }
 }
 
 // 结构预览
 .path-modules {
   display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline;
   margin-bottom: 10px; font-size: 0.78rem;
-  .modules-label { color: #9090b8; flex-shrink: 0; }
-  .modules-items { color: #00f5d4; line-height: 1.5; }
+  .modules-label { color: $text-muted; flex-shrink: 0; }
+  .modules-items { color: $accent-primary; line-height: 1.5; }
 }
 
 // 下一节点
 .path-next-node {
   display: flex; align-items: center; gap: 6px;
   margin-bottom: 10px; font-size: 0.78rem;
-  .next-node-label { color: #9090b8; flex-shrink: 0; }
+  .next-node-label { color: $text-muted; flex-shrink: 0; }
   .next-node-value {
-    color: #e8e8ff; font-weight: 600;
+    color: $text-primary; font-weight: 600;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 }
 
 .path-last-learned {
-  font-size: 0.72rem; color: #8080a8; margin-bottom: 12px;
+  font-size: 0.72rem; color: $text-muted; margin-bottom: 12px;
 }
 
 .path-time {
-  font-size: 0.78rem; color: #c0c0e0;
+  font-size: 0.78rem; color: $text-secondary;
 }
 .path-adjust {
   font-size: 0.78rem; color: #a78bfa;
 }
-.path-title { font-size: 1.15rem; font-weight: 600; color: #e8e8ff; margin-bottom: 6px; }
-.path-desc { font-size: 0.82rem; color: #c0c0e0; line-height: 1.5; margin-bottom: 12px; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.path-meta { display: flex; gap: 16px; margin-bottom: 14px; font-size: 0.82rem; color: #c0c0e0; }
+.path-title { font-size: 1.15rem; font-weight: 600; color: $text-primary; margin-bottom: 6px; }
+.path-desc { font-size: 0.82rem; color: $text-secondary; line-height: 1.5; margin-bottom: 12px; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.path-meta { display: flex; gap: 16px; margin-bottom: 14px; font-size: 0.82rem; color: $text-secondary; }
 .path-footer {
   margin-top: auto;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .path-progress { display: flex; align-items: center; gap: 8px; flex: 1; }
-.path-progress-bar { flex: 1; height: 4px; background: rgba(0,245,212,0.08); border-radius: 2px; overflow: hidden; }
-.path-progress-fill { height: 100%; background: linear-gradient(90deg, #00f5d4, #10b981); border-radius: 2px; transition: width 0.8s ease; }
-.path-progress-text { font-size: 0.75rem; font-weight: 500; color: #00f5d4; white-space: nowrap; }
+.path-progress-bar { flex: 1; height: 4px; background: rgba($accent-primary,0.08); border-radius: 2px; overflow: hidden; }
+.path-progress-fill { height: 100%; background: linear-gradient(90deg, $accent-primary, $accent-emerald); border-radius: 2px; transition: width 0.8s ease; }
+.path-progress-text { font-size: 0.75rem; font-weight: 500; color: $accent-primary; white-space: nowrap; }
 .path-btn {
   padding: 6px 14px;
-  background: rgba(0,245,212,0.06);
-  border: 1px solid rgba(0,245,212,0.12);
+  background: rgba($accent-primary,0.06);
+  border: 1px solid rgba($accent-primary,0.12);
   border-radius: 6px;
-  color: #00f5d4; font-size: 0.78rem; font-weight: 600;
+  color: $accent-primary; font-size: 0.78rem; font-weight: 600;
   cursor: pointer; transition: all 0.2s; white-space: nowrap;
-  &:hover { background: rgba(0,245,212,0.1); }
+  &:hover { background: rgba($accent-primary,0.1); }
 }
 
 .glass-card {
-  background: rgba(17,17,39,0.5);
+  background: rgba($bg-primary,0.5);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
+  border: 1px solid rgba($accent-secondary,0.08);
 }
 
 // 加载状态
@@ -588,7 +589,7 @@ onMounted(() => {
   justify-content: center;
   padding: 80px 20px;
   gap: 16px;
-  color: #8080a8;
+  color: $text-muted;
   font-size: 14px;
 }
 
@@ -635,19 +636,19 @@ onMounted(() => {
 .banner-subjects {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #ef4444;
+  color: $accent-red;
 }
 
 .banner-desc {
   font-size: 0.82rem;
-  color: #9090b8;
+  color: $text-muted;
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(100,100,180,0.1);
-  border-top-color: #00f5d4;
+  border: 3px solid rgba($accent-secondary,0.1);
+  border-top-color: $accent-primary;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -670,15 +671,15 @@ onMounted(() => {
 .empty-btn {
   margin-top: 16px;
   padding: 10px 22px;
-  background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(0,85,255,0.1));
-  border: 1px solid rgba(0,245,212,0.25);
+  background: linear-gradient(135deg, rgba($accent-primary,0.12), rgba(0,85,255,0.1));
+  border: 1px solid rgba($accent-primary,0.25);
   border-radius: 10px;
-  color: #00f5d4;
+  color: $accent-primary;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s;
-  &:hover { box-shadow: 0 0 18px rgba(0,245,212,0.15); transform: translateY(-1px); }
+  &:hover { box-shadow: 0 0 18px rgba($accent-primary,0.15); transform: translateY(-1px); }
 }
 
 // 筛选栏
@@ -695,48 +696,48 @@ onMounted(() => {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   max-width: 960px; margin: 18px auto 0;
   padding: 12px 18px;
-  background: rgba(17,17,39,0.6);
-  border: 1px solid rgba(100,100,180,0.08);
+  background: rgba($bg-primary,0.6);
+  border: 1px solid rgba($accent-secondary,0.08);
   border-radius: 12px;
   .feature-strip-label {
-    font-size: 0.8rem; font-weight: 600; color: #00f5d4;
+    font-size: 0.8rem; font-weight: 600; color: $accent-primary;
     flex-shrink: 0;
   }
   .feature-item {
     display: inline-flex; align-items: center; gap: 5px;
     .feature-check { font-size: 0.75rem; }
-    .feature-name { font-size: 0.78rem; font-weight: 600; color: #e8e8ff; }
-    .feature-desc { font-size: 0.72rem; color: #8080a8; }
+    .feature-name { font-size: 0.78rem; font-weight: 600; color: $text-primary; }
+    .feature-desc { font-size: 0.72rem; color: $text-muted; }
   }
 }
 
 .filter-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 14px;
-  background: rgba(17,17,39,0.6);
-  border: 1px solid rgba(100,100,180,0.1);
+  background: rgba($bg-primary,0.6);
+  border: 1px solid rgba($accent-secondary,0.1);
   border-radius: 20px;
-  font-size: 0.78rem; color: #c0c0e0;
+  font-size: 0.78rem; color: $text-secondary;
   cursor: pointer; transition: all 0.2s;
-  &.active { border-color: #00f5d4; color: #00f5d4; background: rgba(0,245,212,0.08); }
+  &.active { border-color: $accent-primary; color: $accent-primary; background: rgba($accent-primary,0.08); }
 }
 
 .filter-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  &.cyan { background: #00f5d4; }
-  &.yellow { background: #f59e0b; }
-  &.gray { background: #9090b8; }
-  &.green { background: #10b981; }
+  &.cyan { background: $accent-primary; }
+  &.yellow { background: $accent-amber; }
+  &.gray { background: $text-muted; }
+  &.green { background: $accent-emerald; }
 }
 
 .filter-count {
   font-size: 0.68rem; padding: 0 6px;
-  background: rgba(100,100,180,0.12); border-radius: 8px;
+  background: rgba($accent-secondary,0.12); border-radius: 8px;
 }
 
 .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.6; }
-.empty-text { font-size: 1.1rem; font-weight: 600; color: #e8e8ff; margin: 0 0 8px 0; }
-.empty-desc { font-size: 0.9rem; color: #9090b8; margin: 0; }
+.empty-text { font-size: 1.1rem; font-weight: 600; color: $text-primary; margin: 0 0 8px 0; }
+.empty-desc { font-size: 0.9rem; color: $text-muted; margin: 0; }
 
 // 操作按钮组
 .path-actions {
@@ -805,9 +806,9 @@ onMounted(() => {
 .delete-modal {
   width: 90%;
   max-width: 420px;
-  background: rgba(17, 17, 39, 0.95);
+  background: rgba($bg-primary, 0.95);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -834,7 +835,7 @@ onMounted(() => {
 .delete-modal-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #F1F5F9;
+  color: $text-primary;
   margin: 0;
 }
 
@@ -858,18 +859,18 @@ onMounted(() => {
 
 .btn-cancel {
   padding: 10px 24px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-secondary, 0.08);
+  border: 1px solid rgba($accent-secondary, 0.15);
   border-radius: 8px;
-  color: #94A3B8;
+  color: $text-secondary;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(100, 100, 180, 0.12);
-    border-color: rgba(100, 100, 180, 0.25);
+    background: rgba($accent-secondary, 0.12);
+    border-color: rgba($accent-secondary, 0.25);
     color: #E2E8F0;
   }
 }
