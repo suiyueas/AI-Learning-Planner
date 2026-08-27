@@ -168,11 +168,11 @@ export const put = (url, data = {}, config = {}) => {
 }
 
 // 封装 DELETE 请求
-export const del = (url, params = {}, config = {}) => {
+export const del = (url, data = {}, config = {}) => {
   return service({
     method: 'delete',
     url,
-    params,
+    data,
     ...config
   })
 }

@@ -1,6 +1,6 @@
 // 对话API接口 - 调用后端真实 API，支持 SSE 流式返回（结构化 JSON 事件）
 import { fetchSSE } from './sseClient'
-import { post } from './request'
+import { post, del } from './request'
 
 /**
  * 对话API类
@@ -148,8 +148,14 @@ export class ChatAPI {
     }
   }
 
-  async deleteConversation(_conversationId) {
-    return { success: true, message: '会话删除成功' }
+  async deleteConversation(conversationId) {
+    try {
+      await del(`/chat/history/${conversationId}`)
+      return { success: true, message: '会话删除成功' }
+    } catch (error) {
+      console.error('删除会话失败:', error)
+      return { success: false, message: error.message || '删除会话失败' }
+    }
   }
 }
 

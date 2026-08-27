@@ -669,4 +669,14 @@ public class ChatService {
             return null;
         }
     }
+
+    /**
+     * 删除指定会话的聊天历史
+     */
+    public void deleteChatHistory(String sessionId, String userId) {
+        List<ChatHistory> histories = chatHistoryRepository.findBySessionIdAndUserId(sessionId, userId);
+        chatHistoryRepository.deleteAll(histories);
+        chatMemoryService.clearMemory(sessionId);
+        log.info("[deleteChatHistory] deleted sessionId={}, userId={}, count={}", sessionId, userId, histories.size());
+    }
 }

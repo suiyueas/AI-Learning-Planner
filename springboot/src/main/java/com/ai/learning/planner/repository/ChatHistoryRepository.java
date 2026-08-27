@@ -12,6 +12,7 @@ import java.util.List;
  */
 @Repository
 public interface ChatHistoryRepository extends JpaRepository<ChatHistory, String> {
+    List<ChatHistory> findBySessionIdAndUserId(String sessionId, String userId);
     List<ChatHistory> findBySessionIdAndUserIdOrderByCreatedAtAsc(String sessionId, String userId);
     List<ChatHistory> findBySessionIdAndUserIdIsNullOrderByCreatedAtAsc(String sessionId);
     List<ChatHistory> findByUserIdOrderByCreatedAtDesc(String userId);

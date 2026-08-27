@@ -15,6 +15,8 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.springframework.data.redis.core.RedisTemplate;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +44,9 @@ class KnowledgeServiceTest {
     private ConfigDataCacheService configDataCacheService;
 
     @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
     private VectorStore vectorStore;
 
     private KnowledgeService knowledgeService;
@@ -49,7 +54,7 @@ class KnowledgeServiceTest {
     @BeforeEach
     void setUp() {
         knowledgeService = new KnowledgeService(knowledgeNodeRepository, knowledgeChunkRepository,
-                knowledgeDocumentRepository, new ObjectMapper(), configDataCacheService);
+                knowledgeDocumentRepository, new ObjectMapper(), configDataCacheService, redisTemplate);
         ReflectionTestUtils.setField(knowledgeService, "defaultTopK", 10);
         ReflectionTestUtils.setField(knowledgeService, "similarityThreshold", 0.7);
     }

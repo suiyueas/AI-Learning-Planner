@@ -91,6 +91,16 @@ public class ChatController {
     }
 
     /**
+     * 删除指定会话的聊天历史（仅本人可删，管理员可删任意用户）
+     */
+    @DeleteMapping("/history/{sessionId}")
+    public ApiResponse<Void> deleteChatHistory(@PathVariable String sessionId, Authentication authentication) {
+        String currentUserId = SecurityUtils.requireUserId(authentication);
+        chatService.deleteChatHistory(sessionId, currentUserId);
+        return ApiResponse.success("会话已删除", null);
+    }
+
+    /**
      * 健康检查接口
      */
     @GetMapping("/health")

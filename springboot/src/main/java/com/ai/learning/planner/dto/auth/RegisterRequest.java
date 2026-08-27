@@ -10,6 +10,7 @@ import lombok.Data;
  * 注册请求DTO
  */
 @Data
+@FieldMatch(first = "password", second = "confirmPassword", message = "两次输入的密码不一致")
 public class RegisterRequest {
     @NotBlank(message = "用户名不能为空")
     @Size(min = 3, max = 50, message = "用户名长度需要在3-50个字符之间")

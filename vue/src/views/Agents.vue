@@ -1564,7 +1564,9 @@ const confirmDeleteLog = (log) => {
     // 工具执行记录无软删除，仅支持永久删除
     confirmAction('工具执行记录仅支持永久删除，删除后不可恢复。确定继续？', '删除执行记录', {
       type: 'warning', confirmButtonText: '永久删除', cancelButtonText: '取消'
-    }).then(() => doDeleteLog(log, 'hard')).catch(() => {})
+    }).then(() => doDeleteLog(log, 'hard')).catch((err) => {
+      console.error('删除执行记录失败:', err)
+    })
     return
   }
   confirmAction(
@@ -2171,8 +2173,8 @@ onMounted(() => {
   generateParticles()
   loadAllResultsFromBackend()
   startPolling()
-  toolsStore.fetchTools().catch(() => {})
-  toolsStore.fetchToolStats().catch(() => {})
+  toolsStore.fetchTools().catch((err) => console.error('获取工具列表失败:', err))
+  toolsStore.fetchToolStats().catch((err) => console.error('获取工具统计失败:', err))
   // 从工具中心「查看全部执行历史」跳转：展开并滚动定位到执行历史面板
   if (route.query.flow === 'history') {
     flowExpanded.value = true
