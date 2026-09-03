@@ -1,5 +1,7 @@
+ 
+
 <p align="center">
-  <h1 align="center">AI Learning Planner</h1>
+  <h1 align="center">智学</h1>
 </p>
 
 <p align="center">
@@ -29,7 +31,7 @@
 
 <a id="project-intro"></a>
 
-AI 学习规划师是一个基于大语言模型与智能算法的智能学习平台，能够精准诊断用户学习水平、动态生成专属学习路径，并提供 7x24 小时的智能辅导与监督。
+智学是一个基于大语言模型与智能算法的智能学习平台，能够精准诊断用户学习水平、动态生成专属学习路径，并提供 7x24 小时的智能辅导与监督。
 
 ### 核心价值
 
@@ -44,15 +46,15 @@ AI 学习规划师是一个基于大语言模型与智能算法的智能学习�
 
 ### 后端
 
-| 技术            | 版本  | 说明                                   |
-| --------------- | ----- | -------------------------------------- |
-| Java            | 21    | LTS 版本                               |
-| Spring Boot     | 3.5.1 | 核心框架                               |
-| Spring AI       | 1.1.7 | AI 集成框架（多模型 + 向量存储 + MCP） |
-| Spring Security | 6.x   | 安全认证（JWT）                        |
-| JPA / Hibernate | -     | ORM 持久层                             |
-| MySQL           | 8.0   | 关系数据库                             |
-| Redis           | 7.x   | 缓存与会话                             |
+| 技术            | 版本  | 说明                                              |
+| --------------- | ----- | ------------------------------------------------- |
+| Java            | 21    | LTS 版本                                          |
+| Spring Boot     | 3.5.1 | 核心框架                                          |
+| Spring AI       | 1.1.7 | AI 集成框架（多模型 + 向量存储 + MCP）            |
+| Spring Security | 6.x   | 安全认证（JWT）                                   |
+| JPA / Hibernate | -     | ORM 持久层                                        |
+| MySQL           | 8.0   | 关系数据库                                        |
+| Redis           | 7.x   | 缓存与会话                                        |
 | Elasticsearch   | 8.x   | RAG 向量检索主存储（ES 优先，不可达自动降级内存） |
 
 ### 前端
@@ -215,12 +217,12 @@ docker compose up -d --build
 
 等待后端健康检查通过后（首次构建需拉取依赖，约 3-5 分钟），访问：
 
-| 服务     | 地址                                        |
-| -------- | ------------------------------------------- |
-| 前端     | http://localhost:3000                       |
-| 后端 API | http://localhost:8080/api                   |
-| Swagger  | http://localhost:8080/api/swagger-ui.html   |
-| Elasticsearch | http://localhost:9200                   |
+| 服务          | 地址                                      |
+| ------------- | ----------------------------------------- |
+| 前端          | http://localhost:3000                     |
+| 后端 API      | http://localhost:8080/api                 |
+| Swagger       | http://localhost:8080/api/swagger-ui.html |
+| Elasticsearch | http://localhost:9200                     |
 
 默认管理员账户 `admin/admin123`（由 `INIT_DEFAULT_ADMIN=true` 控制，生产建议关闭）。
 
@@ -242,7 +244,6 @@ docker compose down -v   # 停止并删除容器与数据卷（全部清空）
   ```bash
   sudo sysctl -w vm.max_map_count=262144
   ```
-
 - **Elasticsearch 安全**：演示环境关闭了 `xpack.security`（`docker-compose.yml` 中 `xpack.security.enabled=false`）；生产部署请开启认证并配置 `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD`。
 - **密钥安全**：`.env` 已被 `.gitignore` 忽略，禁止提交；`docker-compose.yml` 中的中间件密码与 JWT 密钥为演示默认值，生产环境必须通过 `.env` 覆盖。
 
@@ -250,11 +251,11 @@ docker compose down -v   # 停止并删除容器与数据卷（全部清空）
 
 `docker-compose.yml` 已内置三项加固，对开发/演示无副作用，无需额外文件：
 
-| 维度 | 配置 |
-| ---- | ---- |
-| **资源限制** | 每容器 `cpus` / `mem_limit`（后端 2c/1g、MySQL 1c/1g、ES 1c/1g、Redis 0.5c/512m、Nginx 0.25c/128m），防止单容器耗尽宿主机 |
-| **日志配置** | `json-file` 滚动：单文件 50MB × 3 份，自动压缩，防止磁盘打满 |
-| **网络隔离** | 分层网络 `net-public`（Nginx→后端）/ `net-data`（后端→中间件），中间件仅内部网段可达 |
+| 维度               | 配置                                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **资源限制** | 每容器`cpus` / `mem_limit`（后端 2c/1g、MySQL 1c/1g、ES 1c/1g、Redis 0.5c/512m、Nginx 0.25c/128m），防止单容器耗尽宿主机 |
+| **日志配置** | `json-file` 滚动：单文件 50MB × 3 份，自动压缩，防止磁盘打满                                                              |
+| **网络隔离** | 分层网络`net-public`（Nginx→后端）/ `net-data`（后端→中间件），中间件仅内部网段可达                                    |
 
 正式上线检查清单：
 
@@ -394,5 +395,5 @@ ai-learning-planner/
 ---
 
 <p align="center">
-  <strong>Made with ❤️ by AI Learning Planner Team</strong>
+  <strong>Made with ❤️ by 智学 Team</strong>
 </p>
