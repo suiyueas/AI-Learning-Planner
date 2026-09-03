@@ -22,4 +22,10 @@ public interface CheckinRecordRepository extends JpaRepository<CheckinRecord, Lo
     Optional<CheckinRecord> findTopByUserIdOrderByCheckinDateDesc(Long userId);
 
     long countByUserId(Long userId);
+
+    /**
+     * 获取用户所有打卡记录（按日期降序）
+     * 用于成就系统计算打卡相关统计
+     */
+    List<CheckinRecord> findByUserIdOrderByCheckinDateDesc(Long userId);
 }

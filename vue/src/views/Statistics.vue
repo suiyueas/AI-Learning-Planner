@@ -1,72 +1,70 @@
 ﻿<template>
   <div class="statistics-page">
-    <div class="bg-layer">
-      <div class="bg-aurora">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="bg-grid"></div>
-    </div>
-
     <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <ArrowLeft :size="20" />
-        <span>返回</span>
-      </button>
-      <h1 class="page-title">
-        <BarChart3 :size="24" class="title-icon" />
-        <span class="title-text">学习统计</span>
-      </h1>
-      <div class="header-actions">
-        <el-select v-model="timeRange" size="default" class="time-select">
-          <el-option label="近7天" value="7" />
-          <el-option label="近30天" value="30" />
-        </el-select>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">📊</span>
+            <span>学习统计</span>
+            <span class="title-sub">数据驱动的学习洞察</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <div class="time-select" @click="dropdownOpen = !dropdownOpen">
+            <span class="time-select-label">{{ timeLabel }}</span>
+            <svg class="time-select-arrow" :class="{ open: dropdownOpen }" viewBox="0 0 12 12" fill="none">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <transition name="dropdown">
+              <div v-if="dropdownOpen" class="time-dropdown" @click.stop>
+                <div
+                  v-for="opt in timeOptions"
+                  :key="opt.value"
+                  class="time-dropdown-item"
+                  :class="{ active: timeRange === opt.value }"
+                  @click="selectTime(opt.value)"
+                >
+                  {{ opt.label }}
+                </div>
+              </div>
+            </transition>
+          </div>
+        </div>
       </div>
     </header>
 
     <div class="page-content">
       <section class="overview-section">
-        <div class="section-label">
-          <LayoutDashboard :size="16" />
-          概览
-        </div>
+        <h3 class="section-title">
+          <span class="section-icon">📈</span> 概览
+        </h3>
         <div class="overview-grid">
-          <div class="overview-card glass-card">
-            <div class="overview-icon streak-icon">
-              <Flame :size="24" />
-            </div>
+          <div class="overview-card">
+            <div class="overview-icon streak-icon">🔥</div>
             <div class="overview-data">
               <span class="overview-value">{{ overviewData.streak }}</span>
               <span class="overview-unit">天</span>
             </div>
             <span class="overview-label">连续学习</span>
           </div>
-          <div class="overview-card glass-card">
-            <div class="overview-icon hours-icon">
-              <Clock :size="24" />
-            </div>
+          <div class="overview-card">
+            <div class="overview-icon hours-icon">⏱️</div>
             <div class="overview-data">
               <span class="overview-value">{{ overviewData.totalHours }}</span>
               <span class="overview-unit">h</span>
             </div>
             <span class="overview-label">总学时</span>
           </div>
-          <div class="overview-card glass-card">
-            <div class="overview-icon completed-icon">
-              <CheckCircle :size="24" />
-            </div>
+          <div class="overview-card">
+            <div class="overview-icon completed-icon">✅</div>
             <div class="overview-data">
               <span class="overview-value">{{ overviewData.completed }}</span>
               <span class="overview-unit">个</span>
             </div>
             <span class="overview-label">已完成节点</span>
           </div>
-          <div class="overview-card glass-card">
-            <div class="overview-icon score-icon">
-              <Star :size="24" />
-            </div>
+          <div class="overview-card">
+            <div class="overview-icon score-icon">⭐</div>
             <div class="overview-data">
               <span class="overview-value">{{ overviewData.avgScore }}</span>
               <span class="overview-unit">分</span>
@@ -77,34 +75,32 @@
       </section>
 
       <section class="chart-section">
-        <div class="section-label">
-          <TrendingUp :size="16" />
-          学习趋势
-        </div>
-        <div class="chart-card glass-card">
+        <h3 class="section-title">
+          <span class="section-icon">📉</span> 学习趋势
+        </h3>
+        <div class="chart-card">
           <div ref="lineChartRef" class="chart-container"></div>
         </div>
       </section>
 
       <section class="chart-section">
-        <div class="section-label">
-          <Radar :size="16" />
-          能力雷达图
-        </div>
-        <div class="chart-card glass-card">
+        <h3 class="section-title">
+          <span class="section-icon">🎯</span> 能力雷达图
+        </h3>
+        <div class="chart-card">
           <div ref="radarChartRef" class="chart-container radar-container"></div>
         </div>
       </section>
 
       <section class="records-section">
-        <div class="section-label">
-          <List :size="16" />
-          学习记录
-        </div>
-        <div class="records-card glass-card">
+        <h3 class="section-title">
+          <span class="section-icon">📋</span> 学习记录
+        </h3>
+        <div class="records-card">
           <div v-if="recentRecords.length === 0" class="empty-state">
-            <BookOpen :size="48" class="empty-icon" />
-            <p>暂无学习记录</p>
+            <span class="empty-icon">📝</span>
+            <h3 class="empty-title">暂无学习记录</h3>
+            <p class="empty-desc">开始学习后，你的学习记录将在这里展示</p>
           </div>
           <div v-else class="records-list">
             <div v-for="(record, index) in recentRecords" :key="index" class="record-item">
@@ -116,9 +112,46 @@
                 <span class="record-duration">{{ record.duration }}min</span>
               </div>
               <div class="record-status" :class="record.status">
-                <CheckCircle v-if="record.status === 'completed'" :size="16" class="status-icon completed" />
-                <XCircle v-else :size="16" class="status-icon failed" />
+                <span class="status-dot" :class="record.status"></span>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="aiSuggestion" class="suggestion-section">
+        <h3 class="section-title">
+          <span class="section-icon">💡</span> AI 学习建议
+        </h3>
+        <div class="suggestion-card">
+          <div class="suggestion-content">
+            <span class="suggestion-icon">✨</span>
+            <div class="suggestion-text">
+              <p class="suggestion-message">{{ aiSuggestion.message }}</p>
+              <div v-if="aiSuggestion.actions && aiSuggestion.actions.length > 0" class="suggestion-actions">
+                <span
+                  v-for="(action, idx) in aiSuggestion.actions"
+                  :key="idx"
+                  class="suggestion-action-tag"
+                >
+                  {{ action.label }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section v-else-if="loadingSuggestion" class="suggestion-section">
+        <h3 class="section-title">
+          <span class="section-icon">💡</span> AI 学习建议
+        </h3>
+        <div class="suggestion-card">
+          <div class="suggestion-content">
+            <span class="suggestion-icon">✨</span>
+            <div class="suggestion-loading">
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
             </div>
           </div>
         </div>
@@ -128,98 +161,181 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
-import {
-  ArrowLeft, BarChart3, LayoutDashboard, TrendingUp, Radar,
-  Clock, Flame, CheckCircle, Star, XCircle, List, BookOpen
-} from 'lucide-vue-next'
+import { getProgressOverview, getProgressCurve, getProgressCompetency, getProgressRecords, getAISuggestion, seedSampleData } from '@/api/statsApi'
+import { ElMessage } from 'element-plus'
 
-const router = useRouter()
 const lineChartRef = ref(null)
 const radarChartRef = ref(null)
 let lineChart = null
 let radarChart = null
 const timeRange = ref('7')
+const dropdownOpen = ref(false)
 
-// 模拟数据 - 待对接真实 API
+const timeOptions = [
+  { label: '近7天', value: '7' },
+  { label: '近30天', value: '30' }
+]
+
+const timeLabel = computed(() => {
+  return timeOptions.find(o => o.value === timeRange.value)?.label || '近7天'
+})
+
 const overviewData = ref({
-  streak: 45,
-  totalHours: 156,
-  completed: 28,
-  avgScore: 85
+  streak: 0,
+  totalHours: 0,
+  completed: 0,
+  avgScore: 0
 })
 
-const trendData = ref({
-  dates: ['7月12日', '7月13日', '7月14日', '7月15日', '7月16日', '7月17日', '7月18日'],
-  hours: [2.5, 3.0, 1.5, 2.0, 3.5, 2.0, 1.0]
-})
-
-const radarData = ref({
-  indicators: [
-    { name: 'Python 基础', max: 100 },
-    { name: '数据分析', max: 100 },
-    { name: '机器学习', max: 100 },
-    { name: 'Web 开发', max: 100 },
-    { name: '算法思维', max: 100 },
-    { name: '工程实践', max: 100 }
-  ],
-  values: [85, 72, 55, 60, 68, 45]
-})
-
-const recentRecords = ref([
-  { date: '2026-07-18', title: '完成 Pandas 分组聚合', duration: 45, status: 'completed' },
-  { date: '2026-07-17', title: '完成 NumPy 数组操作', duration: 60, status: 'completed' },
-  { date: '2026-07-16', title: '完成 Matplotlib 数据可视化', duration: 90, status: 'completed' },
-  { date: '2026-07-15', title: '未完成 数据可视化报告', duration: 0, status: 'failed' }
-])
-
-const goBack = () => {
-  router.push('/home')
-}
+const trendData = ref({ labels: [], hours: [] })
+const radarData = ref({ indicators: [], values: [] })
+const recentRecords = ref([])
+const aiSuggestion = ref(null)
+const loadingSuggestion = ref(false)
 
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
+const selectTime = (val) => {
+  timeRange.value = val
+  dropdownOpen.value = false
+}
+
+const closeDropdown = (e) => {
+  if (!e.target.closest('.time-select')) {
+    dropdownOpen.value = false
+  }
+}
+
+const loadOverviewData = async () => {
+  try {
+    const res = await getProgressOverview()
+    if (res.success && res.data) {
+      const data = res.data
+      overviewData.value = {
+        streak: data.streak || 0,
+        totalHours: data.totalHours || 0,
+        completed: data.completed || 0,
+        avgScore: data.avgScore || 0
+      }
+    }
+  } catch (e) {
+    console.error('加载概览数据失败', e)
+  }
+}
+
+const loadCurveData = async () => {
+  try {
+    const res = await getProgressCurve(timeRange.value)
+    if (res.success && res.data) {
+      const data = res.data
+      trendData.value = {
+        labels: data.labels || [],
+        hours: data.hours || []
+      }
+      updateLineChart()
+    }
+  } catch (e) {
+    console.error('加载学习曲线失败', e)
+  }
+}
+
+const loadCompetencyData = async () => {
+  try {
+    const res = await getProgressCompetency()
+    if (res.success && res.data && Array.isArray(res.data)) {
+      if (res.data.length > 0) {
+        radarData.value = {
+          indicators: res.data.map(item => ({ name: item.name, max: 100 })),
+          values: res.data.map(item => Math.round(item.mastery || 0))
+        }
+      } else {
+        radarData.value = { indicators: [], values: [] }
+      }
+      updateRadarChart()
+    }
+  } catch (e) {
+    console.error('加载能力矩阵失败', e)
+  }
+}
+
+const loadRecordsData = async () => {
+  try {
+    const res = await getProgressRecords({ page: 1, size: 10 })
+    if (res.success && res.data && Array.isArray(res.data.records)) {
+      recentRecords.value = res.data.records.map(r => ({
+        date: r.date,
+        title: r.title,
+        duration: r.duration,
+        status: r.status
+      }))
+    } else {
+      recentRecords.value = []
+    }
+  } catch (e) {
+    console.error('加载学习记录失败', e)
+    recentRecords.value = []
+  }
+}
+
+const loadAISuggestion = async () => {
+  loadingSuggestion.value = true
+  try {
+    const res = await getAISuggestion()
+    if (res.success && res.data) {
+      aiSuggestion.value = res.data
+    }
+  } catch (e) {
+    console.error('加载AI建议失败', e)
+  } finally {
+    loadingSuggestion.value = false
+  }
+}
+
 const initLineChart = () => {
   if (!lineChartRef.value) return
   lineChart = echarts.init(lineChartRef.value)
+  updateLineChart()
+}
+
+const updateLineChart = () => {
+  if (!lineChart || !lineChartRef.value) return
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(17, 17, 39, 0.9)',
-      borderColor: 'rgba(0, 229, 255, 0.2)',
-      textStyle: { color: '#F1F5F9' },
+      backgroundColor: 'rgba(9, 11, 18, 0.92)',
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      textStyle: { color: '#e2e8f0', fontSize: 12 },
       formatter: (params) => {
         const data = params[0]
-        return `${data.name}<br/><span style="color:#00E5FF">学习时长: ${data.value}h</span>`
+        return `${data.name}<br/><span style="color:#10b981">学习时长: ${data.value}h</span>`
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '20px',
+      left: 12, right: 16, bottom: 8, top: 40,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: trendData.value.dates,
-      axisLine: { lineStyle: { color: 'rgba(100, 100, 180, 0.2)' } },
-      axisLabel: { color: '#94A3B8', fontSize: 11 }
+      data: trendData.value.labels,
+      axisLine: { lineStyle: { color: 'rgba(16, 185, 129, 0.15)' } },
+      axisLabel: { color: '#71717a', fontSize: 11 },
+      axisTick: { show: false }
     },
     yAxis: {
       type: 'value',
       name: '学习时长 (h)',
-      nameTextStyle: { color: '#94A3B8', fontSize: 11 },
+      nameTextStyle: { color: '#71717a', fontSize: 11, padding: [0, 0, 0, 0] },
       axisLine: { show: false },
-      axisLabel: { color: '#94A3B8' },
-      splitLine: { lineStyle: { color: 'rgba(100, 100, 180, 0.06)' } }
+      axisLabel: { color: '#71717a' },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: 'rgba(16, 185, 129, 0.08)' } }
     },
     series: [{
       type: 'line',
@@ -227,14 +343,14 @@ const initLineChart = () => {
       symbol: 'circle',
       symbolSize: 8,
       lineStyle: {
-        color: '#00E5FF',
+        color: '#10b981',
         width: 3,
-        shadowColor: 'rgba(0, 229, 255, 0.5)',
+        shadowColor: 'rgba(16, 185, 129, 0.5)',
         shadowBlur: 10
       },
       itemStyle: {
-        color: '#00E5FF',
-        borderColor: '#fff',
+        color: '#10b981',
+        borderColor: 'rgba(9, 11, 18, 0.8)',
         borderWidth: 2
       },
       areaStyle: {
@@ -242,74 +358,63 @@ const initLineChart = () => {
           type: 'linear',
           x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(0, 229, 255, 0.3)' },
-            { offset: 1, color: 'rgba(0, 229, 255, 0.02)' }
+            { offset: 0, color: 'rgba(16, 185, 129, 0.22)' },
+            { offset: 1, color: 'rgba(16, 185, 129, 0.01)' }
           ]
         }
       },
-      data: trendData.value.hours
+      data: trendData.value.hours.length > 0 ? trendData.value.hours : [0]
     }]
   }
-  lineChart.setOption(option)
+  lineChart.setOption(option, true)
+}
+
+const updateRadarChart = () => {
+  if (!radarChart || !radarChartRef.value) return
+  const hasData = radarData.value.indicators.length > 0 && radarData.value.values.length > 0
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      backgroundColor: 'rgba(9, 11, 18, 0.92)',
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      textStyle: { color: '#e2e8f0' }
+    },
+    radar: {
+      indicator: hasData ? radarData.value.indicators : [{ name: '暂无数据', max: 100 }],
+      shape: 'polygon',
+      splitNumber: 4,
+      axisName: { color: '#71717a', fontSize: 12 },
+      splitLine: {
+        lineStyle: { color: 'rgba(16, 185, 129, 0.1)', width: 1 }
+      },
+      splitArea: {
+        show: true,
+        areaStyle: {
+          color: ['rgba(16, 185, 129, 0.02)', 'rgba(16, 185, 129, 0.04)', 'rgba(16, 185, 129, 0.06)', 'rgba(16, 185, 129, 0.08)']
+        }
+      },
+      axisLine: { lineStyle: { color: 'rgba(16, 185, 129, 0.15)' } }
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: hasData ? radarData.value.values : [0],
+        name: '能力评估',
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#10b981', width: 2 },
+        areaStyle: { color: 'rgba(16, 185, 129, 0.15)' },
+        itemStyle: { color: '#10b981', borderColor: 'rgba(9, 11, 18, 0.8)', borderWidth: 2 }
+      }]
+    }]
+  }
+  radarChart.setOption(option, true)
 }
 
 const initRadarChart = () => {
   if (!radarChartRef.value) return
   radarChart = echarts.init(radarChartRef.value)
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      backgroundColor: 'rgba(17, 17, 39, 0.9)',
-      borderColor: 'rgba(0, 229, 255, 0.2)',
-      textStyle: { color: '#F1F5F9' }
-    },
-    radar: {
-      indicator: radarData.value.indicators,
-      shape: 'polygon',
-      splitNumber: 4,
-      axisName: {
-        color: '#94A3B8',
-        fontSize: 12
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(0, 229, 255, 0.1)',
-          width: 1
-        }
-      },
-      splitArea: {
-        show: true,
-        areaStyle: {
-          color: ['rgba(0, 229, 255, 0.02)', 'rgba(0, 229, 255, 0.05)', 'rgba(0, 229, 255, 0.08)', 'rgba(0, 229, 255, 0.12)']
-        }
-      },
-      axisLine: {
-        lineStyle: { color: 'rgba(0, 229, 255, 0.2)' }
-      }
-    },
-    series: [{
-      type: 'radar',
-      data: [{
-        value: radarData.value.values,
-        name: '能力评估',
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: {
-          color: '#00E5FF',
-          width: 2
-        },
-        areaStyle: {
-          color: 'rgba(0, 229, 255, 0.2)'
-        },
-        itemStyle: {
-          color: '#00E5FF',
-          borderColor: '#fff',
-          borderWidth: 2
-        }
-      }]
-    }]
-  }
-  radarChart.setOption(option)
+  updateRadarChart()
 }
 
 const handleResize = () => {
@@ -317,29 +422,64 @@ const handleResize = () => {
   radarChart?.resize()
 }
 
-watch(timeRange, (newVal) => {
-  if (newVal === '30') {
-    trendData.value = {
-      dates: ['6月19日', '6月26日', '7月3日', '7月10日', '7月17日', '7月24日', '7月31日'],
-      hours: [12, 18, 15, 22, 25, 20, 18]
+const isEmptyData = () => {
+  const overviewIsEmpty = overviewData.value.streak === 0 &&
+    overviewData.value.totalHours === 0 &&
+    overviewData.value.completed === 0 &&
+    overviewData.value.avgScore === 0
+  const recordsIsEmpty = recentRecords.value.length === 0
+  const competencyIsEmpty = radarData.value.indicators.length === 0
+  return overviewIsEmpty && recordsIsEmpty && competencyIsEmpty
+}
+
+const trySeedSampleData = async () => {
+  try {
+    const res = await seedSampleData()
+    if (res.success) {
+      if (!res.data.alreadyExists) {
+        ElMessage.success('已为你生成示例学习数据，方便体验统计功能')
+      }
+      await Promise.allSettled([
+        loadOverviewData(),
+        loadCurveData(),
+        loadCompetencyData(),
+        loadRecordsData(),
+        loadAISuggestion()
+      ])
     }
-  } else {
-    trendData.value = {
-      dates: ['7月12日', '7月13日', '7月14日', '7月15日', '7月16日', '7月17日', '7月18日'],
-      hours: [2.5, 3.0, 1.5, 2.0, 3.5, 2.0, 1.0]
-    }
+  } catch (e) {
+    console.error('生成示例数据失败', e)
   }
-  initLineChart()
+}
+
+const loadAllData = async () => {
+  await Promise.allSettled([
+    loadOverviewData(),
+    loadCurveData(),
+    loadCompetencyData(),
+    loadRecordsData(),
+    loadAISuggestion()
+  ])
+  if (isEmptyData()) {
+    await trySeedSampleData()
+  }
+}
+
+watch(timeRange, () => {
+  loadCurveData()
 })
 
 onMounted(() => {
   initLineChart()
   initRadarChart()
+  loadAllData()
   window.addEventListener('resize', handleResize)
+  document.addEventListener('click', closeDropdown)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  document.removeEventListener('click', closeDropdown)
   lineChart?.dispose()
   radarChart?.dispose()
 })
@@ -347,123 +487,26 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
+
 .statistics-page {
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  padding-bottom: 40px;
-  animation: fadeIn 0.5s ease;
+  min-height: calc(100vh - 68px);
 }
 
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.bg-aurora {
-  position: absolute;
-  inset: 0;
-}
-
-.aurora-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-}
-
-.a1 {
-  width: 500px;
-  height: 500px;
-  top: -150px;
-  right: -100px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.1) 0%, transparent 70%);
-  animation: aurora 18s ease-in-out infinite;
-}
-
-.a2 {
-  width: 400px;
-  height: 400px;
-  bottom: -100px;
-  left: -100px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
-  animation: aurora 18s ease-in-out infinite;
-  animation-delay: -6s;
-}
-
-.a3 {
-  width: 300px;
-  height: 300px;
-  top: 40%;
-  left: 30%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
-  animation: aurora 18s ease-in-out infinite;
-  animation-delay: -12s;
-}
-
-@keyframes aurora {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, -20px) scale(1.1); }
-  66% { transform: translate(-15px, 15px) scale(0.95); }
-}
-
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
-  background-size: 50px 50px;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* ===== 页面头部 ===== */
 .page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 48px;
-  position: relative;
+  @include page-header-base;
+  position: sticky;
+  top: 0;
   z-index: 10;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: #E2E8F0;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba($accent-primary, 0.1);
-    border-color: rgba($accent-primary, 0.3);
-    color: $accent-primary;
-  }
+  background: rgba($bg-base, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba($accent-indigo, 0.06);
 }
 
 .page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 28px;
-  font-weight: 600;
-  color: $text-primary;
-  margin: 0;
-
-  .title-icon {
-    color: $accent-primary;
-  }
+  @include page-title-base;
 }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
 
 .header-actions {
   display: flex;
@@ -471,100 +514,189 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+/* ===== 时间选择器（纯自定义，无白色） ===== */
 .time-select {
-  width: 120px;
-
-  :deep(.el-input__wrapper) {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: none;
-
-    &:hover, &:focus {
-      border-color: rgba($accent-primary, 0.3);
-    }
-  }
-
-  :deep(.el-input__inner) {
-    color: #E2E8F0;
-  }
-}
-
-.page-content {
-  padding: 0 48px 40px;
   position: relative;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba($accent-cyan, 0.1);
+  border: 1px solid rgba($accent-cyan, 0.2);
+  border-radius: 8px;
+  color: $accent-cyan;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba($accent-cyan, 0.16);
+    border-color: rgba($accent-cyan, 0.35);
+    box-shadow: 0 0 16px rgba($accent-cyan, 0.1);
+  }
 }
 
-.section-label {
+.time-select-label {
+  white-space: nowrap;
+}
+
+.time-select-arrow {
+  width: 12px;
+  height: 12px;
+  color: rgba($accent-cyan, 0.7);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.time-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 110px;
+  background: rgba($bg-surface, 0.7);
+  border: 1px solid rgba($accent-cyan, 0.25);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 4px;
+  z-index: 100;
+  animation: dropdown-fade-in 0.2s ease;
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.time-dropdown-item {
+  padding: 7px 14px;
+  border-radius: 6px;
+  color: $text-secondary;
+  font-size: 0.82rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  background: transparent;
+
+  &:hover {
+    background: rgba($accent-cyan, 0.12);
+    color: $accent-cyan;
+    transform: translateX(2px);
+  }
+
+  &.active {
+    background: rgba($accent-cyan, 0.18);
+    color: $accent-cyan;
+    font-weight: 600;
+    border-left: 2px solid $accent-cyan;
+    text-shadow: 0 0 8px rgba($accent-cyan, 0.4);
+  }
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ===== 页面内容 ===== */
+.page-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 32px 60px;
+}
+
+/* ===== 区块标题 ===== */
+.section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: $accent-primary;
-  margin-bottom: 16px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 16px;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.section-icon {
+  font-size: 1.1rem;
+}
+
+/* ===== 毛玻璃卡片 ===== */
+.overview-card,
+.chart-card,
+.records-card,
+.suggestion-card {
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-cyan, 0.08);
   border-radius: 16px;
-  backdrop-filter: blur(20px);
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba($accent-primary, 0.2);
+    border-color: rgba($accent-cyan, 0.15);
+    box-shadow: 0 0 24px rgba($accent-cyan, 0.05);
   }
 }
 
+/* ===== 概览卡片 ===== */
 .overview-section {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .overview-card {
-  padding: 24px;
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .overview-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  font-size: 1.8rem;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 14px;
 
   &.streak-icon {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 159, 67, 0.2));
-    color: #FF6B6B;
+    background: linear-gradient(135deg, rgba($color-danger, 0.1), rgba($color-warning, 0.1));
   }
 
   &.hours-icon {
-    background: linear-gradient(135deg, rgba($accent-primary, 0.2), rgba(0, 133, 255, 0.2));
-    color: $accent-primary;
+    background: rgba($accent-cyan, 0.1);
   }
 
   &.completed-icon {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba($accent-primary, 0.2));
-    color: #10B981;
+    background: rgba($accent-indigo, 0.1);
   }
 
   &.score-icon {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(255, 159, 67, 0.2));
-    color: #A855F7;
+    background: rgba($accent-violet, 0.1);
   }
 }
 
@@ -575,78 +707,69 @@ onUnmounted(() => {
 }
 
 .overview-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: $text-primary;
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: $accent-cyan;
+  text-shadow: 0 0 20px rgba($accent-cyan, 0.25);
 }
 
 .overview-unit {
-  font-size: 14px;
+  font-size: 0.85rem;
   color: $text-secondary;
 }
 
 .overview-label {
-  font-size: 13px;
-  color: $text-secondary;
+  font-size: 0.8rem;
+  color: $text-muted;
 }
 
+/* ===== 图表区域 ===== */
 .chart-section {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .chart-card {
-  padding: 24px;
+  padding: 20px 16px;
 }
 
 .chart-container {
   width: 100%;
-  height: 300px;
+  height: 320px;
 }
 
 .radar-container {
-  height: 350px;
+  height: 380px;
 }
 
+/* ===== 学习记录 ===== */
 .records-section {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .records-card {
-  padding: 24px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  color: $text-muted;
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
+  padding: 20px;
 }
 
 .records-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .record-item {
   display: flex;
   align-items: center;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba($bg-base, 0.3);
+  border: 1px solid rgba($accent-cyan, 0.06);
+  border-radius: 10px;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba($accent-primary, 0.03);
-    border-color: rgba($accent-primary, 0.15);
+    background: rgba($accent-cyan, 0.04);
+    border-color: rgba($accent-cyan, 0.12);
   }
 }
 
@@ -656,7 +779,7 @@ onUnmounted(() => {
 }
 
 .record-day {
-  font-size: 13px;
+  font-size: 0.82rem;
   color: $text-secondary;
 }
 
@@ -669,13 +792,14 @@ onUnmounted(() => {
 }
 
 .record-title {
-  font-size: 14px;
-  color: #E2E8F0;
+  font-size: 0.85rem;
+  color: $text-primary;
 }
 
 .record-duration {
-  font-size: 13px;
+  font-size: 0.78rem;
   color: $text-muted;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .record-status {
@@ -683,66 +807,146 @@ onUnmounted(() => {
   flex-shrink: 0;
   display: flex;
   justify-content: center;
+}
 
-  .status-icon {
-    &.completed {
-      color: #10B981;
-    }
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 
-    &.failed {
-      color: #EF4444;
-    }
+  &.completed {
+    background: $color-success;
+    box-shadow: 0 0 8px rgba($color-success, 0.5);
+  }
+
+  &.failed {
+    background: $color-danger;
+    box-shadow: 0 0 8px rgba($color-danger, 0.5);
   }
 }
 
-@media (max-width: 1200px) {
-  .overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
 }
 
-@media (max-width: 768px) {
-  .page-header {
-    padding: 20px 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
+.empty-icon {
+  font-size: 2.4rem;
+  margin-bottom: 16px;
+}
 
-  .page-content {
-    padding: 0 24px 24px;
-  }
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 6px;
+}
 
-  .overview-grid {
-    grid-template-columns: 1fr;
-  }
+.empty-desc {
+  font-size: 0.85rem;
+  color: $text-muted;
+  margin: 0;
+}
 
-  .overview-card {
-    flex-direction: row;
-    text-align: left;
-    gap: 20px;
-  }
+/* ===== AI建议 ===== */
+.suggestion-section {
+  margin-bottom: 28px;
+}
 
-  .overview-icon {
-    width: 48px;
-    height: 48px;
-  }
+.suggestion-card {
+  padding: 24px;
+}
 
-  .overview-data {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
-  }
+.suggestion-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
 
-  .overview-value {
-    font-size: 28px;
-  }
+.suggestion-icon {
+  font-size: 1.5rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($accent-cyan, 0.08);
+  border: 1px solid rgba($accent-cyan, 0.12);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
 
-  .chart-container {
-    height: 250px;
-  }
+.suggestion-text {
+  flex: 1;
+}
 
-  .radar-container {
-    height: 300px;
-  }
+.suggestion-message {
+  font-size: 0.9rem;
+  color: $text-primary;
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion-action-tag {
+  padding: 4px 12px;
+  background: rgba($accent-cyan, 0.08);
+  border: 1px solid rgba($accent-cyan, 0.15);
+  border-radius: 16px;
+  font-size: 0.75rem;
+  color: $accent-cyan;
+  font-weight: 500;
+}
+
+/* ===== 加载动画 ===== */
+.suggestion-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  background: $accent-cyan;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+
+  &:nth-child(1) { animation-delay: -0.32s; }
+  &:nth-child(2) { animation-delay: -0.16s; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  .page-header { padding: 12px 20px; }
+  .page-content { padding: 20px; }
+}
+
+@media (max-width: 640px) {
+  .page-header { padding: 10px 12px; gap: 10px; }
+  .page-content { padding: 12px; }
+  .overview-grid { grid-template-columns: 1fr; }
+  .overview-card { flex-direction: row; text-align: left; gap: 16px; }
+  .overview-icon { width: 44px; height: 44px; font-size: 1.4rem; }
+  .overview-value { font-size: 1.5rem; }
+  .chart-container { height: 250px; }
+  .radar-container { height: 300px; }
 }
 </style>

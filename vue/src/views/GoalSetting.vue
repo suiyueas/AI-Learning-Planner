@@ -1,26 +1,21 @@
 ﻿<template>
   <div class="goal-page">
-    <div class="bg-layer">
-      <div class="bg-aurora">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="bg-grid"></div>
-    </div>
-
     <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg><span>返回</span>
-      </button>
-      <h1 class="page-title">
-        <span class="title-icon">🎯</span>
-        <span class="title-text">目标设定</span>
-      </h1>
-      <button class="add-btn" @click="openAddModal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        <span>新建目标</span>
-      </button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">🎯</span>
+            <span>目标设定</span>
+            <span class="title-sub">制定目标，追踪进度</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="add-btn" @click="openAddModal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            <span>新建目标</span>
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="content">
@@ -134,21 +129,16 @@
     </Teleport>
 
     <!-- 删除确认 -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="showDelete" class="modal-overlay" @click.self="showDelete = false">
-          <div class="delete-dialog">
-            <div class="delete-icon">🗑️</div>
-            <h3 class="delete-title">确认删除</h3>
-            <p class="delete-desc">确定要删除目标「{{ deletingGoal?.title }}」吗？</p>
-            <div class="delete-actions">
-              <button class="btn-cancel" @click="showDelete = false">取消</button>
-              <button class="btn-delete-confirm" @click="executeDelete">删除</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <DeleteConfirmDialog
+      :visible="showDelete"
+      :title="deleteDialogConfig.title"
+      :message="deleteDialogConfig.message"
+      :type="deleteDialogConfig.type"
+      :show-soft-delete="deleteDialogConfig.showSoftDelete"
+      :details="deleteDialogConfig.details"
+      @cancel="handleDeleteCancel"
+      @hard-delete="handleDeleteHard"
+    />
   </div>
 </template>
 
@@ -157,6 +147,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getPathList, getPathProgress, generatePath, updateLearningPath, deletePath, completeTask } from '@/api/learningPath'
+import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog.vue'
 
 const router = useRouter()
 const goals = ref([])
@@ -167,6 +158,13 @@ const isEditing = ref(false)
 const editingId = ref(null)
 const showDelete = ref(false)
 const deletingGoal = ref(null)
+const deleteDialogConfig = ref({
+  title: '删除目标',
+  message: '',
+  type: 'warning',
+  showSoftDelete: false,
+  details: []
+})
 const expandedId = ref(null)
 const activeFilter = ref('all')
 const titleInput = ref(null)
@@ -324,7 +322,21 @@ async function saveGoal() {
   }
 }
 
-function confirmDelete(goal) { deletingGoal.value = goal; showDelete.value = true }
+function confirmDelete(goal) {
+  deletingGoal.value = goal
+  deleteDialogConfig.value = {
+    title: '删除目标',
+    message: `确定要删除目标「${goal.title}」吗？此操作不可撤销。`,
+    type: 'warning',
+    showSoftDelete: false,
+    details: [
+      { icon: '🎯', text: `目标：${goal.title}` },
+      { icon: '📂', text: `分类：${goal.category}` },
+      { icon: '⏱️', text: `周期：${goal.weeks}周` }
+    ]
+  }
+  showDelete.value = true
+}
 
 async function executeDelete() {
   if (!deletingGoal.value) return
@@ -338,6 +350,15 @@ async function executeDelete() {
     console.error('删除目标失败:', e)
     ElMessage.error('删除失败：' + (e?.response?.data?.message || e?.message || '请稍后重试'))
   }
+}
+
+const handleDeleteCancel = () => {
+  showDelete.value = false
+  deletingGoal.value = null
+}
+
+const handleDeleteHard = () => {
+  executeDelete()
 }
 
 function toggleExpand(id) { expandedId.value = expandedId.value === id ? null : id }
@@ -363,29 +384,125 @@ function formatDate(ts) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function goBack() { if (window.history.length > 1) router.back(); else router.push('/modules') }
+// 粒子样式生成
+const particleStyle = (i) => ({
+  left: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 20}s`,
+  animationDuration: `${15 + Math.random() * 25}s`,
+  opacity: 0.2 + Math.random() * 0.4
+})
 
 onMounted(fetchGoals)
 </script>
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
-.goal-page { min-height: calc(100vh - 68px); background: $bg-primary; position: relative; }
-.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.bg-aurora { position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
-  animation: auroraDrift 20s ease-in-out infinite;
+.goal-page { min-height: calc(100vh - 68px); position: relative; }
+/* ===== 粒子背景 ===== */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -3;
+  overflow: hidden;
 }
-@keyframes auroraDrift { 0%,100% { transform: scale(1) rotate(0deg); } 33% { transform: scale(1.08) rotate(0.8deg); } 66% { transform: scale(0.95) rotate(-0.6deg); } }
-.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
-@keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
-.page-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px; padding: 16px 32px; background: rgba($bg-primary,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba($accent-secondary,0.08); }
-.back-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba($accent-secondary,0.06); border: 1px solid rgba($accent-secondary,0.1); border-radius: 8px; color: $text-secondary; font-size: 0.82rem; cursor: pointer; transition: all 0.25s ease; &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; } }
-.page-title { flex: 1; display: flex; align-items: center; gap: 10px; }
-.title-icon { font-size: 1.3rem; }
-.title-text { font-size: 1.05rem; font-weight: 700; background: linear-gradient(135deg, $accent-amber, $accent-red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.add-btn { display: flex; align-items: center; gap: 6px; padding: 9px 18px; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1)); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; color: $accent-amber; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.25s ease; &:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(245,158,11,0.15); } }
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: $accent-cyan;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba($accent-cyan, 0.5);
+  animation: particle-float 20s linear infinite;
+
+  &:nth-child(odd) {
+    background: $accent-primary;
+    box-shadow: 0 0 10px rgba($accent-primary, 0.5);
+  }
+}
+
+@keyframes particle-float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+/* ===== 极光背景 ===== */
+.bg-aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.aurora-layer {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(150px);
+  animation: aurora 25s ease-in-out infinite;
+}
+
+.aurora-1 {
+  width: 800px;
+  height: 800px;
+  top: -300px;
+  right: -200px;
+  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
+}
+
+.aurora-2 {
+  width: 700px;
+  height: 700px;
+  bottom: -250px;
+  left: -200px;
+  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
+  animation-delay: -8s;
+}
+
+.aurora-3 {
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 50%;
+  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
+  animation-delay: -15s;
+}
+
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(40px, -40px) scale(1.15); }
+  50% { transform: translate(-30px, 30px) scale(0.9); }
+  75% { transform: translate(25px, 15px) scale(1.1); }
+}
+
+/* ===== 网格纹理 ===== */
+.bg-grid-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
+.add-btn {
+  @include page-header-btn;
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1));
+  border: 1px solid rgba(245,158,11,0.2);
+  color: $accent-amber;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(245,158,11,0.15);
+  }
+}
 
 .content { max-width: 900px; margin: 0 auto; padding: 24px 32px 60px; position: relative; z-index: 1; }
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
@@ -427,7 +544,6 @@ onMounted(fetchGoals)
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); padding: 20px; }
 .modal-panel { width: 480px; max-width: 92vw; max-height: 80vh; background: rgba(12,14,30,0.97); border: 1px solid rgba($accent-secondary,0.12); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; animation: modalIn 0.3s ease; }
-.delete-dialog { width: 380px; max-width: 88vw; padding: 32px 28px 24px; background: rgba(12,14,30,0.97); border: 1px solid rgba($accent-secondary,0.12); border-radius: 16px; text-align: center; animation: modalIn 0.3s ease; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid rgba($accent-secondary,0.08); }
 .modal-title { font-size: 1.1rem; font-weight: 700; color: $text-primary; }
@@ -442,17 +558,12 @@ onMounted(fetchGoals)
 .label-value { float: right; font-weight: 700; color: $accent-amber; font-family: 'JetBrains Mono', monospace; }
 .form-input, .form-textarea, .form-select { width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba($accent-secondary,0.1); border-radius: 10px; color: $text-primary; font-size: 0.88rem; outline: none; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s; &:focus { border-color: rgba(245,158,11,0.25); } }
 .form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-.form-select { cursor: pointer; option { background: #1a1a3e; } }
+.form-select { cursor: pointer; option { background: $bg-elevated; color: $text-primary; } }
 .form-range { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: rgba($accent-secondary,0.1); border-radius: 3px; outline: none; cursor: pointer; &::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: $accent-amber; border: none; cursor: pointer; box-shadow: 0 0 6px rgba(245,158,11,0.3); } }
 .form-row { display: flex; gap: 12px; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid rgba($accent-secondary,0.08); }
 .btn-cancel { padding: 9px 20px; background: rgba($accent-secondary,0.04); border: 1px solid rgba($accent-secondary,0.1); border-radius: 10px; color: $text-muted; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; &:hover { border-color: rgba($accent-secondary,0.2); color: $text-primary; } }
 .btn-save { padding: 9px 22px; background: linear-gradient(135deg, $accent-amber, $accent-red); border: none; border-radius: 10px; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,158,11,0.2); } &:disabled { opacity: 0.4; cursor: not-allowed; } }
-.btn-delete-confirm { padding: 9px 22px; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(200,30,60,0.1)); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; color: $accent-red; font-size: 0.85rem; font-weight: 600; cursor: pointer; &:hover { box-shadow: 0 4px 16px rgba(239,68,68,0.15); } }
-.delete-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.delete-title { font-size: 1.1rem; font-weight: 700; color: $text-primary; margin: 0 0 8px; }
-.delete-desc { font-size: 0.85rem; color: $text-muted; margin: 0 0 24px; }
-.delete-actions { display: flex; gap: 12px; justify-content: center; }
 
 .goal-list-enter-active { transition: all 0.3s ease; }
 .goal-list-leave-active { transition: all 0.25s ease; }

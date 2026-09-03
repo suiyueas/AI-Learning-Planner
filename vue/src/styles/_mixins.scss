@@ -1,0 +1,154 @@
+// ============================================
+// 知途 · 新版通用 Mixins
+// 注意：card-base/button-primary/button-ghost/text-truncate 等
+// 已在 variables.scss 中定义（向后兼容），此处不重复定义
+// ============================================
+
+@use 'variables' as *;
+
+// ===== 卡片增强 =====
+@mixin card-interactive {
+  @include card-base;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $border-focus;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ===== 面板 =====
+@mixin panel {
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+}
+
+// ===== 按钮增强（新版命名） =====
+@mixin btn-primary-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  background: $accent-indigo;
+  color: $text-inverse;
+  border: none;
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-size: $text-base;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { background: $accent-indigo-light; }
+  &:active { background: $accent-indigo-dark; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+@mixin btn-secondary-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  background: transparent;
+  color: $text-secondary;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-size: $text-base;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $bg-muted;
+    color: $text-primary;
+    border-color: $border-medium;
+  }
+}
+
+// ===== 徽章 =====
+@mixin badge($color, $bg: null) {
+  @if $bg == null {
+    $bg: rgba($color, 0.1);
+  }
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: $bg;
+  color: $color;
+  border: 1px solid rgba($color, 0.2);
+  border-radius: $radius-full;
+  font-size: $text-xs;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+// ===== 进度条 =====
+@mixin progress-track {
+  width: 100%;
+  height: 6px;
+  background: $bg-muted;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+@mixin progress-fill($gradient: $gradient-brand) {
+  height: 100%;
+  background: $gradient;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ===== 页面容器 =====
+@mixin page-container {
+  padding: $space-6;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: $border-medium;
+    border-radius: $radius-full;
+    &:hover { background: $text-muted; }
+  }
+}
+
+// ===== 空状态 =====
+@mixin empty-state-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $space-12 $space-6;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: $space-4;
+    opacity: 0.4;
+  }
+
+  .empty-title {
+    font-size: $text-md;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: $space-2;
+  }
+
+  .empty-desc {
+    font-size: $text-sm;
+    color: $text-muted;
+    margin-bottom: $space-6;
+    max-width: 360px;
+    line-height: $leading-relaxed;
+  }
+}

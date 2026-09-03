@@ -116,12 +116,24 @@ v-for="(opt, j) in q.options" :key="j" class="dq-option" :class="{
       <el-button @click="detailVisible = false">关闭</el-button>
     </template>
   </el-dialog>
+
+  <!-- 删除记录确认对话框 -->
+  <DeleteConfirmDialog
+    :visible="showDeleteDialog"
+    title="删除记录"
+    :message="deleteDialogMessage"
+    type="warning"
+    :show-soft-delete="false"
+    @cancel="showDeleteDialog = false"
+    @hard-delete="confirmDeleteRecord"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { getHistory, getHistoryDetail, deleteHistory } from '@/api/assessmentApi'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog.vue'
 
 const props = defineProps({
   modelValue: {
@@ -147,6 +159,9 @@ const subjectOptions = ref([])
 
 const detailVisible = ref(false)
 const detailData = ref(null)
+const showDeleteDialog = ref(false)
+const deletingRecord = ref(null)
+const deleteDialogMessage = ref('')
 
 const scoreColor = computed(() => {
   const s = detailData.value?.accuracy || 0
@@ -220,25 +235,22 @@ watch(visible, (val) => {
 })
 
 async function handleDelete(record) {
+  deletingRecord.value = record
+  deleteDialogMessage.value = `确定删除这条 ${record.subject} 测评记录吗？`
+  showDeleteDialog.value = true
+}
+
+async function confirmDeleteRecord() {
   try {
-    await ElMessageBox.confirm(
-      `确定删除这条 ${record.subject} 测评记录吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        distinguishCancelAndClose: true
-      }
-    )
-    await deleteHistory(record.id)
+    await deleteHistory(deletingRecord.value.id)
     ElMessage.success('删除成功')
     loadHistory()
   } catch (e) {
-    if (e !== 'cancel' && e !== 'close') {
-      console.error('删除失败:', e)
-      ElMessage.error(e?.response?.data?.message || '删除失败')
-    }
+    console.error('删除失败:', e)
+    ElMessage.error(e?.response?.data?.message || '删除失败')
+  } finally {
+    showDeleteDialog.value = false
+    deletingRecord.value = null
   }
 }
 </script>

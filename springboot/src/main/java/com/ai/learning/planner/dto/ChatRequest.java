@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Builder.Default;
 
+import java.util.List;
+
 /**
  * 聊天请求DTO
  * 包含聊天消息、会话ID、模型选择、知识库和工具调用选项等
@@ -35,4 +37,10 @@ public class ChatRequest {
     /** 是否启用 MCP 工具调用 */
     @Default
     private boolean useTools = true;
+    /** 思考深度模式: fast(快速), standard(标准), deep(深度) */
+    private String reasoningLevel;
+    /** 选中的知识库文档 ID 列表（为空时使用全部文档） */
+    private List<String> selectedDocIds;
+    /** 选中的 MCP 工具 ID 列表（为空时使用全部工具） */
+    private List<String> selectedToolIds;
 }

@@ -1,5 +1,6 @@
 package com.ai.learning.planner.vectorstore;
 
+import com.ai.learning.planner.service.VectorPersistenceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -19,21 +20,36 @@ public class InMemoryVectorStoreWrapper implements VectorStore {
      * 内存向量存储（VectorStore 接口实现）
      * 开发环境替代 ES/Redis 向量库：文档存 ConcurrentHashMap，向量化可用时按余弦相似度检索；
      * 未配置 Embedding 模型时退化为全文包含匹配
+     * 支持 Redis 持久化：应用重启后可从 Redis 恢复向量，避免重新 Embedding
      */
 
     private final EmbeddingModel embeddingModel;
+    private final VectorPersistenceService persistenceService;
     private final Map<String, Document> documentStore = new ConcurrentHashMap<>();
     private final Map<String, float[]> vectorStore = new ConcurrentHashMap<>();
     private final boolean embeddingEnabled;
 
+    /**
+     * 构造函数（兼容无持久化服务的场景）
+     */
     public InMemoryVectorStoreWrapper(EmbeddingModel embeddingModel) {
+        this(embeddingModel, null);
+    }
+
+    /**
+     * 构造函数（支持 Redis 持久化）
+     */
+    public InMemoryVectorStoreWrapper(EmbeddingModel embeddingModel, VectorPersistenceService persistenceService) {
         this.embeddingModel = embeddingModel;
+        this.persistenceService = persistenceService;
         this.embeddingEnabled = (embeddingModel != null);
-        log.info("InMemoryVectorStoreWrapper 初始化: embeddingEnabled={}", embeddingEnabled);
+        log.info("InMemoryVectorStoreWrapper 初始化: embeddingEnabled={}, persistenceEnabled={}",
+                embeddingEnabled, persistenceService != null);
     }
 
     /**
      * 添加文档（Spring AI 1.1.7：接口仅提供 add(List)，单文档由调用方包装）
+     * 支持 Redis 持久化：向量生成后同步写入 Redis
      */
     @Override
     public void add(@NonNull List<Document> documents) {
@@ -44,7 +60,18 @@ public class InMemoryVectorStoreWrapper implements VectorStore {
             if (embeddingEnabled && embeddingModel != null) {
                 try {
                     // Spring AI 1.1.7：embed(String) 直接返回 float[]
-                    vectorStore.put(id, embeddingModel.embed(doc.getText()));
+                    float[] vector = embeddingModel.embed(doc.getText());
+                    vectorStore.put(id, vector);
+
+                    // 同步写入 Redis 持久化
+                    if (persistenceService != null) {
+                        String docId = doc.getMetadata() != null ? (String) doc.getMetadata().get("docId") : null;
+                        Object chunkIdObj = doc.getMetadata() != null ? doc.getMetadata().get("chunkId") : null;
+                        if (docId != null && chunkIdObj != null) {
+                            Long chunkId = chunkIdObj instanceof Long ? (Long) chunkIdObj : Long.parseLong(chunkIdObj.toString());
+                            persistenceService.saveVector(docId, chunkId, vector);
+                        }
+                    }
                 } catch (Exception e) {
                     log.warn("Embedding 生成失败，文档 ID={}: {}", id, e.getMessage());
                 }
@@ -191,6 +218,7 @@ public class InMemoryVectorStoreWrapper implements VectorStore {
     public void delete(@NonNull String id) {
         documentStore.remove(id);
         vectorStore.remove(id);
+        // Redis 中的向量由 KnowledgeChunkService 统一管理删除
     }
 
     @Override
@@ -212,5 +240,54 @@ public class InMemoryVectorStoreWrapper implements VectorStore {
 
     public boolean isEmbeddingEnabled() {
         return embeddingEnabled;
+    }
+
+    /**
+     * 从 Redis 加载向量到内存（启动时调用）
+     * @param docIdToTitleMap 文档ID到标题的映射，用于重建 Document 对象
+     */
+    public void loadFromRedis(Map<String, String> docIdToTitleMap) {
+        if (persistenceService == null) {
+            log.debug("持久化服务不可用，跳过从 Redis 加载向量");
+            return;
+        }
+
+        long startTime = System.currentTimeMillis();
+        Map<String, Map<Long, float[]>> allVectors = persistenceService.loadAllVectors();
+        int loadedCount = 0;
+
+        for (Map.Entry<String, Map<Long, float[]>> docEntry : allVectors.entrySet()) {
+            String docId = docEntry.getKey();
+            String title = docIdToTitleMap.getOrDefault(docId, docId);
+
+            for (Map.Entry<Long, float[]> chunkEntry : docEntry.getValue().entrySet()) {
+                Long chunkId = chunkEntry.getKey();
+                float[] vector = chunkEntry.getValue();
+
+                // 重建 Document 对象并存入内存
+                String docKey = docId + ":" + chunkId;
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("docId", docId);
+                metadata.put("chunkId", chunkId);
+                metadata.put("docTitle", title);
+                metadata.put("title", title);
+                metadata.put("source", "knowledge_chunk");
+
+                // 从数据库加载的内容可能为空，仅存向量用于检索
+                documentStore.putIfAbsent(docKey, new Document("", metadata));
+                vectorStore.put(docKey, vector);
+                loadedCount++;
+            }
+        }
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.info("从 Redis 加载向量完成: count={}, 耗时={}ms", loadedCount, elapsed);
+    }
+
+    /**
+     * 获取内存中的向量数量
+     */
+    public int getVectorCount() {
+        return vectorStore.size();
     }
 }

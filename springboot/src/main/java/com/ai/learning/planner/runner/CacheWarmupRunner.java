@@ -1,9 +1,7 @@
 package com.ai.learning.planner.runner;
 
 import com.ai.learning.planner.entity.KnowledgeDocument;
-import com.ai.learning.planner.entity.KnowledgeNode;
 import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
-import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import com.ai.learning.planner.repository.QuestionRepository;
 import com.ai.learning.planner.service.ConfigDataCacheService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 public class CacheWarmupRunner implements ApplicationRunner {
 
     private final ConfigDataCacheService configDataCacheService;
-    private final KnowledgeNodeRepository knowledgeNodeRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final QuestionRepository questionRepository;
 
@@ -38,16 +35,14 @@ public class CacheWarmupRunner implements ApplicationRunner {
 
         CompletableFuture.runAsync(() -> {
             int docCount = 0;
-            int nodeCount = 0;
             int subjectCount = 0;
 
             try {
-                nodeCount = warmupKnowledgeNodes();
                 docCount = warmupKnowledgeDocuments();
                 subjectCount = warmupSubjects();
 
                 // 汇总日志：一次性输出预热结果
-                log.info("✅ 缓存预热完成: {} 个文档, {} 个节点, {} 个科目", docCount, nodeCount, subjectCount);
+                log.info("✅ 缓存预热完成: {} 个文档, {} 个科目", docCount, subjectCount);
             } catch (Exception e) {
                 log.error("[Warmup] 缓存预热异常: {}", e.getMessage(), e);
             }
@@ -58,20 +53,6 @@ public class CacheWarmupRunner implements ApplicationRunner {
           });
 
         log.debug("[Warmup] 缓存预热已启动 (异步执行，预计 {} 秒内完成)", ASYNC_TIMEOUT_SECONDS);
-    }
-
-    private int warmupKnowledgeNodes() {
-        try {
-            List<KnowledgeNode> nodes = knowledgeNodeRepository.findAll();
-
-            if (!nodes.isEmpty()) {
-                configDataCacheService.cacheKnowledgeNodes(nodes);
-                return nodes.size();
-            }
-        } catch (Exception e) {
-            log.warn("[Warmup] 知识节点预热失败: {}", e.getMessage());
-        }
-        return 0;
     }
 
     private int warmupKnowledgeDocuments() {

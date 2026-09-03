@@ -167,51 +167,6 @@ export const createSSEClient = (options = {}) => {
 }
 
 /**
- * 模拟SSE流式输出
- * 用于前端演示，模拟打字机效果
- * @param {string} text - 要输出的文本
- * @param {function} onChunk - 每个字符的回调
- * @param {number} delay - 每个字符的延迟（毫秒）
- * @returns {Promise} 完成Promise
- */
-export const simulateSSE = (text, onChunk, delay = 50) => {
-  return new Promise((resolve) => {
-    let index = 0
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        onChunk(text[index])
-        index++
-      } else {
-        clearInterval(interval)
-        resolve()
-      }
-    }, delay)
-  })
-}
-
-/**
- * 模拟ReAct步骤
- * 用于演示AI思考过程
- * @param {string} type - 步骤类型（think, act, observe）
- * @param {string} content - 步骤内容
- * @param {number} duration - 持续时间（毫秒）
- * @returns {Promise} 完成Promise
- */
-export const simulateReactStep = (type, content, duration = 2000) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: 'step_' + Date.now(),
-        type,
-        content,
-        timestamp: new Date(),
-        status: 'completed'
-      })
-    }, duration)
-  })
-}
-
-/**
  * 使用 fetch + ReadableStream 发送 POST SSE 请求
  * EventSource 只支持 GET，需要手动解析 POST SSE 响应
  * @param {string} url - 请求 URL
@@ -277,14 +232,13 @@ export const fetchSSE = async (url, body, options = {}) => {
         if (trimmed.startsWith('data:')) {
           const data = trimmed.slice(5).trim()
           if (data === '[DONE]') continue
-          // 过滤：如果是 JSON 字符串且非纯文本内容，静默丢弃防止显示原始 JSON
-          const trimmedData = data.trim()
-          if (onChunk && !trimmedData.startsWith('{') && !trimmedData.startsWith('[')) {
+          // 传递所有数据给 onChunk 回调，由调用方负责解析/过滤
+          if (onChunk) {
             onChunk(data)
           }
         } else if (!trimmed.startsWith('event:') && !trimmed.startsWith('id:') && !trimmed.startsWith('retry:')) {
           // 纯文本数据（Spring AI Flux<String> 直接输出文本）
-          if (onChunk && !trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+          if (onChunk) {
             onChunk(trimmed)
           }
         }
@@ -296,9 +250,9 @@ export const fetchSSE = async (url, body, options = {}) => {
       const trimmed = buffer.trim()
       if (trimmed.startsWith('data:')) {
         const data = trimmed.slice(5).trim()
-        if (data !== '[DONE]' && onChunk && !data.startsWith('{') && !data.startsWith('[')) onChunk(data)
+        if (data !== '[DONE]' && onChunk) onChunk(data)
       } else if (!trimmed.startsWith('event:') && !trimmed.startsWith('id:') && !trimmed.startsWith('retry:')) {
-        if (onChunk && !trimmed.startsWith('{') && !trimmed.startsWith('[')) onChunk(trimmed)
+        if (onChunk) onChunk(trimmed)
       }
     }
 

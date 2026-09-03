@@ -1,32 +1,23 @@
 ﻿<template>
   <div class="calendar-page">
-    <!-- ===== 背景层 ===== -->
-    <div class="bg-layer">
-      <div class="bg-aurora">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="bg-grid"></div>
-      <div class="bg-scanline"></div>
-    </div>
-
     <!-- ===== 顶部导航 ===== -->
-    <div class="nav-bar">
-      <button class="back-btn" @click="goBack">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        <span>返回</span>
-      </button>
-      <h1 class="nav-title">
-        <span class="nav-title-icon">📅</span>
-        <span class="nav-title-text">学习日历</span>
-        <span class="nav-title-sub">— 掌控每日学习节奏</span>
-      </h1>
-      <button class="add-task-btn" @click="openAddModal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        <span>添加任务</span>
-      </button>
-    </div>
+    <header class="page-header">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">📅</span>
+            <span>学习日历</span>
+            <span class="title-sub">掌控每日学习节奏</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="add-task-btn" @click="openAddModal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            <span>添加任务</span>
+          </button>
+        </div>
+      </div>
+    </header>
 
     <!-- ===== 主内容区 ===== -->
     <div class="calendar-container">
@@ -277,7 +268,6 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMonthlyStats } from '@/api/achievement'
-
 const router = useRouter()
 
 // ========== 日期状态 ==========
@@ -633,14 +623,7 @@ function confirmAddTask() {
   closeAddModal()
 }
 
-// ========== 导航 ==========
-function goBack() {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/home')
-  }
-}
+
 
 // ========== 生命周期 ==========
 onMounted(() => {
@@ -663,9 +646,9 @@ $blue: #0055ff;
 $text-primary: $text-primary;
 $text-secondary: $text-secondary;
 $text-muted: #8080b0;
-$card-bg: rgba(15, 18, 45, 0.55);
+$card-bg: rgba(12, 20, 40, 0.6);
 $border-subtle: rgba($accent-secondary, 0.08);
-$border-glass: rgba($accent-secondary, 0.12);
+$border-glass: rgba($accent-cyan, 0.15);
 
 // ===== 字体 =====
 $font-display: 'Orbitron', 'Courier New', monospace;
@@ -673,7 +656,6 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 // ===== 页面容器 =====
 .calendar-page {
   min-height: calc(100vh - 68px);
-  background: $bg-deep;
   position: relative;
   overflow: hidden;
   padding: 0;
@@ -681,57 +663,7 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   flex-direction: column;
 }
 
-// ===== 背景 =====
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
 
-.bg-aurora {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 70% 15%, rgba($accent-primary, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at 25% 75%, rgba(123, 97, 255, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 45%, rgba(0, 85, 255, 0.04) 0%, transparent 50%);
-  animation: auroraDrift 20s ease-in-out infinite;
-}
-
-@keyframes auroraDrift {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  33% { transform: scale(1.08) rotate(0.8deg); }
-  66% { transform: scale(0.95) rotate(-0.6deg); }
-}
-
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba($accent-primary, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(123, 97, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  animation: gridPulse 8s ease-in-out infinite alternate;
-}
-
-@keyframes gridPulse {
-  0% { opacity: 0.3; transform: scale(1); }
-  100% { opacity: 0.6; transform: scale(1.02); }
-}
-
-.bg-scanline {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba($accent-primary, 0.008) 2px,
-    rgba($accent-primary, 0.008) 4px
-  );
-  pointer-events: none;
-}
 
 // ===== 玻璃卡片 =====
 .glass-card {
@@ -782,72 +714,25 @@ $font-display: 'Orbitron', 'Courier New', monospace;
   }
 }
 
-.nav-title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: $text-primary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  .nav-title-icon {
-    font-size: 1.2rem;
-    filter: drop-shadow(0 0 6px rgba($accent-primary, 0.3));
-  }
-
-  .nav-title-text {
-    background: linear-gradient(135deg, $cyan, $blue);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .nav-title-sub {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: $text-muted;
-    -webkit-text-fill-color: $text-muted;
-    display: none;
-
-    @media (min-width: 768px) {
-      display: inline;
-    }
-  }
-}
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.75rem; font-weight: 400; color: $text-muted; -webkit-text-fill-color: $text-muted; margin-left: 4px; }
 
 .add-task-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 18px;
-  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
-  border: 1px solid $cyan-dim;
-  border-radius: 10px;
-  color: $cyan;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  flex-shrink: 0;
-  letter-spacing: 0.3px;
+  @include page-header-btn-primary;
+  background: rgba($accent-indigo, 0.1);
+  border: 1px solid rgba($accent-indigo, 0.25);
+  color: $accent-indigo;
 
   &:hover {
-    background: linear-gradient(135deg, rgba($accent-primary, 0.25), rgba(0, 85, 255, 0.18));
-    border-color: $cyan-glow;
-    box-shadow: 0 0 20px rgba($accent-primary, 0.15);
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.4);
     transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.2);
   }
 
   svg {
-    filter: drop-shadow(0 0 4px rgba($accent-primary, 0.4));
+    filter: drop-shadow(0 0 4px rgba($accent-indigo, 0.4));
   }
 }
 
@@ -1687,8 +1572,8 @@ $font-display: 'Orbitron', 'Courier New', monospace;
 
 .form-input {
   padding: 10px 14px;
-  background: rgba($accent-secondary, 0.06);
-  border: 1px solid $border-subtle;
+  background: rgba($accent-cyan, 0.06);
+  border: 1px solid rgba($accent-cyan, 0.12);
   border-radius: 10px;
   color: $text-primary;
   font-size: 0.88rem;
@@ -1701,20 +1586,34 @@ $font-display: 'Orbitron', 'Courier New', monospace;
     font-weight: 400;
   }
 
+  &:hover {
+    border-color: rgba($accent-cyan, 0.25);
+    background: rgba($accent-cyan, 0.08);
+  }
+
   &:focus {
-    border-color: $cyan-dim;
-    background: rgba($accent-primary, 0.03);
-    box-shadow: 0 0 12px rgba($accent-primary, 0.06);
+    border-color: rgba($accent-cyan, 0.4);
+    background: rgba($accent-cyan, 0.06);
+    box-shadow: 0 0 12px rgba($accent-cyan, 0.1);
   }
 
   &[type="date"],
   &[type="time"] {
     color-scheme: dark;
     cursor: pointer;
+    background: rgba($bg-elevated, 0.6);
+    border: 1px solid rgba($accent-cyan, 0.2);
+    backdrop-filter: blur(8px);
 
-    &::-webkit-calendar-picker-indicator {
-      filter: invert(0.7) sepia(1) hue-rotate(160deg) saturate(2);
+    &::-webkit-calendar-picker-indicator,
+    &::-webkit-calendar-picker-indicator-filter {
+      filter: invert(0.6) sepia(1) hue-rotate(130deg) saturate(3) brightness(1.2);
       cursor: pointer;
+      opacity: 0.8;
+    }
+
+    &::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
     }
   }
 }

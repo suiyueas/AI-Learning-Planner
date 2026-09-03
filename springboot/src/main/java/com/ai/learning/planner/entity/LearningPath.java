@@ -43,6 +43,11 @@ public class LearningPath {
     @Column(columnDefinition = "JSON")
     private String nodes;
 
+    /** 路径来源：manual-手动创建, ai_chat-对话生成, ai_assessment-测评生成, ai_quick-一键生成 */
+    @Column(name = "source", length = 20)
+    @Builder.Default
+    private String source = "manual";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -31,7 +31,12 @@ public class AdaptiveController {
         if (userId == null) {
             return Map.of("success", false, "message", "用户未登录");
         }
-        return Map.of("success", true, "data", adaptiveEngineService.getStatus(userId));
+        try {
+            return Map.of("success", true, "data", adaptiveEngineService.getStatus(userId));
+        } catch (Exception e) {
+            log.error("获取自适应引擎状态失败: userId={}", userId, e);
+            return Map.of("success", false, "message", "自适应引擎数据加载失败，请确认数据库表已创建");
+        }
     }
 
     /**
@@ -47,8 +52,13 @@ public class AdaptiveController {
         if (userId == null) {
             return Map.of("success", false, "message", "用户未登录");
         }
-        return Map.of("success", true, "data",
-                adaptiveEngineService.getAdjustments(userId, page, size, type));
+        try {
+            return Map.of("success", true, "data",
+                    adaptiveEngineService.getAdjustments(userId, page, size, type));
+        } catch (Exception e) {
+            log.error("获取自适应调整历史失败: userId={}", userId, e);
+            return Map.of("success", false, "message", "调整历史加载失败，请确认数据库表已创建");
+        }
     }
 
     /**
@@ -61,7 +71,12 @@ public class AdaptiveController {
         if (userId == null) {
             return Map.of("success", false, "message", "用户未登录");
         }
-        return Map.of("success", true, "data", adaptiveEngineService.getRecommendations(userId));
+        try {
+            return Map.of("success", true, "data", adaptiveEngineService.getRecommendations(userId));
+        } catch (Exception e) {
+            log.error("获取个性化推荐失败: userId={}", userId, e);
+            return Map.of("success", false, "message", "推荐数据加载失败，请确认数据库表已创建");
+        }
     }
 
     /**

@@ -5,6 +5,7 @@ import com.ai.learning.planner.dto.ChatRequest;
 import com.ai.learning.planner.dto.ChatResponse;
 import com.ai.learning.planner.dto.CodeAnalysisRequest;
 import com.ai.learning.planner.dto.CodeAnalysisResponse;
+import com.ai.learning.planner.dto.ConversationSummary;
 import com.ai.learning.planner.entity.ChatHistory;
 import org.springframework.security.access.AccessDeniedException;
 import com.ai.learning.planner.security.AuditService;
@@ -88,6 +89,16 @@ public class ChatController {
             throw new AccessDeniedException("无权查看该用户的聊天历史");
         }
         return chatService.getUserChatHistory(userId);
+    }
+
+    /**
+     * 获取用户的会话摘要列表（轻量级，不含消息内容）
+     */
+    @GetMapping("/conversations")
+    public ApiResponse<List<ConversationSummary>> getConversationSummaries(Authentication authentication) {
+        String userId = SecurityUtils.requireUserId(authentication);
+        List<ConversationSummary> summaries = chatService.getConversationSummaries(userId);
+        return ApiResponse.success(summaries);
     }
 
     /**

@@ -27,4 +27,8 @@ public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocu
     void deleteByIdAndUserId(String id, String userId);
 
     long countByUserId(String userId);
+
+    long countByStatus(String status);
+
+    List<KnowledgeDocument> findByStatus(String status);
 }

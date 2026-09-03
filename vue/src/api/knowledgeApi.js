@@ -46,15 +46,6 @@ export const getDocumentChunks = (id) => {
 }
 
 /**
- * 根据原始文件名获取文档内容
- * @param {string} filename 文档原始文件名（含扩展名）
- * @returns {Promise} { success, data: { id, title, content, preview, ... } }
- */
-export const getDocumentContent = (filename) => {
-  return get('/knowledge/document/content', { filename })
-}
-
-/**
  * 知识检索（关键词搜索知识块）
  * @param {string} keyword 搜索关键词
  * @returns {Promise}
@@ -81,23 +72,17 @@ export const generateAllChunks = () => {
 }
 
 /**
- * 为单个文档生成知识块
- * @param {string} docId 文档ID
+ * 重试所有失败的文档
  * @returns {Promise}
  */
-export const generateChunksForDocument = (docId) => {
-  return post(`/knowledge/documents/${docId}/chunks/generate`)
+export const retryFailedDocuments = () => {
+  return post('/knowledge/retry-failed')
 }
 
-export default {
-  getDocuments,
-  getStatus,
-  uploadDocument,
-  deleteDocument,
-  getDocumentChunks,
-  getDocumentContent,
-  searchKnowledge,
-  askKnowledge,
-  generateAllChunks,
-  generateChunksForDocument
+/**
+ * 修复错误文档：从源文件目录匹配并更新路径
+ * @returns {Promise}
+ */
+export const fixErrorDocuments = () => {
+  return post('/knowledge/fix-error-docs')
 }

@@ -20,6 +20,8 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, 
 
     List<KnowledgeChunk> findByContentContaining(String keyword);
 
+    List<KnowledgeChunk> findByDocIdInAndContentContaining(List<String> docIds, String keyword);
+
     /**
      * 一次性查询所有文档的知识块数量（避免 N+1）
      * @return [docId, count] 数组列表

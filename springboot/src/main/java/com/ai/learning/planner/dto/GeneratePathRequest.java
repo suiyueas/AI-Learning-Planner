@@ -24,4 +24,8 @@ public class GeneratePathRequest {
     private Integer durationWeeks;
 
     private String difficulty;
+
+    /** 路径来源：manual-手动创建, ai_chat-对话生成, ai_assessment-测评生成, ai_quick-一键生成 */
+    @Builder.Default
+    private String source = "manual";
 }

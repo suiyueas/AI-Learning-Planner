@@ -31,8 +31,6 @@ public class AdaptiveEngineService {
     private final LearningRecordRepository learningRecordRepository;
     private final AssessmentRecordRepository assessmentRecordRepository;
     private final LearningPathRepository learningPathRepository;
-    private final KnowledgeNodeRepository knowledgeNodeRepository;
-    private final ResourceRepository resourceRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
@@ -98,182 +96,80 @@ public class AdaptiveEngineService {
         return v <= 5 ? Math.min(v * 20, 100) : Math.min(v, 100);
     }
 
-    /**
-     * 学习效率提升：近 30 天 vs 前 30 天完成节点数增长率；
-     * 前段无完成节点时对比学习时长，仍无基线则返回 0。
-     */
-    private int calculateEfficiencyImprovement(String userId) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime recentStart = now.minusDays(30);
-        LocalDateTime prevStart = now.minusDays(60);
-
-        long recentCount = learningRecordRepository
-                .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(userId, COMPLETED, recentStart, now).size();
-        long prevCount = learningRecordRepository
-                .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(userId, COMPLETED, prevStart, recentStart).size();
-
-        double prev = prevCount;
-        double recent = recentCount;
-        // 前段无完成节点：改用学习时长对比
-        if (prevCount == 0 && recentCount > 0) {
-            int recentMinutes = learningRecordRepository
-                    .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(userId, COMPLETED, recentStart, now).stream()
-                    .mapToInt(r -> r.getTimeSpent() != null ? r.getTimeSpent() : 0).sum();
-            int prevMinutes = learningRecordRepository
-                    .findByUserIdAndStatusAndCompletedAtBetweenOrderByCompletedAtAsc(userId, COMPLETED, prevStart, recentStart).stream()
-                    .mapToInt(r -> r.getTimeSpent() != null ? r.getTimeSpent() : 0).sum();
-            if (prevMinutes > 0) {
-                prev = prevMinutes;
-                recent = recentMinutes;
-            }
-        }
-        if (prev <= 0 || recent <= 0) return 0;
-        return (int) Math.round((recent - prev) / prev * 100);
-    }
-
-    /**
-     * 知识掌握率：各科目最近一次测评成绩的均值（百分制），
-     * 无测评数据时兜底学习记录掌握度均值。
-     */
     private int calculateKnowledgeMastery(String userId) {
-        try {
-            Long userIdLong = Long.valueOf(userId);
-            List<AssessmentRecord> all = assessmentRecordRepository.findByUserIdOrderByCreatedAtDesc(userIdLong);
-            if (!all.isEmpty()) {
-                Map<String, AssessmentRecord> latestBySubject = new LinkedHashMap<>();
-                for (AssessmentRecord ar : all) {
-                    latestBySubject.putIfAbsent(ar.getSubject(), ar);
-                }
-                double sum = 0;
-                int count = 0;
-                for (AssessmentRecord ar : latestBySubject.values()) {
-                    if (ar.getTotal() != null && ar.getTotal() > 0 && ar.getScore() != null) {
-                        sum += ar.getScore() * 100.0 / ar.getTotal();
-                        count++;
-                    }
-                }
-                if (count > 0) return (int) Math.round(sum / count);
-            }
-        } catch (NumberFormatException ignored) {
-        }
-        Float avgMastery = learningRecordRepository.avgMasteryLevelByUserId(userId);
-        return avgMastery != null ? (int) Math.round(normalizeMastery(avgMastery)) : 0;
+        List<LearningRecord> records = learningRecordRepository.findByUserId(userId);
+        if (records.isEmpty()) return 0;
+        double avg = records.stream()
+                .mapToDouble(r -> normalizeMastery(r.getMasteryLevel()))
+                .average().orElse(0);
+        return (int) Math.round(avg);
     }
 
-    /**
-     * 归因分析：按调整类型统计占比，将效率提升按占比分摊到各机制。
-     * 仅当存在调整记录且效率提升为正时返回。
-     */
-    private List<Map<String, Object>> buildAttribution(String userId, int efficiency) {
-        if (efficiency <= 0) return Collections.emptyList();
-        List<AdaptiveAdjustment> adjustments = adjustmentRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        if (adjustments.isEmpty()) return Collections.emptyList();
+    private int calculateEfficiencyImprovement(String userId) {
+        List<LearningRecord> records = learningRecordRepository.findByUserId(userId);
+        if (records.size() < 2) return 0;
+        int half = records.size() / 2;
+        double early = records.subList(0, half).stream()
+                .mapToDouble(r -> normalizeMastery(r.getMasteryLevel())).average().orElse(0);
+        double late = records.subList(half, records.size()).stream()
+                .mapToDouble(r -> normalizeMastery(r.getMasteryLevel())).average().orElse(0);
+        if (early == 0) return 0;
+        return (int) Math.round((late - early) / early * 100);
+    }
 
-        Map<String, Long> countByType = adjustments.stream()
-                .collect(Collectors.groupingBy(AdaptiveAdjustment::getAdjustmentType, Collectors.counting()));
-        long total = adjustments.size();
-        List<Map<String, Object>> attribution = new ArrayList<>();
-        // 固定顺序展示：复习插入/计划调整/资源推荐/进阶推荐/难度调整
-        List<String> order = List.of("review_insert", "plan_adjust", "resource_recommend", "advance_recommend", "difficulty_adjust");
-        for (String type : order) {
-            Long count = countByType.get(type);
-            if (count == null || count == 0) continue;
-            int contribution = (int) Math.round((double) count / total * efficiency);
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("type", type);
-            m.put("typeLabel", TYPE_LABELS.getOrDefault(type, type));
-            m.put("count", count);
-            m.put("contribution", contribution);
-            attribution.add(m);
-        }
-        return attribution;
+    private String buildAttribution(String userId, int efficiency) {
+        long total = learningRecordRepository.findByUserId(userId).size();
+        long completed = learningRecordRepository.countByUserIdAndStatus(userId, COMPLETED);
+        if (total == 0) return "暂无学习数据，无法归因";
+        String base = String.format("基于 %d 条学习记录（完成率 %d%%）", total, (int)(completed * 100.0 / total));
+        if (efficiency > 0) return base + "，效率提升显著";
+        if (efficiency < 0) return base + "，建议调整学习策略";
+        return base + "，效率保持稳定";
     }
 
     // ==================== 调整历史 ====================
 
-    /**
-     * 调整历史分页（按时间降序），支持类型筛选，路径名称关联解析
-     */
     public Map<String, Object> getAdjustments(String userId, int page, int size, String type) {
-        int p = Math.max(page, 0);
-        int s = Math.min(Math.max(size, 1), 100);
-
-        List<AdaptiveAdjustment> all = (type == null || type.isBlank() || "all".equals(type))
-                ? adjustmentRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                : adjustmentRepository.findByUserIdAndAdjustmentTypeOrderByCreatedAtDesc(userId, type);
-
-        // 路径名称缓存（避免逐条查询）
-        Map<String, String> pathNameCache = new HashMap<>();
-        int total = all.size();
-        int from = Math.min(p * s, total);
-        int to = Math.min(from + s, total);
-        List<Map<String, Object>> content = new ArrayList<>();
-        for (AdaptiveAdjustment adj : all.subList(from, to)) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", adj.getId());
-            m.put("type", adj.getAdjustmentType());
-            m.put("typeLabel", TYPE_LABELS.getOrDefault(adj.getAdjustmentType(), adj.getAdjustmentType()));
-            m.put("triggerReason", adj.getTriggerReason());
-            m.put("detail", parseDetail(adj.getAdjustmentDetail()));
-            m.put("effect", adj.getEffectMetric());
-            m.put("createdAt", adj.getCreatedAt() != null ? adj.getCreatedAt().toString() : "");
-            m.put("pathId", adj.getPathId());
-            m.put("pathName", resolvePathName(adj.getPathId(), pathNameCache));
-            content.add(m);
+        List<AdaptiveAdjustment> all = adjustmentRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        if (type != null && !type.isBlank()) {
+            all = all.stream().filter(a -> type.equals(a.getAdjustmentType())).collect(Collectors.toList());
         }
-
+        int total = all.size();
+        int from = Math.min(page * size, total);
+        int to = Math.min(from + size, total);
+        List<Map<String, Object>> items = all.subList(from, to).stream()
+                .map(this::toAdjustmentMap).collect(Collectors.toList());
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("content", content);
-        result.put("totalElements", total);
-        result.put("page", p);
-        result.put("size", s);
-        result.put("totalPages", (total + s - 1) / s);
+        result.put("items", items);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
         return result;
     }
 
-    /** 调整详情 JSON 解析（解析失败返回空 Map，前端兼容展示） */
-    private Map<String, Object> parseDetail(String json) {
-        if (json == null || json.isBlank()) return Collections.emptyMap();
-        try {
-            return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
-            log.warn("[AdaptiveEngine] 调整详情 JSON 解析失败: {}", e.getMessage());
-            return Collections.emptyMap();
-        }
-    }
-
-    private String resolvePathName(String pathId, Map<String, String> cache) {
-        if (pathId == null || pathId.isBlank()) return "";
-        return cache.computeIfAbsent(pathId, id -> learningPathRepository.findById(id)
-                .map(LearningPath::getName).orElse(""));
+    private Map<String, Object> toAdjustmentMap(AdaptiveAdjustment a) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", a.getId());
+        m.put("type", a.getAdjustmentType());
+        m.put("typeLabel", TYPE_LABELS.getOrDefault(a.getAdjustmentType(), a.getAdjustmentType()));
+        m.put("pathId", a.getPathId());
+        m.put("triggerReason", a.getTriggerReason());
+        m.put("detail", a.getAdjustmentDetail());
+        m.put("effect", a.getEffectMetric());
+        m.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : "");
+        return m;
     }
 
     // ==================== 个性化推荐 ====================
 
-    /**
-     * 获取推荐列表：优先返回库中活跃推荐（pending/clicked），
-     * 不足目标条数时触发规则化生成并落库。
-     */
     public Map<String, Object> getRecommendations(String userId) {
-        List<UserRecommendation> active = recommendationRepository
-                .findByUserIdAndStatusInOrderByGeneratedAtDesc(userId, List.of("pending", "clicked"));
-
-        // 生成每日一次：仅当当天尚无任何推荐记录时触发（避免重复落库）
-        boolean generatedToday = recommendationRepository
-                .findByUserIdAndStatusInOrderByGeneratedAtDesc(userId, List.of("pending", "clicked", "consumed"))
-                .stream().anyMatch(r -> r.getGeneratedAt() != null
-                        && r.getGeneratedAt().toLocalDate().equals(LocalDate.now()));
-        if (!generatedToday && active.size() < RECOMMEND_TARGET) {
-            try {
-                active = generateRecommendations(userId);
-            } catch (Exception e) {
-                log.warn("[AdaptiveEngine] 推荐生成失败: {}", e.getMessage());
-            }
-        }
-
+        List<UserRecommendation> recs = generateRecommendations(userId);
+        long pending = recs.stream().filter(r -> "pending".equals(r.getStatus())).count();
+        long clicked = recs.stream().filter(r -> "clicked".equals(r.getStatus())).count();
+        long consumed = recs.stream().filter(r -> "consumed".equals(r.getStatus())).count();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("content", active.stream().map(this::toRecommendationMap).collect(Collectors.toList()));
-        result.put("totalElements", active.size());
+        result.put("items", recs.stream().map(this::toRecommendationMap).collect(Collectors.toList()));
+        result.put("stats", Map.of("pending", pending, "clicked", clicked, "consumed", consumed));
         return result;
     }
 
@@ -298,8 +194,8 @@ public class AdaptiveEngineService {
 
     /**
      * 规则化推荐引擎：
-     * ① 测评薄弱科目 → 匹配知识点/资源（resource 或 knowledge_block 推荐）
-     * ② 用户薄弱项/兴趣关键词 → 匹配资源/知识点
+     * ① 测评薄弱科目 → 匹配知识文档
+     * ② 用户薄弱项/兴趣关键词 → 匹配知识文档
      * ③ 活跃路径下一个未完成节点 → 路径推荐
      */
     private List<UserRecommendation> generateRecommendations(String userId) {
@@ -310,9 +206,8 @@ public class AdaptiveEngineService {
                 .collect(Collectors.toSet());
         List<UserRecommendation> generated = new ArrayList<>(active);
 
-        // 知识节点/资源全量缓存（供关键词匹配）
-        List<KnowledgeNode> nodes = knowledgeNodeRepository.findAll();
-        List<Resource> resources = resourceRepository.findAll();
+        // 知识文档全量缓存（供关键词匹配）
+        List<KnowledgeDocument> documents = knowledgeDocumentRepository.findAll();
         User user = findUser(userId);
         List<LearningPath> myPaths = learningPathRepository.findByUserId(userId);
 
@@ -331,30 +226,14 @@ public class AdaptiveEngineService {
         });
         for (String subject : weakSubjects) {
             if (generated.size() >= RECOMMEND_TARGET) break;
-            // 匹配知识点（分类包含科目名）
-            KnowledgeNode matched = nodes.stream()
-                    .filter(n -> n.getCategory() != null && n.getCategory().contains(subject))
+            // 匹配知识文档
+            KnowledgeDocument matchedDoc = documents.stream()
+                    .filter(d -> d.getTitle() != null && (d.getTitle().contains(subject) || subject.contains(d.getTitle())))
                     .findFirst().orElse(null);
-            if (matched == null) {
-                matched = nodes.stream()
-                        .filter(n -> n.getName() != null && (n.getName().contains(subject) || subject.contains(n.getName())))
-                        .findFirst().orElse(null);
-            }
-            if (matched != null && existingKeys.add("knowledge_block:" + matched.getId())) {
-                generated.add(buildRecommendation(userId, matched.getId(), "knowledge_block",
-                        "补强「" + matched.getName() + "」",
-                        "测评显示《" + subject + "》掌握度偏低，建议优先学习该知识点", 0.9f, "high"));
-            }
-            // 匹配资源
-            if (generated.size() < RECOMMEND_TARGET) {
-                Resource matchedRes = resources.stream()
-                        .filter(r -> r.getTitle() != null && (r.getTitle().contains(subject) || subject.contains(r.getTitle())))
-                        .findFirst().orElse(null);
-                if (matchedRes != null && existingKeys.add("resource:" + matchedRes.getId())) {
-                    generated.add(buildRecommendation(userId, matchedRes.getId(), "resource",
-                            "资源推荐：" + matchedRes.getTitle(),
-                            "针对《" + subject + "》薄弱环节推荐该学习资源", 0.85f, "high"));
-                }
+            if (matchedDoc != null && existingKeys.add("knowledge_document:" + matchedDoc.getId())) {
+                generated.add(buildRecommendation(userId, matchedDoc.getId(), "knowledge_document",
+                        "补强「" + matchedDoc.getTitle() + "」",
+                        "测评显示《" + subject + "》掌握度偏低，建议优先学习该文档", 0.9f, "high"));
             }
         }
 
@@ -362,22 +241,13 @@ public class AdaptiveEngineService {
         List<String> keywords = extractKeywords(user);
         for (String kw : keywords) {
             if (generated.size() >= RECOMMEND_TARGET) break;
-            KnowledgeNode node = nodes.stream()
-                    .filter(n -> n.getName() != null && n.getName().contains(kw))
+            KnowledgeDocument doc = documents.stream()
+                    .filter(d -> d.getTitle() != null && d.getTitle().contains(kw))
                     .findFirst().orElse(null);
-            if (node != null && existingKeys.add("knowledge_block:" + node.getId())) {
-                generated.add(buildRecommendation(userId, node.getId(), "knowledge_block",
-                        "掌握「" + node.getName() + "」",
+            if (doc != null && existingKeys.add("knowledge_document:" + doc.getId())) {
+                generated.add(buildRecommendation(userId, doc.getId(), "knowledge_document",
+                        "学习「" + doc.getTitle() + "」",
                         "与你关注的方向「" + kw + "」高度匹配", 0.8f, "normal"));
-                continue;
-            }
-            Resource res = resources.stream()
-                    .filter(r -> r.getTitle() != null && r.getTitle().contains(kw))
-                    .findFirst().orElse(null);
-            if (res != null && existingKeys.add("resource:" + res.getId())) {
-                generated.add(buildRecommendation(userId, res.getId(), "resource",
-                        "资源推荐：" + res.getTitle(),
-                        "基于你的兴趣方向「" + kw + "」推荐", 0.75f, "normal"));
             }
         }
 

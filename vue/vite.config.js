@@ -31,6 +31,7 @@ export default defineConfig({
       scss: {
         // 注意：不要在这里注入 @use 语句，会导致循环引用
         // 变量已通过 CSS 变量导出，可直接使用 var(--xxx)
+        silenceDeprecations: ['legacy-js-api', 'import'],
       },
     },
   },

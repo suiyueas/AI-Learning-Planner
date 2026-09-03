@@ -60,7 +60,8 @@ export function generatePath(data) {
     goal: data.goal,
     targetField: data.targetField || '',
     duration: data.duration || undefined,
-    durationWeeks: data.durationWeeks || undefined
+    durationWeeks: data.durationWeeks || undefined,
+    source: data.source || 'manual'
   })
 }
 

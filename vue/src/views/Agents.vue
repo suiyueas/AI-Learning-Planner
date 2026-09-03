@@ -1,469 +1,359 @@
-<template>
+﻿<template>
   <div ref="pageRef" class="agents-page">
     <!-- 深空动态背景 -->
     <div class="bg-deep">
       <div class="aurora-orb orb-cyan"></div>
       <div class="aurora-orb orb-purple"></div>
-      <div class="aurora-orb orb-pink"></div>
     </div>
     <div class="grid-overlay"></div>
 
-    <!-- 浮动粒子 -->
-    <div class="particles-wrap">
-      <div
-        v-for="p in particles" :key="p.id" class="particle"
-        :style="{
-          left: p.x + '%', top: p.y + '%',
-          width: p.size + 'px', height: p.size + 'px',
-          animationDuration: p.duration + 's', animationDelay: p.delay + 's',
-          opacity: p.opacity
-        }"
-      ></div>
-    </div>
-
-    <!-- ===== 顶部标题区 ===== -->
-    <header class="page-header">
-      <div class="header-row">
-        <div class="header-left">
-          <h1 class="page-title">
-            <span class="title-glyph">🧠</span>
-            <span>人机协作指挥中心</span>
-          </h1>
-          <p class="page-subtitle">
-            {{ subAgents.length + 1 }} 个智能体 ·
-            <span class="stat-ok">{{ availableCount }} 个在线</span> ·
-            <span class="stat-run">{{ executingCount > 0 ? executingCount + ' 个执行中' : '全部待命' }}</span> ·
-            <span class="stat-total">总执行 {{ totalExecCount }} 次</span>
-          </p>
+    <!-- ===== 顶部栏（纯净化）===== -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <h1 class="tb-title">🧠 智能体中心</h1>
+      </div>
+      <div class="top-bar-center" v-if="selectedAgent">
+        <div class="tb-breadcrumb">
+          <span class="tbb-item">{{ selectedAgent.icon }} {{ selectedAgent.name }}</span>
+          <span class="tbb-sep">/</span>
+          <span class="tbb-role">{{ selectedAgent.role }}</span>
         </div>
-        <div class="header-kpis">
-          <div class="kpi"><span ref="kpiTotalRef" class="kpi-num">{{ agents.length + 1 }}</span><span class="kpi-label">总智能体</span></div>
-          <div class="kpi"><span class="kpi-num kpi-ok">{{ availableCount }}</span><span class="kpi-label">在线待命</span></div>
-          <div class="kpi"><span class="kpi-num kpi-run">{{ executingCount }}</span><span class="kpi-label">执行中</span></div>
-          <div class="kpi"><span ref="kpiExecRef" class="kpi-num kpi-accent">{{ displayTotalExec }}</span><span class="kpi-label">总执行</span></div>
-        </div>
+      </div>
+      <div class="top-bar-right">
+        <button class="tb-route-btn" @click="showRouterModal = true">
+          ✨ 智能匹配
+        </button>
+        <span v-if="selectedAgent" class="tb-status" :class="selectedAgent.status">
+          <span class="tb-dot"></span>
+          {{ selectedAgent.status === 'available' ? '在线' : selectedAgent.status === 'executing' ? '执行中' : '离线' }}
+        </span>
+        <button class="tb-history-btn" @click="showHistoryDrawer = true">
+          📋 历史
+          <span v-if="successLogCount > 0" class="tb-badge">{{ successLogCount }}</span>
+        </button>
       </div>
     </header>
 
-    <!-- ===== 主 Tab 切换 ===== -->
-    <div class="main-tabs">
-      <button class="main-tab" :class="{ active: mainTab === 'agents' }" @click="mainTab = 'agents'">
-        <span class="tab-icon">🤖</span>
-        <span>智能体</span>
-      </button>
-      <button class="main-tab" :class="{ active: mainTab === 'chat' }" @click="mainTab = 'chat'">
-        <span class="tab-icon">💬</span>
-        <span>AI 对话</span>
-      </button>
-      <button class="main-tab" :class="{ active: mainTab === 'tools' }" @click="mainTab = 'tools'">
-        <span class="tab-icon">🔧</span>
-        <span>工具</span>
-      </button>
-      <button class="main-tab" :class="{ active: mainTab === 'history' }" @click="mainTab = 'history'">
-        <span class="tab-icon">📋</span>
-        <span>执行历史</span>
-        <span v-if="executionLogs.length > 0" class="tab-badge">{{ executionLogs.length }}</span>
-      </button>
-    </div>
-
-    <!-- ===== 智能体视图 ===== -->
-    <template v-if="mainTab === 'agents'">
-    <!-- ===== 智能路由入口 ===== -->
-    <section class="smart-router-section">
-      <div class="router-header">
-        <h2 class="router-title">💡 智能路由</h2>
-        <p class="router-desc">不确定选哪个？直接输入你的需求，AI 帮你分配到最合适的智能体</p>
-      </div>
-      <div class="router-input-wrap">
-        <input
-          v-model="routerInput"
-          class="router-input"
-          placeholder="输入你想做什么... 例如：帮我规划Python学习路径"
-          @keydown.enter="handleSmartRouter"
-        />
-        <button class="router-submit-btn" :disabled="!routerInput.trim() || isRouterLoading" @click="handleSmartRouter">
-          <span v-if="isRouterLoading" class="btn-spinner-small"></span>
-          <span v-else>🚀</span>
-          <span>{{ isRouterLoading ? '分析中...' : '发送' }}</span>
-        </button>
-      </div>
-      <div v-if="routedAgent" class="router-result">
-        <span class="router-result-icon">{{ routedAgent.icon }}</span>
-        <span class="router-result-text">已为你分配：<strong>{{ routedAgent.name }}</strong></span>
-        <span class="router-result-role">{{ routedAgent.role }}</span>
-        <button class="router-go-btn" @click="goToAgent(routedAgent)">进入对话</button>
-      </div>
-      <div v-if="routerError" class="router-error">{{ routerError }}</div>
-    </section>
-
-    <!-- ===== 主控 Agent (Orchestrator) ===== -->
-    <section class="orchestrator-section" @click="toggleOrchExpand">
-      <div class="section-label"><span class="label-dot"></span> 主控智能体 · Orchestrator</div>
-      <div class="orch-card" :class="{ expanded: orchExpanded, active: isAnyExecuting }">
-        <div class="orch-glow-border"></div>
-
-        <div class="orch-main">
-          <!-- 左侧：头像 & 状态 -->
-          <div class="orch-left">
-            <div class="orch-avatar">
-              <svg viewBox="0 0 64 64" width="60" height="60">
-                <circle cx="32" cy="32" r="28" fill="none" stroke="url(#orchGrad)" stroke-width="2.5" opacity="0.6" />
-                <circle cx="32" cy="32" r="14" fill="none" stroke="url(#orchGrad)" stroke-width="1.5" opacity="0.4" />
-                <circle cx="32" cy="32" r="5" fill="#00f5d4">
-                  <animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-                </circle>
-                <defs>
-                  <linearGradient id="orchGrad" x1="0" y1="0" x2="64" y2="64">
-                    <stop offset="0%" stop-color="#00f5d4" /><stop offset="100%" stop-color="#7b61ff" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div class="orch-pulse-ring" :class="{ active: isAnyExecuting }"></div>
+    <!-- ===== 智能匹配弹窗 ===== -->
+    <Transition name="fade">
+      <div v-if="showRouterModal" class="router-modal-overlay" @click.self="showRouterModal = false">
+        <div class="router-modal" @click.stop>
+          <div class="router-modal-header">
+            <h3>✨ 智能匹配</h3>
+            <p>描述你想做的事，AI 自动为你分配最合适的智能体</p>
+            <button class="router-modal-close" @click="showRouterModal = false">✕</button>
+          </div>
+          <div class="router-modal-body">
+            <div class="rm-search">
+              <input
+                v-model="routerInput"
+                class="rm-search-input"
+                placeholder="例如：诊断我的 Python 水平 / 制定三个月学习计划..."
+                @keydown.enter="handleSmartRouter"
+              />
+              <button class="rm-search-btn" :disabled="!routerInput.trim() || isRouterLoading" @click="handleSmartRouter">
+                <span v-if="isRouterLoading" class="btn-spinner-sm"></span>
+                <span v-else>🤖 匹配</span>
+              </button>
             </div>
-            <div class="orch-status-info">
-              <h2 class="orch-name">编排 Agent</h2>
-              <div class="orch-status-line">
-                <span class="status-dot" :class="orchDotClass"></span>
-                <span class="status-text">{{ orchStatusText }}</span>
+            <Transition name="fade-slide">
+              <div v-if="routedAgent" class="rm-result">
+                <div class="rmr-card">
+                  <span class="rmr-icon">{{ routedAgent.icon }}</span>
+                  <div class="rmr-info">
+                    <span class="rmr-name">{{ routedAgent.name }}</span>
+                    <span class="rmr-role">{{ routedAgent.role }}</span>
+                  </div>
+                  <button class="rmr-go" @click="goToAgent(routedAgent)">进入对话</button>
+                </div>
+              </div>
+            </Transition>
+            <div v-if="routerError" class="rm-error">{{ routerError }}</div>
+            <div class="rm-quick">
+              <div class="rmq-label">💡 快捷示例：</div>
+              <div class="rmq-chips">
+                <span class="rmq-chip" @click="routerInput = '诊断我的 Python 学习水平'">诊断我的 Python 水平</span>
+                <span class="rmq-chip" @click="routerInput = '制定三个月 Java 学习计划'">制定三个月学习计划</span>
+                <span class="rmq-chip" @click="routerInput = '解释一下什么是闭包'">解释闭包概念</span>
+                <span class="rmq-chip" @click="routerInput = '生成本周学习报告'">生成学习报告</span>
               </div>
             </div>
           </div>
-
-          <!-- 中间：ReAct 循环可视化 -->
-          <div class="orch-react">
-            <div class="react-title">
-              <span class="react-pulse" :class="{ active: isAnyExecuting }"></span>
-              <span>ReAct 推理循环</span>
-              <span v-if="isAnyExecuting" class="react-badge">运行中</span>
-            </div>
-            <div class="react-steps">
-              <div
-                v-for="(step, si) in reactSteps" :key="step.id"
-                class="react-step"
-                :class="{
-                  active: reactActiveStep === si,
-                  completed: reactActiveStep > si,
-                  idle: reactActiveStep < si && !isAnyExecuting
-                }"
-              >
-                <!-- 连接线 -->
-                <div v-if="si < reactSteps.length - 1" class="step-connector" :class="{ active: reactActiveStep > si, flowing: reactActiveStep === si && isAnyExecuting }">
-                  <div class="connector-fill"></div>
-                </div>
-
-                <!-- 步骤图标 -->
-                <div class="step-icon-wrap" :class="{ pulse: reactActiveStep === si && isAnyExecuting }">
-                  <div class="step-icon-ring"></div>
-                  <span class="step-icon">{{ step.icon }}</span>
-                  <div v-if="reactActiveStep === si && isAnyExecuting" class="step-ripple"></div>
-                </div>
-
-                <!-- 步骤内容 -->
-                <div class="step-body">
-                  <div class="step-name">{{ step.name }}</div>
-                  <div class="step-desc">{{ step.desc }}</div>
-                  <div class="step-status-tag">{{ reactActiveStep < si ? '就绪' : reactActiveStep === si ? '进行中…' : '已完成' }}</div>
-                </div>
-              </div>
-            </div>
-            <!-- 迭代计数 -->
-            <div v-if="isAnyExecuting" class="react-iter">
-              <span class="iter-lbl">迭代</span>
-              <span class="iter-num">{{ reactIteration }}</span>
-            </div>
-          </div>
-
-          <!-- 右侧：展开指示 -->
-          <div class="orch-right">
-            <div class="orch-expand-hint">
-              <svg viewBox="0 0 24 24" width="18" height="18" :class="{ rotated: orchExpanded }"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-              <span>{{ orchExpanded ? '收起调度中心' : '展开调度中心' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 展开详情 - 调度中心入口 -->
-        <div v-show="orchExpanded" class="orch-detail">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-icon">🧩</span>
-              <span class="detail-label">调度策略</span>
-              <span class="detail-value">智能分配</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">⚡</span>
-              <span class="detail-label">最大迭代</span>
-              <span class="detail-value">30 步</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">🔗</span>
-              <span class="detail-label">关联 Agent</span>
-              <span class="detail-value">{{ subAgents.length }} 个</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">📊</span>
-              <span class="detail-label">系统状态</span>
-              <span class="detail-value">🟢 正常</span>
-            </div>
-          </div>
-          <button class="orch-sched-btn" @click.stop="openSchedulingCenter">
-            <span>🚀</span>
-            <span>打开调度中心</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </button>
         </div>
       </div>
-    </section>
+    </Transition>
 
-    <!-- ===== 子 Agent 卡片网格 ===== -->
-    <section class="agents-section">
-      <div class="section-label"><span class="label-dot"></span> 子智能体 ({{ subAgents.length }})</div>
-      <div class="agents-grid">
-        <TransitionGroup name="card-trans">
+    <!-- ===== 主布局 ===== -->
+    <div class="main-layout">
+      <!-- 左侧边栏 -->
+      <aside class="sidebar">
+        <div class="sidebar-search">
+          <input v-model="sidebarSearch" placeholder="搜索智能体..." />
+        </div>
+        <div class="sidebar-cats">
+          <span class="sc-tab" :class="{ active: activeCategory === 'all' }" @click="activeCategory = 'all'">全部</span>
+          <span class="sc-tab" :class="{ active: activeCategory === 'core' }" @click="activeCategory = 'core'">核心</span>
+          <span class="sc-tab" :class="{ active: activeCategory === 'support' }" @click="activeCategory = 'support'">辅助</span>
+        </div>
+        <div class="sidebar-list">
           <div
-            v-for="(agent, idx) in subAgents" :key="agent.id"
-            class="agent-card"
-            :class="{ 'is-executing': agent.status === 'executing' }"
-            :style="{ animationDelay: (idx * 0.06) + 's' }"
+            v-for="agent in filteredAgents" :key="agent.id"
+            class="sli-item"
+            :class="{ active: isAgentOpenAndActive(agent.id), executing: getAgentStatus(agent.id) === 'executing' }"
+            @click="openOrSwitchTab(agent)"
           >
-            <div class="card-glow-border"></div>
-
-            <!-- 顶部：图标 + 名称 + 迷你状态 -->
-            <div class="card-header">
-              <div class="card-icon-wrap" :class="{ executing: agent.status === 'executing' }">
-                <span class="card-icon">{{ agent.icon }}</span>
-                <div class="icon-status-dot" :class="agent.status"></div>
-              </div>
-              <div class="card-name-area">
-                <h3 class="card-name">{{ agent.name }}</h3>
-                <p class="card-role">{{ agent.role }}</p>
-              </div>
+            <span class="sli-icon">{{ agent.icon }}</span>
+            <div class="sli-info">
+              <span class="sli-name">{{ agent.name }}</span>
+              <span class="sli-role">{{ agent.role }}</span>
             </div>
+            <span class="sli-dot" :class="getAgentStatus(agent.id)"></span>
+          </div>
+        </div>
+      </aside>
 
-            <!-- 统计 & 工具行 -->
-            <div class="card-meta">
-              <span class="meta-stat">📊 {{ agent.execCount }} 次</span>
-              <span class="meta-stat">⏱️ {{ agent.avgTime }}</span>
-            </div>
+      <!-- 右侧工作区（多标签页 + 沉浸式对话） -->
+      <main class="workspace">
 
-            <!-- 工具标签 -->
-            <div class="card-tools">
-              <span v-for="tool in agent.tools" :key="tool" class="tool-tag">{{ tool }}</span>
-            </div>
-
-            <!-- 示例预览 & 快速指令 -->
-            <div class="card-example" :title="'点击执行查看更多示例'">
-              <span class="example-text">{{ agent.example }}</span>
-            </div>
-
-            <!-- 快速指令区 -->
-            <div v-if="agent.quickCommands && agent.quickCommands.length > 0" class="card-quick-commands">
-              <span class="quick-cmd-label">快速指令：</span>
-              <button
-                v-for="cmd in agent.quickCommands.slice(0, 2)"
-                :key="cmd"
-                class="quick-cmd-btn"
-                @click.stop="executeQuickCommand(agent, cmd)"
-              >
-                {{ cmd }}
-              </button>
-            </div>
-
-            <!-- 按钮行 -->
-            <div class="card-actions">
-              <button
-                class="exec-btn"
-                :class="{ running: agent.status === 'executing' }"
-                :disabled="agent.status === 'executing'"
-                @click="openTaskDialog(agent)"
-              >
-                <span v-if="agent.status === 'executing'" class="btn-spinner-mini"></span>
-                <span v-else class="exec-ico">▶</span>
-                <span>{{ agent.status === 'executing' ? '执行中' : '执行' }}</span>
-              </button>
-              <button class="chat-btn" @click.stop="openAgentChat(agent)">
-                💬 对话
-              </button>
+        <!-- ===== 标签页栏 ===== -->
+        <div v-if="openTabs.length > 0" class="tab-bar">
+          <div class="tab-list">
+            <div
+              v-for="tab in openTabs"
+              :key="tab.agentId"
+              class="tab-item"
+              :class="{ active: activeTabId === tab.agentId, executing: getAgentStatus(tab.agentId) === 'executing' }"
+              @click="activeTabId = tab.agentId"
+            >
+              <span class="tab-icon">{{ getAgentIcon(tab.agentId) }}</span>
+              <span class="tab-name">{{ getAgentName(tab.agentId) }}</span>
+              <span v-if="getAgentStatus(tab.agentId) === 'executing'" class="tab-dot"></span>
+              <button class="tab-close" @click.stop="closeTab(tab.agentId)">✕</button>
             </div>
           </div>
-        </TransitionGroup>
-      </div>
-    </section>
-    </template>
+          <div class="tab-add" @click="showRouterModal = true" title="打开新智能体">
+            <span>+</span>
+          </div>
+        </div>
 
-    <div v-if="mainTab === 'chat'" class="chat-tab-container">
-    <AIChatPanel />
+        <!-- ===== 无标签 → 欢迎页 ===== -->
+        <div v-if="openTabs.length === 0" class="welcome">
+          <div class="welcome-bg">
+            <div class="welcome-orb"></div>
+          </div>
+          <div class="welcome-content">
+            <div class="welcome-icon">🤖</div>
+            <h2 class="welcome-title">智能体工作台</h2>
+            <p class="welcome-desc">点击左侧打开智能体，支持多标签并行对话</p>
+            <div class="welcome-cards">
+              <div class="wl-card" @click="openTabByRecommend('diagnosis')">
+                <span class="wl-card-icon">🔍</span>
+                <div class="wl-card-text">
+                  <span class="wl-card-title">诊断我的学习水平</span>
+                  <span class="wl-card-desc">全面评估能力画像，发现薄弱点</span>
+                </div>
+              </div>
+              <div class="wl-card" @click="openTabByRecommend('planner')">
+                <span class="wl-card-icon">🗺️</span>
+                <div class="wl-card-text">
+                  <span class="wl-card-title">制定学习计划</span>
+                  <span class="wl-card-desc">生成个性化学习路径与资源推荐</span>
+                </div>
+              </div>
+              <div class="wl-card" @click="openTabByRecommend('tutor')">
+                <span class="wl-card-icon">💬</span>
+                <div class="wl-card-text">
+                  <span class="wl-card-title">概念答疑解惑</span>
+                  <span class="wl-card-desc">苏格拉底式引导，深入理解知识</span>
+                </div>
+              </div>
+              <div class="wl-card" @click="openTabByRecommend('reporter')">
+                <span class="wl-card-icon">📊</span>
+                <div class="wl-card-text">
+                  <span class="wl-card-title">生成学习报告</span>
+                  <span class="wl-card-desc">分析学习进度，提供数据洞察</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 当前激活标签 → 沉浸式对话 ===== -->
+        <div v-else class="chat" :key="activeTabId">
+          <div v-if="currentTab" class="chat-content">
+            <!-- 对话头部（精简） -->
+            <div class="chat-header">
+              <div class="ch-left">
+                <span class="ch-icon">{{ currentTab.agent.icon }}</span>
+                <div>
+                  <h2 class="ch-name">{{ currentTab.agent.name }}</h2>
+                  <p class="ch-role">{{ currentTab.agent.role }}</p>
+                </div>
+              </div>
+              <div class="ch-right">
+                <button class="ch-tool-btn" @click="openTaskDialog(currentTab.agent)">
+                  🚀 开始任务
+                </button>
+              </div>
+            </div>
+
+            <!-- 工具链（紧凑） -->
+            <div class="chat-tools">
+              <span class="cht-label">工具链</span>
+              <span v-for="tool in currentTab.agent.tools" :key="tool" class="cht-tag">{{ tool }}</span>
+            </div>
+
+            <!-- 对话消息区（占据最大空间） -->
+            <div class="chat-messages" ref="chatRef">
+              <div v-if="currentTab.messages.length" class="cmsg-list">
+                <div v-for="(msg, mi) in currentTab.messages" :key="mi" class="cmsg" :class="msg.role">
+                  <span class="cmsg-avatar">{{ msg.role === 'user' ? '👤' : currentTab.agent.icon }}</span>
+                  <div class="cmsg-body">
+                    <div class="cmsg-bubble">
+                      <p class="cmsg-text">{{ msg.content }}</p>
+                    </div>
+                    <span class="cmsg-time">{{ msg.time }}</span>
+                  </div>
+                </div>
+                <!-- 执行中打字指示器 -->
+                <div v-if="isAgentExecuting(activeTabId)" class="cmsg typing">
+                  <span class="cmsg-avatar">{{ currentTab.agent.icon }}</span>
+                  <div class="cmsg-body">
+                    <div class="cmsg-bubble typing-bubble">
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="cmsg-empty">
+                <div class="cmsg-empty-icon">💬</div>
+                <p>开始与 <strong>{{ currentTab.agent.name }}</strong> 的对话</p>
+                <span>选择一个快捷指令或输入问题</span>
+              </div>
+            </div>
+
+            <!-- 快捷指令 -->
+            <div v-if="quickCommandsForAgent.length" class="chat-quick">
+              <span
+                v-for="cmd in quickCommandsForAgent"
+                :key="cmd"
+                class="cq-chip"
+                @click="sendQuickCommandToCurrentTab(cmd)"
+              >{{ cmd }}</span>
+            </div>
+
+            <!-- 输入区（固定底部） -->
+            <div class="chat-input-area">
+              <div class="chat-input">
+                <input
+                  v-model="chatInput"
+                  class="ci-field"
+                  :placeholder="'向 ' + currentTab.agent.name + ' 提问...'"
+                  @keydown.enter="sendChatMessageToCurrentTab"
+                />
+                <button class="ci-btn" :disabled="!chatInput.trim()" @click="sendChatMessageToCurrentTab">
+                  发送
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
 
-    <template v-if="mainTab === 'tools'">
-    <section class="tools-view-section">
-      <div class="tools-view-header">
-        <h2 class="tools-view-title">🔧 MCP 工具中心</h2>
-        <p class="tools-view-subtitle">使用各种工具来完成复杂任务</p>
-      </div>
-      <div class="tools-categories">
-        <div class="tool-category-card" v-for="cat in toolCategories" :key="cat.id">
-          <div class="tc-header">
-            <span class="tc-icon">{{ cat.icon }}</span>
-            <span class="tc-name">{{ cat.name }}</span>
-            <span class="tc-count">{{ cat.count }} 个工具</span>
+    <!-- ===== 底部状态栏 ===== -->
+    <footer class="status-bar">
+      <span class="sb-item">
+        <span class="sb-dot online"></span>
+        {{ toolsStore.tools.length }} 个 MCP 工具在线
+      </span>
+      <span class="sb-divider"></span>
+      <span class="sb-item">● {{ availableCount }} 个智能体就绪</span>
+      <span class="sb-divider"></span>
+      <span class="sb-item">📋 总执行 {{ totalExecCount }} 次</span>
+      <span v-if="isAnyExecuting" class="sb-item sb-live">
+        <span class="live-dot-pulse"></span>
+        实时
+      </span>
+    </footer>
+
+    <!-- ===== 历史抽屉 ===== -->
+    <Transition name="drawer-slide">
+      <div v-if="showHistoryDrawer" class="drawer-overlay" @click.self="showHistoryDrawer = false">
+        <div class="history-drawer">
+          <div class="hd-header">
+            <h3 class="hd-title">📋 执行历史</h3>
+            <button class="hd-close" @click="showHistoryDrawer = false">✕</button>
           </div>
-          <div class="tc-tools">
-            <div class="tc-tool-item" v-for="tool in cat.tools" :key="tool.id" @click="handleToolClick(tool)">
-              <span class="tt-icon">{{ tool.icon }}</span>
-              <span class="tt-name">{{ tool.name }}</span>
-              <span class="tt-status" :class="tool.status">{{ tool.statusText }}</span>
+          <div class="hd-toolbar">
+            <div class="hd-tabs">
+              <span class="hd-tab" :class="{ active: flowView === 'list' }" @click="switchFlowView('list')">全部</span>
+              <span class="hd-tab" :class="{ active: flowView === 'trash' }" @click="switchFlowView('trash')">回收站</span>
+            </div>
+            <div class="hd-actions">
+              <input v-model="flowKeyword" class="hd-search" placeholder="搜索..." />
+              <button v-if="selectedLogIds.size > 0" class="hd-btn batch" @click.stop="batchDeleteSelected">🗑️ {{ selectedLogIds.size }}</button>
+              <button class="hd-btn clear" :disabled="executionLogs.length === 0" @click.stop="handleClearLogs">清空</button>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-    </template>
-
-    <!-- ===== 历史记录视图 ===== -->
-    <template v-if="mainTab === 'history'">
-    <!-- ===== 任务执行流面板（执行历史统一入口） ===== -->
-    <section class="flow-panel" :class="{ 'has-active': executionLogs.length > 0 }">
-      <div class="flow-head" @click="flowExpanded = !flowExpanded">
-        <div class="flow-head-left">
-          <div class="flow-indicator" :class="{ active: isAnyExecuting }"></div>
-          <span class="flow-title">📋 执行历史</span>
-          <!-- 视图切换：全部记录 / 回收站 -->
-          <div class="flow-tabs" @click.stop>
-            <span class="flow-tab" :class="{ active: flowView === 'list' }" @click="switchFlowView('list')">
-              全部 <span v-if="successLogCount > 0" class="flow-badge">{{ successLogCount }}</span>
-            </span>
-            <span class="flow-tab" :class="{ active: flowView === 'trash' }" @click="switchFlowView('trash')">
-              回收站 <span v-if="trashLogs.length > 0" class="flow-badge trash">{{ trashLogs.length }}</span>
-            </span>
-          </div>
-          <span v-if="isAnyExecuting" class="flow-live">● 实时</span>
-        </div>
-        <div class="flow-head-right" @click.stop>
-          <template v-if="flowView === 'list'">
-            <input v-model="flowKeyword" class="flow-search" placeholder="🔍 搜索记录..." @input="applyFlowFilter" />
-            <select v-model="flowFilterStatus" class="flow-filter-select" @change="applyFlowFilter">
-              <option value="all">全部状态</option>
-              <option value="success">✅ 成功</option>
-              <option value="error">❌ 失败</option>
-              <option value="executing">⏳ 执行中</option>
-            </select>
-            <select v-model="flowFilterAgent" class="flow-filter-select" @change="applyFlowFilter">
-              <option value="all">全部Agent</option>
-              <option value="tool">🔧 工具调用</option>
-              <option v-for="agent in subAgents" :key="agent.id" :value="agent.id">{{ agent.icon }} {{ agent.name }}</option>
-            </select>
-            <button v-if="selectedLogIds.size > 0" class="flow-btn batch" :title="'批量删除已选 ' + selectedLogIds.size + ' 条'" @click.stop="batchDeleteSelected">
-              🗑️ 批量({{ selectedLogIds.size }})
-            </button>
-            <button class="flow-btn danger" :disabled="executionLogs.length === 0" title="清空日志" @click.stop="handleClearLogs">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-            </button>
-          </template>
-          <template v-else>
-            <button class="flow-btn danger text" :disabled="trashLogs.length === 0" title="清空回收站（永久删除）" @click.stop="emptyTrash">
-              🧹 清空回收站
-            </button>
-          </template>
-          <span class="flow-arrow" :class="{ open: flowExpanded }">▾</span>
-        </div>
-      </div>
-
-      <div v-show="flowExpanded" ref="flowBodyRef" class="flow-body">
-        <!-- ===== 回收站视图（软删除记录） ===== -->
-        <div v-if="flowView === 'trash'" class="flow-list-wrap trash-wrap">
-          <div v-if="trashLoading" class="flow-empty"><span class="flow-empty-ico">⏳</span> 正在加载回收站...</div>
-          <div v-else-if="trashError" class="flow-empty">
-            <span class="flow-empty-ico">⚠️</span> 加载回收站失败，请检查网络后重试
-            <button class="flow-retry-btn" @click="loadTrashLogs">🔄 重试</button>
-          </div>
-          <template v-else>
-            <div class="flow-list">
-              <div v-for="log in trashLogs" :key="log.id" class="flow-row trash-row">
-                <div class="flow-row-main">
-                  <div class="flow-time">{{ log.time }}</div>
-                  <div class="flow-line">
-                    <div class="flow-agent">{{ log.agentName }}</div>
-                    <div class="flow-step-badge task">{{ log.stepLabel }}</div>
-                    <div class="flow-msg">{{ log.description }}</div>
-                  </div>
-                  <div class="trash-actions">
-                    <button class="flow-action-btn restore-btn" title="恢复到执行记录" @click="restoreTrashLog(log)">↩️ 恢复</button>
-                    <button class="flow-action-btn delete-btn" title="彻底删除（不可恢复）" @click="hardDeleteTrashLog(log)">🔥 彻底删除</button>
-                  </div>
+          <div class="hd-body">
+            <!-- 回收站视图 -->
+            <div v-if="flowView === 'trash'" class="hd-trash">
+              <div v-if="trashLoading" class="hd-line muted">⏳ 加载中...</div>
+              <div v-else-if="trashError" class="hd-line error">加载失败 <button class="retry-btn" @click="loadTrashLogs">重试</button></div>
+              <template v-else>
+                <div v-for="log in trashLogs" :key="log.id" class="hd-log">
+                  <span class="hdt time">{{ log.time }}</span>
+                  <span class="hdt agent">{{ log.agentName }}</span>
+                  <span class="hdt desc">{{ log.description }}</span>
+                  <span class="hdt actions">
+                    <button class="hda" @click="restoreTrashLog(log)">↩️</button>
+                    <button class="hda danger" @click="hardDeleteTrashLog(log)">🔥</button>
+                  </span>
                 </div>
-              </div>
+                <div v-if="trashLogs.length === 0" class="hd-empty">🗑️ 回收站是空的</div>
+              </template>
             </div>
-            <div v-if="trashLogs.length === 0" class="flow-empty">
-              <span class="flow-empty-ico">🗑️</span> 回收站是空的，软删除的记录会出现在这里
-            </div>
-          </template>
-        </div>
-
-        <!-- ===== 全部记录视图（仅作索引/导航） ===== -->
-        <div v-else ref="flowListWrapRef" class="flow-list-wrap">
-          <!-- 加载中 -->
-          <div v-if="flowLoading" class="flow-empty">
-            <span class="flow-empty-ico">⏳</span> 正在加载执行历史...
-          </div>
-          <!-- 加载失败（与“无数据”区分） -->
-          <div v-else-if="flowError" class="flow-empty">
-            <span class="flow-empty-ico">⚠️</span> 加载执行历史失败，请检查网络后重试
-            <button class="flow-retry-btn" @click="retryLoadHistory">🔄 重试</button>
-          </div>
-          <template v-else>
-            <div v-if="filteredLogs.length > 0" class="flow-list-toolbar">
-            <label class="flow-check all" @click.stop>
-              <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" />
-              <span class="flow-check-text">全选</span>
-            </label>
-            <span class="flow-list-count">共 {{ successLogCount }} 条执行记录</span>
-          </div>
-          <TransitionGroup name="log-trans" tag="div" class="flow-list">
-            <div
-              v-for="log in filteredLogs" :key="log.id"
-              class="flow-row"
-              :class="[log.stepType, log.status, { selected: selectedLogId === log.id }]"
-              :title="'点击查看详情' + (log.output ? '（' + getAgentIcon(log.agentId) + ' ' + log.agentName + '）' : '')"
-              @click="selectLog(log)"
-            >
-              <div class="flow-row-main">
-                <label v-if="log.resultId || log.sourceType === 'tool'" class="flow-check" @click.stop>
-                  <input type="checkbox" :checked="selectedLogIds.has(log.id)" @change="toggleSelectLog(log)" />
+            <!-- 全部视图 -->
+            <div v-else class="hd-logs">
+              <div v-if="flowLoading" class="hd-line muted">⏳ 加载执行历史...</div>
+              <div v-else-if="flowError" class="hd-line error">加载失败 <button class="retry-btn" @click="retryLoadHistory">🔄 重试</button></div>
+              <template v-else>
+                <div v-if="isAnyExecuting" class="hd-line live">
+                  <span class="live-dot-pulse"></span>
+                  <span>Agent 正在执行中...</span>
+                </div>
+                <div v-for="log in filteredLogs" :key="log.id" class="hd-log" :class="log.status" @click="selectLog(log)">
+                  <label class="hdt check" @click.stop>
+                    <input type="checkbox" :checked="selectedLogIds.has(log.id)" @change="toggleSelectLog(log)" />
+                  </label>
+                  <span class="hdt time">{{ log.time }}</span>
+                  <span class="hdt agent" :style="{ color: agentColor(log.agentId) }">
+                    {{ log.agentIcon || '🤖' }} {{ log.agentName }}
+                  </span>
+                  <span class="hdt badge" :class="log.stepType">{{ log.stepLabel }}</span>
+                  <span class="hdt desc">{{ log.description }}</span>
+                  <span v-if="log.status === 'executing'" class="hdt cursor">▌</span>
+                </div>
+                <div v-if="filteredLogs.length === 0 && executionLogs.length > 0" class="hd-empty">🔍 没有匹配的记录</div>
+                <div v-if="executionLogs.length === 0" class="hd-empty">📭 暂无执行记录</div>
+              </template>
+              <div v-if="filteredLogs.length > 0" class="hd-footer">
+                <span class="hd-count">共 {{ successLogCount }} 条记录</span>
+                <label class="hd-check-all">
+                  <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" />
+                  全选
                 </label>
-                <div class="flow-time">{{ log.time }}</div>
-                <div class="flow-line">
-                  <div class="flow-agent" :style="{ color: agentColor(log.agentId) }">
-                    <span v-if="log.sourceType === 'tool'" class="flow-type-tag tool">🔧 工具</span>
-                    <span v-else class="flow-type-tag agent">🤖 Agent</span>
-                    {{ log.agentName }}
-                  </div>
-                  <div class="flow-step-badge" :class="log.stepType">{{ log.stepLabel }}</div>
-                  <div class="flow-msg">{{ log.description }}</div>
-                </div>
               </div>
             </div>
-          </TransitionGroup>
-          <div v-if="filteredLogs.length === 0 && executionLogs.length > 0" class="flow-empty">
-            <span class="flow-empty-ico">🔍</span> 没有符合条件的执行记录，请调整筛选条件
           </div>
-          <div v-if="executionLogs.length === 0" class="flow-empty">
-            <span class="flow-empty-ico">📭</span>
-            <div class="flow-empty-main">暂无执行记录</div>
-            <div class="flow-empty-sub">试试运行一个 Agent 或工具，记录将在这里显示</div>
-          </div>
-          </template>
         </div>
-</div>
-    </section>
-    </template>
+      </div>
+    </Transition>
 
-    <!-- ===== 执行详情弹窗（统一：元信息 + 用户输入 + 按结果类型渲染 + 操作栏） ===== -->
+    <!-- ===== 执行详情弹窗 ===== -->
     <ExecutionDetailModal
       v-if="selectedLog"
       :log="selectedLog"
@@ -475,29 +365,53 @@
       @delete="confirmDeleteLog"
     />
 
-    <!-- ===== 调度中心弹窗 ===== -->
-    <SchedulingCenter
-      v-if="showScheduling"
-      :sub-agents="subAgentsForScheduling"
-      :available-count="availableCount"
-      :total-count="subAgentsForScheduling.length"
-      :executing-count="executingCount"
-      :orchestrator-status="orchestratorStatus"
-      :today-schedule-count="todayScheduleCount"
-      :is-executing="schedulingExecuting"
-      :recent-logs="recentSchedulingLogs"
-      @close="closeSchedulingCenter"
-      @execute-batch="handleSchedulingBatch"
-      @view-all="viewAllSchedulingLogs"
-    />
+    <!-- ===== 工具输入弹窗 ===== -->
+    <div v-if="showToolDialog" class="dialog-overlay" @click="closeToolDialog">
+      <div class="task-dialog" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-header-left">
+            <span class="dialog-icon">{{ toolDialogConfig.icon }}</span>
+            <div>
+              <h3 class="dialog-name">{{ toolDialogConfig.title }}</h3>
+              <p class="dialog-role">{{ toolDialogConfig.placeholder }}</p>
+            </div>
+          </div>
+          <button class="dialog-close" @click="closeToolDialog">✕</button>
+        </div>
+        <div class="dialog-body">
+          <div class="task-input-section">
+            <label class="input-label">{{ toolDialogConfig.label }}</label>
+            <textarea
+              v-model="toolDialogValue"
+              class="task-textarea"
+              :placeholder="toolDialogConfig.placeholder"
+              rows="3"
+              ref="toolDialogInput"
+              @keydown.enter.ctrl="confirmToolDialog"
+            ></textarea>
+            <div v-if="toolDialogError" class="tool-dialog-error">{{ toolDialogError }}</div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="dialog-btn cancel" @click="closeToolDialog">取消</button>
+          <button class="dialog-btn primary" @click="confirmToolDialog">
+            {{ toolDialogConfig.confirmText }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <!-- ===== 结果详情弹窗 ===== -->
-    <ResultDetailDialog
-      v-if="showResultDetail"
-      :result="selectedResult"
-      :loading="resultLoading"
-      @close="showResultDetail = false"
-      @re-execute="reExecuteFromResult"
+    <!-- ===== 删除确认对话框 ===== -->
+    <DeleteConfirmDialog
+      :visible="showDeleteDialog"
+      :title="deleteDialogConfig.title"
+      :message="deleteDialogConfig.message"
+      :type="deleteDialogConfig.type"
+      :show-soft-delete="deleteDialogConfig.showSoftDelete"
+      :details="deleteDialogConfig.details"
+      @cancel="handleDeleteCancel"
+      @soft-delete="handleDeleteSoft"
+      @hard-delete="handleDeleteHard"
     />
 
     <!-- ===== 任务分配对话框 ===== -->
@@ -505,89 +419,91 @@
       <div class="task-dialog" @click.stop>
         <div class="dialog-header">
           <div class="dialog-header-left">
-            <span class="dialog-agent-icon">{{ currentAgent?.icon }}</span>
-            <div class="dialog-agent-info">
-              <h3>{{ currentAgent?.name }}</h3>
-              <p>{{ currentAgent?.role }}</p>
+            <span class="dialog-icon">{{ currentAgent?.icon }}</span>
+            <div>
+              <h3 class="dialog-name">{{ currentAgent?.name }}</h3>
+              <p class="dialog-role">{{ currentAgent?.role }}</p>
             </div>
           </div>
           <button class="dialog-close" :disabled="isTaskExecuting" @click="closeTaskDialog">✕</button>
         </div>
 
         <div class="dialog-body">
-          <!-- 示例任务（按类别分组展示） -->
-          <div class="example-tasks">
-            <div class="example-label">💡 示例任务：<span class="example-hint">点击自动填充</span></div>
-            <div class="example-scroll">
+          <div class="example-section">
+            <div class="example-label">💡 示例任务 <span class="hint">点击自动填充</span></div>
+            <div class="example-list">
               <div
-                v-for="(example, ei) in currentAgent?.examples || []" :key="ei"
+                v-for="(ex, ei) in currentAgent?.examples || []" :key="ei"
                 class="example-item"
-                :class="{ active: taskInput === example.text }"
-                @click="taskInput = example.text"
+                :class="{ active: taskInput === ex.text }"
+                @click="taskInput = ex.text"
               >
-                <span class="example-cat-tag">{{ example.cat }}</span>
-                <span class="example-text">{{ example.text }}</span>
+                <span class="ex-cat">{{ ex.cat }}</span>
+                <span class="ex-text">{{ ex.text }}</span>
               </div>
             </div>
           </div>
 
-          <!-- 专属元素 -->
-          <div v-if="currentAgent?.id === 'diagnosis'" class="agent-specific">
-            <button class="quick-btn" :disabled="isTaskExecuting" @click="quickDiagnosis">⚡ 快速诊断</button>
+          <!-- Agent 专属选项 -->
+          <div v-if="currentAgent?.id === 'diagnosis'" class="agent-opts">
+            <button class="opt-btn" :disabled="isTaskExecuting" @click="quickDiagnosis">⚡ 快速诊断</button>
           </div>
-          <div v-if="currentAgent?.id === 'planner'" class="agent-specific">
-            <div class="specific-label">学习时长：</div>
-            <div class="option-group">
-              <button v-for="opt in plannerOptions" :key="opt.value" class="option-btn" :class="{ active: plannerDuration === opt.value }" :disabled="isTaskExecuting" @click="plannerDuration = opt.value; taskInput = opt.label">{{ opt.label }}</button>
+          <div v-if="currentAgent?.id === 'planner'" class="agent-opts">
+            <div class="opt-label">学习时长：</div>
+            <div class="opt-group">
+              <button v-for="opt in plannerOptions" :key="opt.value" class="opt-btn" :class="{ active: plannerDuration === opt.value }" :disabled="isTaskExecuting" @click="plannerDuration = opt.value; taskInput = opt.label">{{ opt.label }}</button>
             </div>
           </div>
-          <div v-if="currentAgent?.id === 'tutor'" class="agent-specific">
-            <label class="switch-row"><span>🔍 知识检索增强</span><div class="toggle-switch" :class="{ active: tutorRagEnabled }" @click="tutorRagEnabled = !tutorRagEnabled"><div class="toggle-knob"></div></div></label>
+          <div v-if="currentAgent?.id === 'tutor'" class="agent-opts">
+            <label class="toggle-row"><span>🔍 知识检索增强</span>
+              <div class="toggle" :class="{ on: tutorRagEnabled }" @click="tutorRagEnabled = !tutorRagEnabled">
+                <div class="toggle-knob"></div>
+              </div>
+            </label>
           </div>
-          <div v-if="currentAgent?.id === 'reporter'" class="agent-specific">
-            <div class="specific-label">报告类型：</div>
-            <div class="option-group">
-              <button v-for="opt in reporterOptions" :key="opt.value" class="option-btn" :class="{ active: reporterType === opt.value }" :disabled="isTaskExecuting" @click="reporterType = opt.value; taskInput = opt.label">{{ opt.label }}</button>
+          <div v-if="currentAgent?.id === 'reporter'" class="agent-opts">
+            <div class="opt-label">报告类型：</div>
+            <div class="opt-group">
+              <button v-for="opt in reporterOptions" :key="opt.value" class="opt-btn" :class="{ active: reporterType === opt.value }" :disabled="isTaskExecuting" @click="reporterType = opt.value; taskInput = opt.label">{{ opt.label }}</button>
             </div>
           </div>
-          <div v-if="currentAgent?.id === 'exercise'" class="agent-specific">
-            <div class="specific-label">难度选择：</div>
-            <div class="option-group">
-              <button v-for="opt in difficultyOptions" :key="opt.value" class="option-btn" :class="{ active: exerciseDifficulty === opt.value }" :disabled="isTaskExecuting" @click="exerciseDifficulty = opt.value">{{ opt.label }}</button>
+          <div v-if="currentAgent?.id === 'exercise'" class="agent-opts">
+            <div class="opt-label">难度：</div>
+            <div class="opt-group">
+              <button v-for="opt in difficultyOptions" :key="opt.value" class="opt-btn" :class="{ active: exerciseDifficulty === opt.value }" :disabled="isTaskExecuting" @click="exerciseDifficulty = opt.value">{{ opt.label }}</button>
             </div>
-            <div class="specific-label" style="margin-top:12px">题目数量：</div>
-            <div class="count-input-wrap">
+            <div class="opt-label">数量：</div>
+            <div class="count-group">
               <button class="count-btn" :disabled="isTaskExecuting || exerciseCount <= 1" @click="exerciseCount--">−</button>
-              <span class="count-value">{{ exerciseCount }}</span>
+              <span class="count-val">{{ exerciseCount }}</span>
               <button class="count-btn" :disabled="isTaskExecuting || exerciseCount >= 20" @click="exerciseCount++">+</button>
             </div>
           </div>
-          <div v-if="currentAgent?.id === 'search'" class="agent-specific">
-            <div class="specific-label">搜索范围：</div>
-            <div class="option-group">
-              <button v-for="opt in searchRangeOptions" :key="opt.value" class="option-btn" :class="{ active: searchRange === opt.value }" :disabled="isTaskExecuting" @click="searchRange = opt.value">{{ opt.label }}</button>
+          <div v-if="currentAgent?.id === 'search'" class="agent-opts">
+            <div class="opt-label">搜索范围：</div>
+            <div class="opt-group">
+              <button v-for="opt in searchRangeOptions" :key="opt.value" class="opt-btn" :class="{ active: searchRange === opt.value }" :disabled="isTaskExecuting" @click="searchRange = opt.value">{{ opt.label }}</button>
             </div>
           </div>
-          <div v-if="currentAgent?.id === 'knowledge'" class="agent-specific">
-            <div class="specific-label">文档筛选：</div>
-            <div class="option-group">
-              <button v-for="opt in docFilterOptions" :key="opt.value" class="option-btn" :class="{ active: docFilter === opt.value }" :disabled="isTaskExecuting" @click="docFilter = opt.value">{{ opt.label }}</button>
+          <div v-if="currentAgent?.id === 'knowledge'" class="agent-opts">
+            <div class="opt-label">文档筛选：</div>
+            <div class="opt-group">
+              <button v-for="opt in docFilterOptions" :key="opt.value" class="opt-btn" :class="{ active: docFilter === opt.value }" :disabled="isTaskExecuting" @click="docFilter = opt.value">{{ opt.label }}</button>
             </div>
           </div>
 
-          <!-- 任务输入 -->
-          <div class="task-input-wrap">
-            <label class="input-label">请输入任务描述：</label>
+          <div class="task-input-section">
+            <label class="input-label">任务描述</label>
             <textarea v-model="taskInput" class="task-textarea" :placeholder="'为 ' + (currentAgent?.name || '') + ' 分配任务...'" rows="3" :disabled="isTaskExecuting"></textarea>
           </div>
         </div>
 
         <div class="dialog-footer">
-          <button class="dialog-btn dialog-btn-cancel" :disabled="isTaskExecuting" @click="closeTaskDialog">取消</button>
-          <button class="dialog-btn dialog-btn-exec" :disabled="isTaskExecuting || !taskInput.trim()" @click="submitTask">
-            <span v-if="isTaskExecuting" class="btn-spinner-small"></span>
+          <button class="dialog-btn cancel" :disabled="isTaskExecuting" @click="closeTaskDialog">取消</button>
+          <button class="dialog-btn primary" :disabled="isTaskExecuting || !taskInput.trim()" @click="submitTask">
+            <span v-if="isTaskExecuting" class="btn-spinner-sm"></span>
             <span v-else>🚀</span>
-            <span>{{ isTaskExecuting ? '执行中...' : '分配任务' }}</span>
+            {{ isTaskExecuting ? '执行中...' : '分配任务' }}
           </button>
         </div>
       </div>
@@ -599,15 +515,13 @@
 import { ref, reactive, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { confirmAction, cleanupDialogs } from '@/utils/modalHelper'
-import { saveAgentExecution, getAllResults, clearAllResults, deleteResultById, deleteResultsBatch, getTrashResults, restoreResult, postStreamExecution } from '@/api/agentApi'
+import { cleanupDialogs } from '@/utils/modalHelper'
+import { saveAgentExecution, getAllResults, clearAllResults, deleteResultById, deleteResultsBatch, getTrashResults, restoreResult, postStreamExecution, postOrchestrateExecution } from '@/api/agentApi'
 import { getToolExecutionHistory, deleteToolExecution } from '@/api/toolsApi'
 import { parseResultContent } from '@/utils/markdown'
 import { securityFilter } from '@/utils/securityUtils'
-import SchedulingCenter from '@/components/agent/SchedulingCenter.vue'
-import ResultDetailDialog from '@/components/agent/ResultDetailDialog.vue'
 import ExecutionDetailModal from '@/components/agent/ExecutionDetailModal.vue'
-import AIChatPanel from '@/components/chat/AIChatPanel.vue'
+import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog.vue'
 import { useToolsStore } from '@/stores/toolsStore'
 
 const route = useRoute()
@@ -615,50 +529,239 @@ const router = useRouter()
 const pageRef = ref(null)
 const toolsStore = useToolsStore()
 
-// ===== 主 Tab 切换 =====
-const mainTab = ref('agents')
+// ===== 新布局状态 =====
+const selectedAgent = ref(null)
+const sidebarSearch = ref('')
+const activeCategory = ref('all')
+const showHistoryDrawer = ref(false)
+const showRouterModal = ref(false)
+const chatInput = ref('')
+const chatRef = ref(null)
+const conversations = reactive({})
 
-// ===== 工具视图数据（从 toolsStore 获取真实工具） =====
-const REAL_TOOL_ICONS = {
-  unified_academic_search: '🌐',
-  deep_document_analysis: '📄',
-  smart_quiz_generation: '✏️',
-  academic_translation: '🌍',
-  full_chain_learning: '🔗'
-}
+// ===== 多标签页 - 支持多 Agent 并行对话 =====
+const openTabs = ref([])
+const activeTabId = ref(null)
+const agentExecuting = ref({})
+const agentAbortControllers = ref({})
 
-const toolCategories = computed(() => {
-  const tools = toolsStore.tools
-  if (!tools || tools.length === 0) {
-    return [{ id: 'empty', name: '暂无工具', icon: '🔧', count: 0, tools: [] }]
-  }
-  const categories = {}
-  for (const tool of tools) {
-    const cat = tool.category || 'other'
-    if (!categories[cat]) {
-      const catNames = { input_search: '搜索工具', understanding_output: '理解工具', assessment_loop: '评估工具', system_debug: '系统工具', other: '其他工具' }
-      const catIcons = { input_search: '🔍', understanding_output: '📖', assessment_loop: '📊', system_debug: '⚙️', other: '🔧' }
-      categories[cat] = { id: cat, name: catNames[cat] || cat, icon: catIcons[cat] || '🔧', count: 0, tools: [] }
-    }
-    categories[cat].tools.push({
-      id: tool.id,
-      name: tool.name,
-      icon: REAL_TOOL_ICONS[tool.id] || '🔧',
-      status: tool.status === 'available' ? 'available' : 'unavailable',
-      statusText: tool.status === 'available' ? '可用' : '不可用'
-    })
-    categories[cat].count++
-  }
-  return Object.values(categories)
+const currentTab = computed(() => {
+  if (!activeTabId.value) return null
+  return openTabs.value.find(t => t.agentId === activeTabId.value) || null
 })
 
-const handleToolClick = (tool) => {
-  ElMessage.info(`工具「${tool.name}」功能开发中，敬请期待！`)
+const isAgentExecuting = (agentId) => !!agentExecuting.value[agentId]
+const getAgentStatus = (agentId) => {
+  if (agentExecuting.value[agentId]) return 'executing'
+  const agent = agents.value.find(a => a.id === agentId)
+  return agent?.status || 'offline'
+}
+const getAgentIcon = (agentId) => {
+  if (agentId && agentId.startsWith('tool:')) return '🔧'
+  return agents.value.find(a => a.id === agentId)?.icon || '🤖'
+}
+const getAgentName = (agentId) => agents.value.find(a => a.id === agentId)?.name || 'Unknown'
+
+const isAgentOpenAndActive = (agentId) => {
+  return openTabs.value.some(t => t.agentId === agentId) && activeTabId.value === agentId
 }
 
-const goToFullTools = () => {
-  ElMessage.info('完整工具中心功能开发中，将在后续版本开放')
+const openOrSwitchTab = (agent) => {
+  const existing = openTabs.value.find(t => t.agentId === agent.id)
+  if (existing) {
+    activeTabId.value = agent.id
+    existing.lastActiveAt = Date.now()
+    return
+  }
+  if (openTabs.value.length >= 8) {
+    const nonExecuting = openTabs.value.filter(t => !agentExecuting.value[t.agentId])
+    if (nonExecuting.length > 0) {
+      const oldest = nonExecuting.sort((a, b) => a.lastActiveAt - b.lastActiveAt)[0]
+      closeTab(oldest.agentId)
+    }
+  }
+  openTabs.value.push({
+    agentId: agent.id,
+    agent: agent,
+    messages: [],
+    lastActiveAt: Date.now()
+  })
+  activeTabId.value = agent.id
+  agentExecuting.value[agent.id] = false
+  agentAbortControllers.value[agent.id] = null
+  // 兼容 selectedAgent
+  selectedAgent.value = agent
 }
+
+const openTabByRecommend = (type) => {
+  const map = {
+    diagnosis: 'diagnosis', planner: 'planner', tutor: 'tutor', reporter: 'reporter'
+  }
+  const agent = agents.value.find(a => a.id === map[type])
+  if (agent) openOrSwitchTab(agent)
+}
+
+const closeTab = (agentId) => {
+  if (agentExecuting.value[agentId] && agentAbortControllers.value[agentId]) {
+    agentAbortControllers.value[agentId]?.abort()
+  }
+  const idx = openTabs.value.findIndex(t => t.agentId === agentId)
+  if (idx === -1) return
+  openTabs.value.splice(idx, 1)
+  delete agentExecuting.value[agentId]
+  delete agentAbortControllers.value[agentId]
+  if (activeTabId.value === agentId) {
+    activeTabId.value = openTabs.value.length > 0
+      ? openTabs.value[Math.max(0, idx - 1)].agentId
+      : null
+    selectedAgent.value = activeTabId.value
+      ? openTabs.value.find(t => t.agentId === activeTabId.value)?.agent || null
+      : null
+  }
+}
+
+const selectAgent = (agent) => {
+  openOrSwitchTab(agent)
+  showRouterModal.value = false
+  routerInput.value = ''
+  routedAgent.value = null
+  routerError.value = null
+}
+
+// 欢迎页推荐卡片 → 打开对应 Agent 标签
+const handleRecommend = (agentId) => {
+  openTabByRecommend(agentId)
+  showRouterModal.value = false
+}
+
+// 快捷指令计算属性
+const quickCommandsForAgent = computed(() => {
+  if (!currentTab.value) return []
+  return currentTab.value.agent.quickCommands || []
+})
+
+// 发送消息到当前标签
+const sendChatMessageToCurrentTab = () => {
+  if (!currentTab.value || !chatInput.value.trim()) return
+  sendMessageToTab(currentTab.value.agentId, chatInput.value.trim())
+  chatInput.value = ''
+}
+
+const sendQuickCommandToCurrentTab = (cmd) => {
+  if (!currentTab.value) return
+  sendMessageToTab(currentTab.value.agentId, cmd)
+}
+
+const sendMessageToTab = async (agentId, content) => {
+  const tab = openTabs.value.find(t => t.agentId === agentId)
+  if (!tab) return
+  tab.messages.push({
+    role: 'user',
+    content: content,
+    time: formatTime()
+  })
+  // 自动滚动到底部
+  nextTick(() => {
+    if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
+  })
+
+  // 如果当前是 supervisor 智能体，走编排流程
+  if (tab.agent.id === 'supervisor') {
+    agentExecuting.value[agentId] = true
+    try {
+      await postOrchestrateExecution(content, {
+        onOrchestrationStart: (data) => {
+          tab.messages.push({ role: 'assistant', content: data.content, time: formatTime() })
+        },
+        onDecomposition: (data) => {
+          const subTasks = data.subTasks || []
+          const taskList = subTasks.map((t, i) => 
+            `  ${i + 1}. **${t.agentName}**: ${t.description}`
+          ).join('\n')
+          tab.messages.push({
+            role: 'assistant',
+            content: `📋 **任务拆解完成**\n${taskList}`,
+            time: formatTime()
+          })
+        },
+        onSubtaskStart: (data) => {
+          tab.messages.push({
+            role: 'assistant',
+            content: `⏳ **${data.agentName}** 开始执行: ${data.description}`,
+            time: formatTime()
+          })
+        },
+        onSubtaskDone: (data) => {
+          tab.messages.push({
+            role: 'assistant',
+            content: `✅ **${data.agentName}** 完成\n${data.outputPreview || ''}`,
+            time: formatTime()
+          })
+        },
+        onSubtaskError: (data) => {
+          tab.messages.push({
+            role: 'assistant',
+            content: `❌ **${data.agentName}** 执行失败: ${data.error}`,
+            time: formatTime()
+          })
+        },
+        onAggregating: (data) => {
+          tab.messages.push({
+            role: 'assistant', content: data.content, time: formatTime()
+          })
+        },
+        onOrchestrationDone: (data) => {
+          tab.messages.push({
+            role: 'assistant',
+            content: `📊 **最终综合报告**\n\n${data.content}`,
+            time: formatTime()
+          })
+        },
+        onError: (data) => {
+          tab.messages.push({
+            role: 'assistant',
+            content: `❌ 编排失败: ${data.message}`,
+            time: formatTime()
+          })
+        }
+      })
+    } catch (e) {
+      tab.messages.push({
+        role: 'assistant',
+        content: `❌ 编排异常: ${e.message}`,
+        time: formatTime()
+      })
+    } finally {
+      agentExecuting.value[agentId] = false
+      // 自动滚动到底部
+      nextTick(() => {
+        if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
+      })
+    }
+  } else {
+    // 原有逻辑：直接提交执行，不弹窗
+    currentAgent.value = tab.agent
+    taskInput.value = content
+    setTimeout(() => { submitTask() }, 50)
+  }
+}
+
+// 兼容原来的函数
+const sendChatMessage = () => sendChatMessageToCurrentTab()
+const sendQuickCommand = (cmd) => sendQuickCommandToCurrentTab(cmd)
+
+const filteredAgents = computed(() => {
+  let list = subAgents.value
+  if (activeCategory.value === 'core') list = list.filter(a => isCoreAgent(a.id))
+  else if (activeCategory.value === 'support') list = list.filter(a => !isCoreAgent(a.id))
+  const kw = sidebarSearch.value.trim().toLowerCase()
+  if (kw) list = list.filter(a => a.name.toLowerCase().includes(kw) || a.role.toLowerCase().includes(kw))
+  return list
+})
+
+// ===== 折叠控制 =====
+const toolsExpanded = ref(true)
+const flowExpanded = ref(true)
 
 // ===== 智能路由 =====
 const routerInput = ref('')
@@ -669,264 +772,243 @@ const routerError = ref(null)
 const handleSmartRouter = async () => {
   const input = routerInput.value.trim()
   if (!input) return
-
   isRouterLoading.value = true
   routerError.value = null
   routedAgent.value = null
 
-  await sleep(800)
-
-  const lowerInput = input.toLowerCase()
-
-  if (lowerInput.includes('诊断') || lowerInput.includes('水平') || lowerInput.includes('能力') || lowerInput.includes('薄弱点') || lowerInput.includes('测评') || lowerInput.includes('评估')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'diagnosis') || null
-  } else if (lowerInput.includes('规划') || lowerInput.includes('计划') || lowerInput.includes('学习路径') || lowerInput.includes('路线') || lowerInput.includes('目标')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'planner') || null
-  } else if (lowerInput.includes('答疑') || lowerInput.includes('解释') || lowerInput.includes('教我') || lowerInput.includes('问题') || lowerInput.includes('问') || lowerInput.includes('不懂')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'tutor') || null
-  } else if (lowerInput.includes('报告') || lowerInput.includes('总结') || lowerInput.includes('分析') || lowerInput.includes('导出')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'reporter') || null
-  } else if (lowerInput.includes('练习') || lowerInput.includes('习题') || lowerInput.includes('题目') || lowerInput.includes('作业') || lowerInput.includes('批改')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'exercise') || null
-  } else if (lowerInput.includes('搜索') || lowerInput.includes('查找') || lowerInput.includes('资源') || lowerInput.includes('教程')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'search') || null
-  } else if (lowerInput.includes('知识') || lowerInput.includes('文档') || lowerInput.includes('检索') || lowerInput.includes('知识库')) {
-    routedAgent.value = subAgents.value.find(a => a.id === 'knowledge') || null
-  } else {
-    routedAgent.value = subAgents.value[Math.floor(Math.random() * subAgents.value.length)]
+  try {
+    const { post } = await import('@/api/request')
+    const result = await post('/agents/route', { input })
+    if (result.success && result.data && result.data.agentId) {
+      routedAgent.value = subAgents.value.find(a => a.id === result.data.agentId) || null
+      if (!routedAgent.value) routerError.value = '未找到匹配的 Agent'
+    } else {
+      routerError.value = result.message || '路由失败'
+    }
+  } catch (e) {
+    // 降级前端关键词匹配
+    const lower = input.toLowerCase()
+    const keywordMap = {
+      diagnosis: ['诊断', '水平', '能力', '薄弱点', '测评', '评估'],
+      planner: ['规划', '计划', '学习路径', '路线', '目标'],
+      tutor: ['答疑', '解释', '教我', '问题', '问', '不懂'],
+      reporter: ['报告', '总结', '分析', '导出'],
+      exercise: ['练习', '习题', '题目', '作业', '批改'],
+      search: ['搜索', '查找', '资源', '教程'],
+      knowledge: ['知识', '文档', '检索', '知识库']
+    }
+    let found = false
+    for (const [id, keywords] of Object.entries(keywordMap)) {
+      if (keywords.some(k => lower.includes(k))) {
+        routedAgent.value = subAgents.value.find(a => a.id === id) || null
+        found = true
+        break
+      }
+    }
+    if (!found) routedAgent.value = subAgents.value[Math.floor(Math.random() * subAgents.value.length)]
+  } finally {
+    isRouterLoading.value = false
   }
-
-  isRouterLoading.value = false
 }
 
 const goToAgent = (agent) => {
+  openOrSwitchTab(agent)
+  showRouterModal.value = false
   routerInput.value = ''
+  routedAgent.value = null
+  routerError.value = null
+  // 打开任务对话框
   openTaskDialog(agent)
 }
 
-const flowBodyRef = ref(null)
-const flowListWrapRef = ref(null)
-const flowExpanded = ref(true)
-const orchExpanded = ref(false)
-const orchestratorStatus = ref('IDLE')
-const showScheduling = ref(false)
-const schedulingExecuting = ref(false)
-const todayScheduleCount = ref(0)
-const flowFilterStatus = ref('all')
-const flowFilterAgent = ref('all')
-const filteredLogs = ref([])
-const selectedLogId = ref(null)
-const selectedLog = computed(() => filteredLogs.value.find(log => log.id === selectedLogId.value) || null)
-const currentLogIndex = computed(() => filteredLogs.value.findIndex(log => log.id === selectedLogId.value))
-const recentSchedulingLogs = ref([])
-const currentSessionId = ref(null)
-const showResultDetail = ref(false)
-const selectedResult = ref(null)
-const resultLoading = ref(false)
-
-// ===== 浮动粒子 =====
-const particles = ref([])
-const generateParticles = () => {
-  const arr = []
-  for (let i = 0; i < 35; i++) {
-    arr.push({ id: i, x: Math.random() * 100, y: Math.random() * 100, size: Math.random() * 3 + 1, duration: Math.random() * 25 + 15, delay: Math.random() * 12, opacity: Math.random() * 0.35 + 0.08 })
-  }
-  particles.value = arr
+// ===== 工具视图 =====
+const REAL_TOOL_ICONS = {
+  unified_academic_search: '🌐', deep_document_analysis: '📄',
+  smart_quiz_generation: '✏️', academic_translation: '🌍', full_chain_learning: '🔗'
 }
 
-// ===== ReAct 步骤配置 =====
-const reactSteps = ref([
-  { id: 'think', icon: '🤔', name: '思考', desc: '分析任务，拆解问题' },
-  { id: 'act', icon: '⚡', name: '行动', desc: '调用工具，获取信息' },
-  { id: 'observe', icon: '👁️', name: '观察', desc: '整合结果，优化输出' }
-])
-const reactActiveStep = ref(-1)
-const reactIteration = ref(0)
-
-// ===== Agent 配置（含丰富示例） =====
-const agentConfigs = [
-  {
-    id: 'diagnosis', name: '诊断Agent', icon: '🔍',
-    role: '能力测评 · 画像构建 · 薄弱点挖掘',
-    tools: ['智能测评出题', '全域学术检索'], avgTime: '2.3s',
-    example: '💡 诊断我的 Python 学习水平',
-    categories: ['🏷️ 能力测评', '🏷️ 画像构建', '🏷️ 薄弱分析'],
-    quickCommands: ['诊断我的Python水平', '评估我的能力画像'],
-    examples: [
-      { cat: '能力测评', text: '诊断我的 Python 学习水平，找出薄弱点' },
-      { cat: '能力测评', text: '评估我的数据分析能力，给出评分和建议' },
-      { cat: '画像构建', text: '生成完整的用户画像报告，包含学习风格分析' },
-      { cat: '薄弱分析', text: '分析我当前的知识盲区，给出提升优先级' },
-      { cat: '能力测评', text: '对我进行前端开发能力综合测评' }
-    ]
-  },
-  {
-    id: 'planner', name: '规划Agent', icon: '🗺️',
-    role: '路径生成 · 动态调整 · 资源推荐',
-    tools: ['全域学术检索', '全链路学习助手'], avgTime: '3.1s',
-    example: '💡 制定3个月的Java学习计划',
-    categories: ['🏷️ 路径规划', '🏷️ 动态调整', '🏷️ 资源推荐'],
-    quickCommands: ['制定Python学习计划', '调整我的学习路径'],
-    examples: [
-      { cat: '路径规划', text: '制定3个月的Java学习计划，从入门到进阶' },
-      { cat: '路径规划', text: '规划Python数据分析完整学习路径' },
-      { cat: '动态调整', text: '根据我当前的进度，动态调整学习计划' },
-      { cat: '资源推荐', text: '推荐适合初学者的机器学习入门资源' },
-      { cat: '路径规划', text: '制定从零开始学前端开发的6个月路线图' }
-    ]
-  },
-  {
-    id: 'tutor', name: '答疑Agent', icon: '💬',
-    role: '苏格拉底引导 · RAG检索 · 知识解答',
-    tools: ['全域学术检索', '学术翻译'], avgTime: '2.8s',
-    example: '💡 解释一下什么是闭包？',
-    categories: ['🏷️ 概念解释', '🏷️ 引导式教学', '🏷️ 代码答疑'],
-    quickCommands: ['解释Python装饰器', '教我理解排序算法'],
-    examples: [
-      { cat: '概念解释', text: '解释一下什么是闭包？用通俗的语言说明' },
-      { cat: '概念解释', text: '帮我理解Python装饰器的工作原理' },
-      { cat: '引导式教学', text: '用苏格拉底式引导法教我理解排序算法' },
-      { cat: '代码答疑', text: '这段代码为什么会报错？帮我排查问题' },
-      { cat: '概念解释', text: '讲清楚RESTful API的设计原则' }
-    ]
-  },
-  {
-    id: 'reporter', name: '报告Agent', icon: '📊',
-    role: '学情分析 · 报告生成 · PDF导出',
-    tools: ['深度文献解析', '全域学术检索'], avgTime: '4.2s',
-    example: '💡 生成我本月的学习报告',
-    categories: ['🏷️ 周报', '🏷️ 月报', '🏷️ 分析建议'],
-    quickCommands: ['生成本周学习报告', '分析我的学习趋势'],
-    examples: [
-      { cat: '周报', text: '生成本周学习报告，包含时长和完成率' },
-      { cat: '月报', text: '生成我本月的学习报告，分析进步趋势' },
-      { cat: '分析建议', text: '分析本周学习进度和效果，给出改进建议' },
-      { cat: '月报', text: '对比上个月和这个月的学习数据变化' },
-      { cat: '分析建议', text: '导出我的完整学习报告为PDF文件' }
-    ]
-  },
-  {
-    id: 'exercise', name: '习题Agent', icon: '✏️',
-    role: '习题生成 · 智能批改 · 错题本',
-    tools: ['智能测评出题'], avgTime: '2.5s',
-    example: '💡 生成5道Python基础练习题',
-    categories: ['🏷️ 习题生成', '🏷️ 智能批改', '🏷️ 错题巩固'],
-    quickCommands: ['生成专项练习题', '批改我的作业'],
-    examples: [
-      { cat: '习题生成', text: '生成5道Python基础练习题，包含难度标注' },
-      { cat: '习题生成', text: '出10道Java面试高频算法题' },
-      { cat: '智能批改', text: '批改我提交的代码作业，指出优化方向' },
-      { cat: '错题巩固', text: '根据我的错题记录，生成针对性练习' },
-      { cat: '习题生成', text: '生成一套SQL查询语句练习题，包含答案' }
-    ]
-  },
-  {
-    id: 'search', name: '搜索Agent', icon: '🌐',
-    role: '联网搜索 · 资料检索 · 资源发现',
-    tools: ['全域学术检索'], avgTime: '1.8s',
-    example: '💡 搜索最新的Python教程',
-    categories: ['🏷️ 全网搜索', '🏷️ 学术搜索', '🏷️ 教程搜索'],
-    quickCommands: ['搜索机器学习教程', '查找相关学习资源'],
-    examples: [
-      { cat: '全网搜索', text: '搜索2026年最新的Python学习教程推荐' },
-      { cat: '教程搜索', text: '查找高质量的机器学习入门教程和课程' },
-      { cat: '学术搜索', text: '搜索Java面试常见问题及解答思路' },
-      { cat: '全网搜索', text: '查找Spring Boot 3.x 最佳实践资料' },
-      { cat: '教程搜索', text: '寻找适合初学者的数据结构与算法视频教程' }
-    ]
-  },
-  {
-    id: 'knowledge', name: '知识检索Agent', icon: '📚',
-    role: '文档检索 · 语义搜索 · 知识问答',
-    tools: ['全域学术检索', '深度文献解析'], avgTime: '1.5s',
-    example: '💡 查找Python基础相关内容',
-    categories: ['🏷️ 文档检索', '🏷️ 语义搜索', '🏷️ 知识问答'],
-    examples: [
-      { cat: '文档检索', text: '从知识库中查找Python基础语法相关内容' },
-      { cat: '文档检索', text: '搜索关于Spring Boot核心配置的文档片段' },
-      { cat: '语义搜索', text: '检索「如何优化SQL查询性能」的相关知识' },
-      { cat: '知识问答', text: '根据知识库回答：什么是数据库事务？' },
-      { cat: '文档检索', text: '查找最近上传的所有关于机器学习的文档' }
-    ]
+const toolCategories = computed(() => {
+  const tools = toolsStore.tools
+  if (!tools || tools.length === 0) return []
+  const categories = {}
+  const catNames = { input_search: '搜索工具', understanding_output: '理解工具', assessment_loop: '评估工具', system_debug: '系统工具', other: '其他工具' }
+  const catIcons = { input_search: '🔍', understanding_output: '📖', assessment_loop: '📊', system_debug: '⚙️', other: '🔧' }
+  for (const tool of tools) {
+    const cat = tool.category || 'other'
+    if (!categories[cat]) categories[cat] = { id: cat, name: catNames[cat] || cat, icon: catIcons[cat] || '🔧', count: 0, tools: [] }
+    categories[cat].tools.push({
+      id: tool.id, name: tool.name, icon: REAL_TOOL_ICONS[tool.id] || '🔧',
+      status: tool.status === 'available' ? 'available' : 'unavailable',
+      statusText: tool.status === 'available' ? '可用' : '不可用'
+    })
+    categories[cat].count++
   }
+  return Object.values(categories)
+})
+
+const handleToolClick = async (tool) => {
+  if (tool.status !== 'available') { ElMessage.warning(`工具「${tool.name}」当前不可用`); return }
+  let toolParams = null
+  try {
+    if (tool.id === 'unified_academic_search') {
+      const value = await openToolDialog({
+        icon: '🌐',
+        title: tool.name,
+        placeholder: '例如：机器学习入门教程',
+        label: '搜索关键词',
+        confirmText: '搜索',
+        validator: (val) => val && val.trim() ? true : '关键词不能为空'
+      })
+      if (!value) return
+      toolParams = { query: value.trim(), searchInternal: true, searchWeb: true }
+    } else if (tool.id === 'academic_translation') {
+      const value = await openToolDialog({
+        icon: '🔤',
+        title: tool.name,
+        placeholder: '请输入英文或中文文本',
+        label: '翻译文本',
+        confirmText: '翻译',
+        validator: (val) => val && val.trim() ? true : '文本不能为空'
+      })
+      if (!value) return
+      toolParams = { text: value.trim() }
+    } else if (tool.id === 'smart_quiz_generation') {
+      const value = await openToolDialog({
+        icon: '📝',
+        title: tool.name,
+        placeholder: '例如：线性代数',
+        label: '知识点或主题',
+        confirmText: '生成',
+        validator: (val) => val && val.trim() ? true : '主题不能为空'
+      })
+      if (!value) return
+      toolParams = { topic: value.trim(), count: 5 }
+    } else {
+      toolParams = {}
+    }
+  } catch { return }
+
+  try {
+    const { toolsAPI } = await import('@/api/toolsApi')
+    const result = await toolsAPI.executeTool(tool.id, toolParams)
+    if (result.success) {
+      ElMessage.success(`工具「${tool.name}」执行成功`)
+      const content = typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)
+      ElMessageBox.alert(
+        `<pre style="max-height:400px;overflow:auto;font-size:12px;white-space:pre-wrap;">${content}</pre>`,
+        `${tool.icon || '🔧'} ${tool.name} - 执行结果`,
+        { dangerouslyUseHTMLString: true, confirmButtonText: '关闭' }
+      ).catch(() => {})
+    } else {
+      ElMessage.error(result.message || `工具执行失败`)
+    }
+  } catch (e) {
+    ElMessage.error(`工具执行异常: ${e.message || '请稍后重试'}`)
+  }
+}
+
+// ===== Agent 配置 =====
+const agentConfigs = [
+  { id: 'diagnosis', name: '诊断Agent', icon: '🔍', role: '能力测评 · 画像构建 · 薄弱点挖掘', tools: ['智能测评出题', '全域学术检索'], avgTime: '2.3s', example: '💡 诊断我的 Python 学习水平', quickCommands: ['诊断我的Python水平', '评估我的能力画像'], examples: [{ cat: '能力测评', text: '诊断我的 Python 学习水平，找出薄弱点' }, { cat: '画像构建', text: '生成完整的用户画像报告，包含学习风格分析' }, { cat: '薄弱分析', text: '分析我当前的知识盲区，给出提升优先级' }, { cat: '能力测评', text: '对我进行前端开发能力综合测评' }] },
+  { id: 'planner', name: '规划Agent', icon: '🗺️', role: '路径生成 · 动态调整 · 资源推荐', tools: ['全域学术检索', '全链路学习助手'], avgTime: '3.1s', example: '💡 制定3个月的Java学习计划', quickCommands: ['制定Python学习计划', '调整我的学习路径'], examples: [{ cat: '路径规划', text: '制定3个月的Java学习计划，从入门到进阶' }, { cat: '路径规划', text: '规划Python数据分析完整学习路径' }, { cat: '动态调整', text: '根据我当前的进度，动态调整学习计划' }, { cat: '资源推荐', text: '推荐适合初学者的机器学习入门资源' }] },
+  { id: 'tutor', name: '答疑Agent', icon: '💬', role: '苏格拉底引导 · RAG检索 · 知识解答', tools: ['全域学术检索', '学术翻译'], avgTime: '2.8s', example: '💡 解释一下什么是闭包？', quickCommands: ['解释Python装饰器', '教我理解排序算法'], examples: [{ cat: '概念解释', text: '解释一下什么是闭包？用通俗的语言说明' }, { cat: '概念解释', text: '帮我理解Python装饰器的工作原理' }, { cat: '引导式教学', text: '用苏格拉底式引导法教我理解排序算法' }, { cat: '代码答疑', text: '这段代码为什么会报错？帮我排查问题' }] },
+  { id: 'reporter', name: '报告Agent', icon: '📊', role: '学情分析 · 报告生成 · PDF导出', tools: ['深度文献解析', '全域学术检索'], avgTime: '4.2s', example: '💡 生成我本月的学习报告', quickCommands: ['生成本周学习报告', '分析我的学习趋势'], examples: [{ cat: '周报', text: '生成本周学习报告，包含时长和完成率' }, { cat: '月报', text: '生成我本月的学习报告，分析进步趋势' }, { cat: '分析建议', text: '分析本周学习进度和效果，给出改进建议' }, { cat: '月报', text: '对比上个月和这个月的学习数据变化' }] },
+  { id: 'exercise', name: '习题Agent', icon: '✏️', role: '习题生成 · 智能批改 · 错题本', tools: ['智能测评出题'], avgTime: '2.5s', example: '💡 生成5道Python基础练习题', quickCommands: ['生成专项练习题', '批改我的作业'], examples: [{ cat: '习题生成', text: '生成5道Python基础练习题，包含难度标注' }, { cat: '习题生成', text: '出10道Java面试高频算法题' }, { cat: '智能批改', text: '批改我提交的代码作业，指出优化方向' }, { cat: '错题巩固', text: '根据我的错题记录，生成针对性练习' }] },
+  { id: 'search', name: '搜索Agent', icon: '🌐', role: '联网搜索 · 资料检索 · 资源发现', tools: ['全域学术检索'], avgTime: '1.8s', example: '💡 搜索最新的Python教程', quickCommands: ['搜索机器学习教程', '查找相关学习资源'], examples: [{ cat: '全网搜索', text: '搜索2026年最新的Python学习教程推荐' }, { cat: '学术搜索', text: '搜索Java面试常见问题及解答思路' }, { cat: '教程搜索', text: '寻找适合初学者的数据结构与算法视频教程' }] },
+  { id: 'knowledge', name: '知识检索Agent', icon: '📚', role: '文档检索 · 语义搜索 · 知识问答', tools: ['全域学术检索', '深度文献解析'], avgTime: '1.5s', example: '💡 查找Python基础相关内容', quickCommands: [], examples: [{ cat: '文档检索', text: '从知识库中查找Python基础语法相关内容' }, { cat: '语义搜索', text: '检索「如何优化SQL查询性能」的相关知识' }, { cat: '知识问答', text: '根据知识库回答：什么是数据库事务？' }] },
+  { id: 'supervisor', name: '🧠 学习主管', icon: '🧠', role: '协调所有智能体协作完成复杂任务', tools: ['任务拆解', '智能派单', '并行执行', '结果聚合'], avgTime: '15s', example: '💡 从零学Java，3个月达到就业水平', quickCommands: ['从零学Java，3个月达到就业水平，帮我出完整方案', '系统学习Python数据分析，从入门到项目实战', '备战前端面试，1个月冲刺计划'], examples: [{ cat: '完整方案', text: '从零学Java，3个月达到就业水平，帮我出完整方案' }, { cat: '完整方案', text: '系统学习Python数据分析，从入门到项目实战' }, { cat: '面试冲刺', text: '备战前端面试，1个月冲刺计划' }, { cat: '完整方案', text: '我想学全栈开发，请安排从零到就业的完整路径' }] }
 ]
 
-// ===== localStorage 持久化（仅保留执行次数统计） =====
+// ===== localStorage 持久化 =====
 const LS_KEYS = { STATS: 'agent_stats' }
 const loadStats = () => { try { const r = localStorage.getItem(LS_KEYS.STATS); return r ? JSON.parse(r) : {} } catch { return {} } }
 const saveStats = (s) => { try { localStorage.setItem(LS_KEYS.STATS, JSON.stringify(s)) } catch {} }
 
 const agentStats = reactive(loadStats())
 const executionLogs = ref([])
-
-// 子 Agent 列表
 const agents = ref(agentConfigs.map(cfg => ({ ...cfg, status: 'available', execCount: agentStats[cfg.id] || 0 })))
 const subAgents = computed(() => agents.value)
 
-// 用于调度中心的子智能体列表（排除编排Agent）
-// 编排Agent是调度中枢，不应出现在任务分配列表中
-const subAgentsForScheduling = computed(() => {
-  return agents.value.filter(agent => {
-    const id = agent.id?.toLowerCase() || ''
-    const name = agent.name || ''
-    return !id.includes('orchestrator') && !name.includes('编排')
-  })
-})
+// ===== 判断是否核心智能体 - 核心智能体占 2 格宽度 =====
+const isCoreAgent = (agentId) => {
+  return ['diagnosis', 'planner', 'tutor'].includes(agentId)
+}
 
 // ===== 计算属性 =====
 const availableCount = computed(() => agents.value.filter(a => a.status === 'available').length)
 const executingCount = computed(() => agents.value.filter(a => a.status === 'executing').length)
 const isAnyExecuting = computed(() => executingCount.value > 0)
-// 总执行次数 = 执行历史中的完成记录数（成功/失败），与列表同数据源，保证“计数与列表一致”
 const totalExecCount = computed(() => executionLogs.value.filter(l => l.stepType === 'success' || l.stepType === 'error').length)
-const displayTotalExec = computed(() => totalExecCount.value)
 
-// ===== 执行历史视图（全部/回收站）与筛选 =====
+// ===== 执行历史 =====
 const flowView = ref('list')
 const flowKeyword = ref('')
-
-// ===== 批量选择（仅可删除记录：已持久化的 Agent 结果 / 工具执行记录） =====
+const flowFilterStatus = ref('all')
+const flowFilterAgent = ref('all')
+const filteredLogs = ref([])
+const selectedLogId = ref(null)
+const selectedLog = computed(() => filteredLogs.value.find(log => log.id === selectedLogId.value) || null)
+const currentLogIndex = computed(() => filteredLogs.value.findIndex(log => log.id === selectedLogId.value))
+const flowLoading = ref(false)
+const flowError = ref(false)
+const successLogCount = computed(() => executionLogs.value.filter(l => l.stepType === 'success' || l.stepType === 'error').length)
 const selectedLogIds = ref(new Set())
 const deletableLogs = computed(() => filteredLogs.value.filter(l => l.resultId || l.sourceType === 'tool'))
 const allSelected = computed(() => deletableLogs.value.length > 0 && deletableLogs.value.every(l => selectedLogIds.value.has(l.id)))
 
-// 面板徽章计数（与 KPI 同口径）
-const successLogCount = computed(() => executionLogs.value.filter(l => l.stepType === 'success' || l.stepType === 'error').length)
-
-// ===== 回收站 =====
+// 回收站
 const trashLogs = ref([])
 const trashLoading = ref(false)
 const trashError = ref(false)
 
-// ===== 执行历史加载状态（区分“无数据”与“加载失败”） =====
-const flowLoading = ref(false)
-const flowError = ref(false)
+// 删除确认
+const showDeleteDialog = ref(false)
+const deleteDialogConfig = ref({ title: '删除执行记录', message: '', type: 'warning', showSoftDelete: true, details: [] })
+let deleteDialogResolve = null
+let deleteDialogLog = null
+let deleteDialogAction = ''
 
-// 后端状态 → 前端流日志状态（兼容 completed/failed/running 与 success/error/executing 值域）
-const mapBackendStatus = (status) => {
-  const s = String(status || 'completed').toLowerCase()
-  if (['failed', 'error', 'failure'].includes(s)) {
-    return { status: 'error', stepType: 'error', stepLabel: '❌ 失败' }
-  }
-  if (['running', 'pending', 'executing', 'processing'].includes(s)) {
-    return { status: 'executing', stepType: 'observe', stepLabel: '⏳ 执行中' }
-  }
-  return { status: 'success', stepType: 'success', stepLabel: '✅ 任务完成' }
+// ===== 工具输入弹窗 =====
+const showToolDialog = ref(false)
+const toolDialogValue = ref('')
+const toolDialogError = ref('')
+const toolDialogConfig = ref({ icon: '🔧', title: '', placeholder: '', label: '', confirmText: '确认', validator: null })
+let toolDialogResolve = null
+
+const toolDialogInput = ref(null)
+
+const openToolDialog = (config) => {
+  return new Promise((resolve) => {
+    toolDialogResolve = resolve
+    toolDialogConfig.value = { icon: '🔧', title: '', placeholder: '', label: '', confirmText: '确认', validator: null, ...config }
+    toolDialogValue.value = ''
+    toolDialogError.value = ''
+    showToolDialog.value = true
+    nextTick(() => toolDialogInput.value?.focus())
+  })
 }
 
-// 加载失败重试
-const retryLoadHistory = () => { loadAllResultsFromBackend() }
+const confirmToolDialog = () => {
+  const val = toolDialogValue.value.trim()
+  const err = toolDialogConfig.value.validator?.(val)
+  if (err !== true) { toolDialogError.value = err || '输入不能为空'; return }
+  toolDialogError.value = ''
+  showToolDialog.value = false
+  toolDialogResolve?.(val)
+  toolDialogResolve = null
+}
 
-// 主控 Agent 状态
-const orchDotClass = computed(() => isAnyExecuting.value ? 'running' : 'idle')
-const orchStatusText = computed(() => isAnyExecuting.value ? `协调中 (${executingCount.value} 个子任务)` : '在线待命')
+const closeToolDialog = () => {
+  showToolDialog.value = false
+  toolDialogResolve?.(null)
+  toolDialogResolve = null
+}
 
-// ===== 对话框 =====
+// ===== 任务对话框 =====
 const showTaskDialog = ref(false)
 const currentAgent = ref(null)
 const taskInput = ref('')
-const isTaskExecuting = ref(false)
-
+const isTaskExecuting = computed(() => currentAgent.value ? !!agentExecuting.value[currentAgent.value.id] : false)
 const plannerDuration = ref('1个月')
 const tutorRagEnabled = ref(true)
 const reporterType = ref('周报')
@@ -935,29 +1017,11 @@ const exerciseCount = ref(5)
 const searchRange = ref('全网')
 const docFilter = ref('全部')
 
-const plannerOptions = [
-  { label: '1个月学习计划', value: '1个月' },
-  { label: '3个月学习计划', value: '3个月' },
-  { label: '6个月学习计划', value: '6个月' }
-]
-const reporterOptions = [
-  { label: '周报', value: '周报' },
-  { label: '月报', value: '月报' }
-]
-const difficultyOptions = [
-  { label: '简单', value: '简单' },
-  { label: '中等', value: '中等' },
-  { label: '困难', value: '困难' }
-]
-const searchRangeOptions = [
-  { label: '全网', value: '全网' },
-  { label: '学术', value: '学术' },
-  { label: '教程', value: '教程' }
-]
-const docFilterOptions = [
-  { label: '全部', value: '全部' },
-  { label: '最近上传', value: '最近上传' }
-]
+const plannerOptions = [{ label: '1个月学习计划', value: '1个月' }, { label: '3个月学习计划', value: '3个月' }, { label: '6个月学习计划', value: '6个月' }]
+const reporterOptions = [{ label: '周报', value: '周报' }, { label: '月报', value: '月报' }]
+const difficultyOptions = [{ label: '简单', value: '简单' }, { label: '中等', value: '中等' }, { label: '困难', value: '困难' }]
+const searchRangeOptions = [{ label: '全网', value: '全网' }, { label: '学术', value: '学术' }, { label: '教程', value: '教程' }]
+const docFilterOptions = [{ label: '全部', value: '全部' }, { label: '最近上传', value: '最近上传' }]
 
 const openTaskDialog = (agent) => {
   currentAgent.value = agent
@@ -972,675 +1036,242 @@ const openTaskDialog = (agent) => {
   showTaskDialog.value = true
 }
 
-const executeQuickCommand = (agent, command) => {
-  currentAgent.value = agent
-  taskInput.value = command
-  showTaskDialog.value = true
-}
-
-const openAgentChat = (agent) => {
-  currentAgent.value = agent
-  taskInput.value = ''
-  showTaskDialog.value = true
-}
-
 const closeTaskDialog = () => {
   if (isTaskExecuting.value) return
   showTaskDialog.value = false
   currentAgent.value = null
   taskInput.value = ''
 }
+
+const executeQuickCommand = (agent, cmd) => { currentAgent.value = agent; taskInput.value = cmd; showTaskDialog.value = true }
 const quickDiagnosis = () => { taskInput.value = '快速诊断我的学习水平，生成完整的能力画像报告' }
 
+// ===== 颜色映射 =====
+const agentColorMap = { diagnosis: '#10b981', planner: '#14b8a6', tutor: '#3b82f6', reporter: '#f59e0b', exercise: '#ef4444', search: '#10b981', knowledge: '#a78bfa' }
+const agentColor = (id) => agentColorMap[id] || '#71717a'
+
+// ===== 格式化工具 =====
 const formatTime = (dateStr) => {
   const d = dateStr ? new Date(dateStr) : new Date()
   if (isNaN(d.getTime())) return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-const agentColorMap = {
-  diagnosis: '#00f5d4', planner: '#7b61ff', tutor: '#3a86ff',
-  reporter: '#f59e0b', exercise: '#ff006e', search: '#10b981', knowledge: '#a78bfa'
-}
-const agentColor = (id) => agentColorMap[id] || '#8080a8'
-
-// ===== ReAct 循环同步 =====
-const startReactCycle = async () => {
-  for (let i = 0; i < reactSteps.length; i++) {
-    reactActiveStep.value = i
-    await sleep(400 + Math.random() * 200)
-  }
-}
-const resetReactCycle = () => {
-  reactActiveStep.value = -1
-  reactIteration.value = 0
+const mapBackendStatus = (status) => {
+  const s = String(status || 'completed').toLowerCase()
+  if (['failed', 'error', 'failure'].includes(s)) return { status: 'error', stepType: 'error', stepLabel: '❌ 失败' }
+  if (['running', 'pending', 'executing', 'processing'].includes(s)) return { status: 'executing', stepType: 'observe', stepLabel: '⏳ 执行中' }
+  return { status: 'success', stepType: 'success', stepLabel: '✅ 任务完成' }
 }
 
 // ===== 提交任务 =====
 const submitTask = async () => {
   if (!currentAgent.value || !taskInput.value.trim()) return
-  
-  // 前端安全检查
   const safetyResult = securityFilter.sanitize(taskInput.value)
-  if (safetyResult.action === 'BLOCK') {
-    ElMessage.error(safetyResult.message || '输入包含不允许的内容')
-    return
-  }
-  if (safetyResult.riskLevel === 'MEDIUM') {
-    console.warn('[Security] 检测到潜在风险输入:', safetyResult.detectedTypes)
-  }
-  
+  if (safetyResult.action === 'BLOCK') { ElMessage.error(safetyResult.message || '输入包含不允许的内容'); return }
+  if (safetyResult.riskLevel === 'MEDIUM') console.warn('[Security] 潜在风险输入:', safetyResult.detectedTypes)
+
   const agent = agents.value.find(a => a.id === currentAgent.value.id)
   if (!agent) return
 
-  isTaskExecuting.value = true
+  // 获取当前 Agent
+  const agentId = agent.id
+  if (agentExecuting.value[agentId]) return
+
+  agentExecuting.value[agentId] = true
   agent.status = 'executing'
   showTaskDialog.value = false
   flowExpanded.value = true
-  reactIteration.value++
 
   let fullDescription = taskInput.value.trim()
   if (agent.id === 'exercise') fullDescription = `[${exerciseDifficulty.value}] ${fullDescription} (${exerciseCount.value}题)`
   else if (agent.id === 'search') fullDescription = `[${searchRange.value}] ${fullDescription}`
   else if (agent.id === 'knowledge') fullDescription = `[${docFilter.value}] ${fullDescription}`
 
-  // 启动 ReAct 循环
-  startReactCycle()
-
-  // 添加提交日志
   addFlowLog(agent, 'task', '📋 任务已提交', `→ ${fullDescription}`)
-
-  // 收集本次执行的日志
   const taskLogs = []
-
-  // 模拟执行（思考→行动→观察→完成）
   await simulateExecution(agent, fullDescription, taskLogs)
 
-  // === 后端持久化：写入 execution_logs 和 execution_results 表 ===
   let savedResultId = null
   const resultPayload = generateResultPayload(agent, fullDescription)
-  // 规范化输出结构：{ content, fullData, raw }，content 优先取真正的任务结果
   const normalizedOutput = normalizeOutput(resultPayload)
   const singleExecId = 'exec_' + Date.now() + '_' + agent.id
   const singleSessionId = 'session_' + Date.now()
-  // 转换 taskLogs 为带有 phase 的格式
-  const phaseLogs = taskLogs.map((t) => ({
-    phase: t.type || 'info',
-    content: t.content || ''
-  }))
+  const phaseLogs = taskLogs.map((t) => ({ phase: t.type || 'info', content: t.content || '' }))
 
-  // 先更新本地结果缓存（确保即使后端保存失败也能查看结果）
-  latestResultsCache[agent.id] = {
-    agentId: agent.id,
-    agentName: agent.name,
-    taskDescription: fullDescription,
-    status: 'completed',
-    resultType: resultPayload.type || 'default',
-    result: resultPayload,
-    duration: null,
-    createdAt: new Date().toISOString(),
-    id: savedResultId
-  }
+  latestResultsCache[agent.id] = { agentId: agent.id, agentName: agent.name, taskDescription: fullDescription, status: 'completed', resultType: resultPayload.type || 'default', result: resultPayload, duration: null, createdAt: new Date().toISOString(), id: savedResultId }
 
   try {
-    const res = await saveAgentExecution({
-      agentId: agent.id,
-      agentName: agent.name,
-      taskDescription: fullDescription,
-      sessionId: singleSessionId,
-      executionId: singleExecId,
-      result: resultPayload,
-      duration: null,
-      logs: phaseLogs
-    })
+    const res = await saveAgentExecution({ agentId: agent.id, agentName: agent.name, taskDescription: fullDescription, sessionId: singleSessionId, executionId: singleExecId, result: resultPayload, duration: null, logs: phaseLogs })
     savedResultId = res?.data?.resultId || null
-    // 更新本地缓存的 resultId
     latestResultsCache[agent.id].id = savedResultId
-    console.debug(`[持久化] ${agent.name} 执行数据已保存到数据库, resultId=${savedResultId}`)
-  } catch (err) {
-    console.warn('[持久化] 保存执行数据失败:', err)
-    // 不影响前端体验，静默失败
-  }
+  } catch (err) { console.warn('[持久化] 保存失败:', err) }
 
-  // 完成
   agent.execCount = (agent.execCount || 0) + 1
   agentStats[agent.id] = agent.execCount
   saveStats({ ...agentStats })
 
   addFlowLog(agent, 'success', '✅ 任务完成', `${agent.name} 成功执行：${fullDescription.length > 40 ? fullDescription.substring(0, 40) + '...' : fullDescription}`, null, { resultId: savedResultId }, normalizedOutput)
+
+  // 将结果添加到对应标签的消息列表
+  const tab = openTabs.value.find(t => t.agentId === agentId)
+  if (tab && resultPayload.outputText) {
+    tab.messages.push({
+      role: 'assistant',
+      content: resultPayload.outputText,
+      time: formatTime()
+    })
+  }
+
   ElMessage.success(`${agent.name} 任务执行成功`)
-
   agent.status = 'available'
-  isTaskExecuting.value = false
-
-  // 延迟重置 ReAct
-  await sleep(800)
-  resetReactCycle()
-  scrollToBottom()
+  agentExecuting.value[agentId] = false
 }
 
-// ===== 生成执行结果载荷 =====
-// 统一结构：{ type, displayTitle, summary, outputText, outputJson, data: { query, result, source, confidence }, message }
-// outputText：人类可读内容（优先展示）；outputJson：结构化数据（供前端组件差异化渲染）
-// data.result 与旧结构保持兼容，历史解析链路（normalizeOutput）仍可正常提取
-const generateResultPayload = (agent, task) => {
-  const now = new Date().toISOString()
-  const query = task
-  const summary = (text) => text.length > 50 ? text.substring(0, 50) + '...' : text
-  const trimQuery = (t) => t.replace(/^\[[^\]]*\]\s*/, '')
-
-  // 知识检索Agent：返回知识块列表 + 人类可读摘要
-  if (agent.id === 'knowledge') {
-    const q = trimQuery(task)
-    const blocks = [
-      {
-        source: 'Python入门指南.md', title: '变量与数据类型', score: 95,
-        content: 'Python 变量不需要显式声明类型，赋值即声明。\n• 整数：a = 10\n• 浮点数：b = 3.14\n• 字符串：c = "Hello"\n• 布尔值：d = True'
-      },
-      {
-        source: 'Python核心语法.md', title: '条件判断语句', score: 88,
-        content: 'if-elif-else 依次检查条件：\nif condition:\n    # 代码块\nelif condition2:\n    # 代码块\nelse:\n    # 代码块'
-      },
-      {
-        source: 'Python常见问题.md', title: '常量定义约定', score: 76,
-        content: 'Q：Python 中如何定义常量？\nA：Python 没有真正的常量，约定使用大写字母命名表示常量。'
-      }
-    ]
-    const result = `关于「${q}」的知识库检索结果：\n\n${blocks.map((b, i) => `${i + 1}. 📄 来源：${b.source}\n${b.content.split('\n').join('\n   ')}\n   🔗 相关度：${b.score}%`).join('\n\n')}\n\n📌 建议：优先阅读「${blocks[0].source}」了解基础知识`
-    return {
-      type: 'knowledge',
-      displayTitle: '知识库检索结果',
-      summary: `检索到 ${blocks.length} 个相关知识块`,
-      outputText: result,
-      outputJson: { query: q, total: blocks.length, blocks, recommendation: `优先阅读「${blocks[0].source}」了解基础知识` },
-      generatedAt: now,
-      status: 'success',
-      data: { query: q, result, source: 'Python官方文档 | 廖雪峰教程 | 《Python编程：从入门到实践》', confidence: 0.95 },
-      message: '任务已成功执行'
-    }
-  }
-
-  // 搜索Agent：返回搜索结果列表 + 人类可读摘要
-  if (agent.id === 'search') {
-    const q = trimQuery(task)
-    const results = [
-      { title: 'Python 3 官方教程', url: 'docs.python.org/zh-cn/3/tutorial/', source: 'docs.python.org', snippet: 'Python 官方文档，涵盖基础语法、标准库与最佳实践。', relevance: 0.92 },
-      { title: 'Python基础语法入门指南', url: 'runoob.com/python3/', source: 'runoob.com', snippet: '包含变量、条件、循环、函数等基础语法详解与在线练习，适合初学者系统入门。', relevance: 0.88 },
-      { title: '廖雪峰Python教程', url: 'liaoxuefeng.com/wiki/1016959663602400', source: 'liaoxuefeng.com', snippet: '通俗易懂的 Python 入门教程，附带大量实战项目。', relevance: 0.75 },
-      { title: 'Real Python 教程', url: 'realpython.com', source: 'realpython.com', snippet: '高质量 Python 学习资源，覆盖进阶主题与最佳实践。', relevance: 0.62 },
-      { title: 'Python 100 天从新手到大师', url: 'github.com/jackfrued/Python-100-Days', source: 'github.com', snippet: '完整的 Python 学习路线，包含 100 天的分阶段学习计划。', relevance: 0.55 }
-    ]
-    const result = `「${q}」联网搜索结果：\n\n${results.map((r, i) => `${i + 1}. 📄 ${r.title}\n   📎 ${r.source}\n   💡 ${r.snippet}\n   ⭐ 相关度：${r.relevance >= 0.8 ? '高' : r.relevance >= 0.6 ? '中' : '低'}`).join('\n\n')}\n\n📌 推荐：优先阅读「${results[0].title}」作为系统学习参考`
-    return {
-      type: 'search',
-      displayTitle: '联网搜索结果',
-      summary: `共找到 ${results.length} 条相关结果`,
-      outputText: result,
-      outputJson: { query: q, total: results.length, results, recommendation: `优先阅读「${results[0].title}」作为系统学习参考` },
-      generatedAt: now,
-      status: 'success',
-      data: { query: q, result, source: '菜鸟教程 | Python官方文档 | 廖雪峰教程', confidence: 0.88 },
-      message: '任务已成功执行'
-    }
-  }
-
-
-  // 诊断Agent：返回能力维度评分 + 优势/薄弱点 + 改进建议
-  if (agent.id === 'diagnosis') {
-    const dimensions = [
-      { name: 'Python基础', score: 85, level: '良好' },
-      { name: '数据结构', score: 60, level: '需加强' },
-      { name: '算法思维', score: 45, level: '薄弱' },
-      { name: '项目实践', score: 30, level: '薄弱' }
-    ]
-    const strengths = [
-      { name: 'Python基础语法', score: 85, desc: '掌握良好，可继续进阶' },
-      { name: '数据分析基础', score: 72, desc: '具备基本数据处理能力' }
-    ]
-    const weaknesses = [
-      { name: '面向对象编程', priority: '高' },
-      { name: '算法与数据结构', priority: '高' }
-    ]
-    const suggestions = [
-      '优先学习「Python面向对象编程」专题（预计 2 小时）',
-      '完成「算法基础」练习集（预计 3 小时）',
-      '建议每周完成 3 道编程题巩固'
-    ]
-    const result = `📊 诊断报告 - Python学习水平\n\n📈 整体水平：中级（62分）\n\n✅ 优势领域：\n${strengths.map(s => `  • ${s.name}（${s.score}%）- ${s.desc}`).join('\n')}\n\n⚠️ 薄弱环节：\n${weaknesses.map(w => `  • ${w.name} - 需加强`).join('\n')}\n\n📝 改进建议：\n${suggestions.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}\n\n🔗 推荐路径：Python进阶 → 数据结构与算法`
-    return {
-      type: 'diagnosis',
-      displayTitle: '学习水平诊断报告',
-      summary: `整体水平：中级（${dimensions.reduce((a, d) => a + d.score, 0) / dimensions.length}分），发现 ${weaknesses.length} 个薄弱环节`,
-      outputText: result,
-      outputJson: { level: '中级', score: 62, dimensions, strengths, weaknesses, suggestions },
-      generatedAt: now,
-      status: 'success',
-      data: { query, result, source: '能力测评题库', confidence: 0.92 },
-      message: '任务已成功执行'
-    }
-  }
-
-  // 规划Agent：返回阶段时间轴 + 目标/内容/任务 + 推荐资源
-  if (agent.id === 'planner') {
-    const phases = [
-      {
-        phase: 1, title: '基础入门', duration: '第1-4周',
-        goals: ['掌握Java核心语法'],
-        content: ['Java语言基础（变量、运算符、控制流）', '面向对象基础（类、对象、继承、多态）', '数组与集合框架'],
-        tasks: ['完成 10 个基础编程练习', '搭建第一个Java项目']
-      },
-      {
-        phase: 2, title: '进阶实践', duration: '第5-8周',
-        goals: ['具备独立开发能力'],
-        content: ['异常处理与日志', 'IO流与文件操作', '多线程与并发'],
-        tasks: ['开发一个图书管理系统', '完成 5 个算法题']
-      },
-      {
-        phase: 3, title: '框架与项目', duration: '第9-12周',
-        goals: ['掌握主流框架'],
-        content: ['Spring Boot入门', 'RESTful API开发', '数据库操作（JPA/MyBatis）'],
-        tasks: ['完成一个Web项目', '部署到云服务器']
-      }
-    ]
-    const resources = [
-      { type: '视频课程', name: 'Java核心技术（30小时）' },
-      { type: '练习平台', name: 'LeetCode（每周3题）' }
-    ]
-    const result = `${agent.name} · 学习计划（${plannerDuration.value}）：\n\n${phases.map(p => `📌 Phase ${p.phase}：${p.title}（${p.duration}）\n  🎯 目标：${p.goals.join('；')}\n  📚 学习内容：\n${p.content.map(c => `    • ${c}`).join('\n')}\n  📝 实践任务：\n${p.tasks.map(t => `    • ${t}`).join('\n')}`).join('\n\n')}\n\n🔗 推荐资源：\n${resources.map(r => `  • ${r.type}：${r.name}`).join('\n')}`
-    return {
-      type: 'plan',
-      displayTitle: `${agent.name} · 学习计划`, 
-      summary: `${plannerDuration.value}（${phases.length} 个阶段，共 12 周 / 120 小时）`,
-      outputText: result,
-      outputJson: { duration: plannerDuration.value, totalWeeks: 12, totalHours: 120, phases, resources },
-      generatedAt: now,
-      status: 'success',
-      data: { query, result, source: '学习路径算法', confidence: 0.9 },
-      message: '任务已成功执行'
-    }
-  }
-
-  // 答疑Agent：返回结构化问答内容（人类可读 Markdown）
-  if (agent.id === 'tutor') {
-    const topic = trimQuery(task)
-    const result = `💡 问题：${summary(topic)}\n\n📖 概念解释：\n\n该概念属于编程核心知识，基于知识库检索到的相关内容：\n\n🔍 核心要点：\n  1. 定义与原理：结合官方文档给出准确定义，并用通俗类比帮助理解\n  2. 实际应用：附 2-3 个可直接运行的代码示例\n  3. 常见误区：总结初学者容易混淆的点及最佳实践建议\n\n📝 代码示例：\n\n\`\`\`python\n# 示例代码\ndef example():\n    return "Hello, World!"\n\`\`\`\n\n📌 相关知识点：\n  • 作用域链\n  • 变量提升\n  • 内存管理\n\n📚 推荐阅读：\n  • 官方文档与经典教材相关章节\n  • 知识库中关联文档（可到「对话」页选择知识库文档后提问获取更精确解答）`
-    return {
-      type: 'qa',
-      displayTitle: '答疑解惑',
-      summary: summary(topic),
-      outputText: result,
-      outputJson: null,
-      generatedAt: now,
-      status: 'success',
-      data: { query: task, result, source: '知识库 | Python官方文档', confidence: 0.85 },
-      message: '任务已成功执行'
-    }
-  }
-  // 报告Agent：返回概览指标 + 能力成长 + 学习详情 + 建议
-  if (agent.id === 'reporter') {
-    const metrics = [
-      { label: '总学习时长', value: '42.5h', change: '+15%' },
-      { label: '完成率', value: '87%', change: '' },
-      { label: '平均测评分', value: '85分', change: '+5%' },
-      { label: '连续学习天数', value: '7天', change: '' }
-    ]
-    const capabilities = [
-      { name: 'Python基础', score: 85 },
-      { name: '数据分析', score: 72 },
-      { name: '机器学习', score: 38 },
-      { name: '数据库', score: 55 },
-      { name: 'Web开发', score: 48 }
-    ]
-    const details = [
-      { date: '08-04', content: 'Python数据分析（Pandas、Matplotlib）', status: '完成', duration: '2h' },
-      { date: '08-05', content: '数据清洗实战（缺失值处理、标准化）', status: '完成', duration: '1.5h' },
-      { date: '08-06', content: '数据可视化报告制作', status: '完成', duration: '1h' }
-    ]
-    const nextPlan = [
-      '机器学习入门（线性回归、逻辑回归）',
-      '完成 3 个数据分析实战项目'
-    ]
-    const suggestions = [
-      '继续保持每日 1 小时学习节奏',
-      '增加算法练习（每天 1 题）',
-      '建议完成「机器学习基础」测评'
-    ]
-    const result = `${reporterType.value}学习报告：\n\n📈 学习概览\n${metrics.map(m => `  • ${m.label}：${m.value}${m.change ? `（较上周 ${m.change}）` : ''}`).join('\n')}\n\n📊 能力成长\n${capabilities.map(c => `  • ${c.name}：${c.score}%`).join('\n')}\n\n📋 本周完成内容\n${details.map(d => `  ✅ ${d.content}（${d.duration}）`).join('\n')}\n\n🎯 下周计划\n${nextPlan.map(p => `  • ${p}`).join('\n')}\n\n📝 建议\n${suggestions.map(s => `  • ${s}`).join('\n')}`
-    return {
-      type: 'report',
-      displayTitle: `${reporterType.value}学习报告`,
-      summary: `${reporterType.value}学习报告：${metrics[0].value}学习时长，完成率 ${metrics[1].value}`,
-      outputText: result,
-      outputJson: { title: `${reporterType.value}学习报告`, metrics, capabilities, details, nextPlan, suggestions },
-      generatedAt: now,
-      status: 'success',
-      data: { query, result, source: '学习行为数据', confidence: 0.93 },
-      message: '任务已成功执行'
-    }
-  }
-
-  // 习题Agent：返回结构化题目（题干/选项/答案/解析）
-  if (agent.id === 'exercise') {
-    const questions = [
-      {
-        question: '在Python中，下列哪个关键字用于定义一个函数？',
-        options: [
-          { label: 'A', text: 'class' },
-          { label: 'B', text: 'def', isCorrect: true },
-          { label: 'C', text: 'function' },
-          { label: 'D', text: 'lambda' }
-        ],
-        answer: 'B',
-        explanation: 'def 是 Python 定义函数的关键字；class 定义类；lambda 创建匿名函数。'
-      },
-      {
-        question: '执行 `print(type([1, 2, 3]))` 会输出什么？',
-        options: [
-          { label: 'A', text: "<class 'list'>", isCorrect: true },
-          { label: 'B', text: "<class 'tuple'>" },
-          { label: 'C', text: "<class 'set'>" },
-          { label: 'D', text: "<class 'dict'>" }
-        ],
-        answer: 'A',
-        explanation: '[1, 2, 3] 是列表字面量，type() 返回 <class \'list\'>。'
-      },
-      {
-        question: 'Python 中 for 循环与 while 循环的区别是什么？',
-        options: [
-          { label: 'A', text: 'for 用于遍历已知序列，while 适用于条件控制迭代', isCorrect: true },
-          { label: 'B', text: 'while 用于遍历已知序列，for 适用于条件控制迭代' },
-          { label: 'C', text: '两者完全相同，可以互换' },
-          { label: 'D', text: 'for 只能用于数字循环' }
-        ],
-        answer: 'A',
-        explanation: 'for 遍历可迭代对象（已知序列）；while 在条件满足时反复执行（未知次数迭代）。'
-      }
-    ]
-    const result = `已生成 ${questions.length} 道${exerciseDifficulty.value}难度练习题：\n\n${questions.map((q, i) => `#${i + 1} ${q.question}\n${q.options.map(o => `  ${o.label}. ${o.text}`).join('\n')}\n\n  🔍 答案：${q.answer}（${q.explanation}）`).join('\n\n')}`
-    return {
-      type: 'exercise',
-      displayTitle: `${agent.name}练习题（${questions.length}道）`,
-      summary: `已生成 ${questions.length} 道${exerciseDifficulty.value}难度练习题`,
-      outputText: result,
-      outputJson: { questions },
-      generatedAt: now,
-      status: 'success',
-      data: { query, result, source: '智能出题引擎', confidence: 0.9 },
-      message: '任务已成功执行'
-    }
-  }
-  // 默认分支：不再返回固定成功文案，输出任务执行摘要
-  return {
-    type: 'default',
-    displayTitle: `${agent.name} 执行完成`,
-    summary: `任务「${summary(task)}」已完成执行`,
-    outputText: `任务「${summary(task)}」已完成执行，输出类型：${agent.name} 执行结果。`,
-    outputJson: null,
-    generatedAt: now,
-    status: 'success',
-    data: {
-      query, result: `任务「${summary(task)}」已完成执行，输出类型：${agent.name} 执行结果。`,
-      source: '本地执行引擎', confidence: 0.7
-    },
-    message: '任务已成功执行'
-  }
-}
-
-// ===== 真实 ReAct 执行（通过后端 SSE 流式输出） =====
-let activeAbortController = null
-
+// ===== SSE 流式执行 =====
 const simulateExecution = async (agent, task, logCollector) => {
   const desc = task.length > 35 ? task.substring(0, 35) + '...' : task
   let stepCount = 0
   let isFinished = false
+  const agentId = agent.id
 
-  // 取消上一次未完成的流式执行
-  if (activeAbortController) {
-    activeAbortController.abort()
-  }
-  activeAbortController = new AbortController()
+  // 为当前任务创建独立的 AbortController
+  const controller = new AbortController()
+  agentAbortControllers.value[agentId] = controller
+  const signal = controller.signal
 
   try {
     await postStreamExecution(agent.id, task, {
-      onStart: () => {
-        addFlowLog(agent, 'task', '🚀 启动', `任务已启动: ${desc}`, logCollector)
-      },
-      onThink: (data) => {
-        stepCount = data.step || stepCount
-        reactActiveStep.value = 0
-        const thought = data.content || data.thought || JSON.stringify(data)
-        addFlowLog(agent, 'think', '🤔 思考', thought, logCollector)
-      },
-      onAct: (data) => {
-        reactActiveStep.value = 1
-        const toolName = data.tool || data.toolName || '关联工具'
-        const args = data.args || data.params || {}
-        const argsStr = Object.keys(args).length > 0 ? ` 参数: ${JSON.stringify(args)}` : ''
-        addFlowLog(agent, 'act', '⚡ 行动', `调用「${toolName}」${argsStr}`, logCollector)
-        // 高亮工具调用
-        highlightToolCall(toolName)
-      },
-      onObserve: (data) => {
-        reactActiveStep.value = 2
-        const content = data.content || data.observation || ''
-        const result = data.result
-        let observation = content
-        if (result && typeof result === 'string' && result.length > 0) {
-          const preview = result.length > 200 ? result.substring(0, 200) + '...' : result
-          observation = content ? `${content}\n${preview}` : preview
-        }
-        addFlowLog(agent, 'observe', '👁️ 观察', observation || '执行成功', logCollector)
-      },
-      onReflect: (data) => {
-        const reflection = data.content || data.reflection || JSON.stringify(data)
-        addFlowLog(agent, 'reflect', '🔄 反思', reflection, logCollector)
-      },
-      onReplan: (data) => {
-        const reason = data.reason || data.newPlan || ''
-        const alternative = data.alternative || ''
-        addFlowLog(agent, 'replan', '📝 重规划', `原因: ${reason}\n新计划: ${alternative}`, logCollector)
-      },
-      onComplete: (data) => {
-        isFinished = true
-        const output = data.output || data.message || '任务执行完成'
-        const duration = data.duration || 0
-        const steps = data.steps || stepCount
-        addFlowLog(agent, 'success', '✅ 任务完成', output, logCollector, null, {
-          type: 'default',
-          displayTitle: `${agent.name} 执行完成`,
-          summary: output.length > 80 ? output.substring(0, 80) + '...' : output,
-          outputText: output,
-          generatedAt: new Date().toISOString(),
-          status: 'success'
-        })
-      },
-      onError: (data) => {
-        isFinished = true
-        const errorMsg = data.message || data.error || '执行失败'
-        addFlowLog(agent, 'error', '❌ 错误', errorMsg, logCollector)
-      }
-    }, activeAbortController.signal)
+      onStart: () => { addFlowLog(agent, 'task', '🚀 启动', `任务已启动: ${desc}`, logCollector) },
+      onThink: (data) => { stepCount = data.step || stepCount; addFlowLog(agent, 'think', '🤔 思考', data.content || data.thought || JSON.stringify(data), logCollector) },
+      onAct: (data) => { const toolName = data.tool || data.toolName || '关联工具'; const argsStr = Object.keys(data.args || data.params || {}).length > 0 ? ` 参数: ${JSON.stringify(data.args || data.params || {})}` : ''; addFlowLog(agent, 'act', '⚡ 行动', `调用「${toolName}」${argsStr}`, logCollector) },
+      onObserve: (data) => { const content = data.content || data.observation || ''; addFlowLog(agent, 'observe', '👁️ 观察', content || '执行成功', logCollector) },
+      onReflect: (data) => { addFlowLog(agent, 'reflect', '🔄 反思', data.content || data.reflection || JSON.stringify(data), logCollector) },
+      onReplan: (data) => { addFlowLog(agent, 'replan', '📝 重规划', `原因: ${data.reason || ''}\n新计划: ${data.alternative || ''}`, logCollector) },
+      onComplete: (data) => { isFinished = true; addFlowLog(agent, 'success', '✅ 任务完成', data.output || data.message || '任务执行完成', logCollector, null, { type: 'default', displayTitle: `${agent.name} 执行完成`, summary: (data.output || '').substring(0, 80), outputText: data.output || data.message || '任务执行完成', generatedAt: new Date().toISOString(), status: 'success' }) },
+      onError: (data) => { isFinished = true; addFlowLog(agent, 'error', '❌ 错误', data.message || data.error || '执行失败', logCollector) }
+    }, signal)
   } catch (error) {
     if (error.name === 'AbortError') return
-    console.error('ReAct 执行失败:', error)
     addFlowLog(agent, 'error', '❌ 错误', error.message || '执行失败', logCollector)
-  } finally {
-    activeAbortController = null
-  }
+  } finally { agentAbortControllers.value[agentId] = null }
 }
 
-// ===== 工具调用高亮 =====
-const highlightToolCall = (toolName) => {
-  nextTick(() => {
-    const toolElements = document.querySelectorAll('.tool-tag')
-    toolElements.forEach(el => {
-      if (el.textContent.trim() === toolName) {
-        el.classList.add('tool-highlight')
-        setTimeout(() => el.classList.remove('tool-highlight'), 3000)
-      }
-    })
-  })
-}
-
-// ===== 执行流日志（同步收集到 logCollector 用于后端持久化） =====
+// ===== 执行流日志 =====
 const addFlowLog = (agent, stepType, stepLabel, description, logCollector, extraData, output) => {
   const log = {
     id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-    time: formatTime(),
-    timestamp: new Date().toISOString(),
-    agentName: agent.name,
-    agentId: agent.id,
-    agentIcon: agent.icon,
-    stepType,
-    stepLabel,
-    description,
+    time: formatTime(), timestamp: new Date().toISOString(),
+    agentName: agent.name, agentId: agent.id, agentIcon: agent.icon,
+    stepType, stepLabel, description,
     status: stepType === 'success' ? 'success' : stepType === 'error' ? 'error' : 'executing',
-    output: output || null,
-    ...(extraData || {})
+    output: output || null, ...(extraData || {})
   }
-  // 加入UI列表（追加到末尾，最新在底部）
   executionLogs.value.push(log)
-  // 更新筛选后的日志列表
   applyFlowFilter()
-  // 加入收集器（用于后端持久化）
-  if (logCollector) logCollector.push({
-    type: stepType,
-    title: stepLabel,
-    content: description,
-    createdAt: log.timestamp
-  })
-  // 最多保留100条
+  if (logCollector) logCollector.push({ type: stepType, title: stepLabel, content: description, createdAt: log.timestamp })
   if (executionLogs.value.length > 100) executionLogs.value = executionLogs.value.slice(0, 100)
-  nextTick(() => scrollToBottom())
   return log
 }
 
-const handleClearLogs = async () => {
-  if (executionLogs.value.length === 0) return
-  // 双模式：移至回收站（软删，可恢复）/ 永久删除（硬删，不可恢复）
-  let mode = null
-  try {
-    await confirmAction(
-      '清空后可在「回收站」中恢复；也可以选择永久删除，不可恢复。',
-      '清空执行记录',
-      {
-        type: 'warning',
-        confirmButtonText: '移至回收站',
-        cancelButtonText: '永久删除',
-        distinguishCancelAndClose: true
-      }
-    )
-    mode = 'soft'
-  } catch (action) {
-    if (action !== 'cancel') return
-    try {
-      await confirmAction('永久删除所有执行记录后不可恢复，确定继续？', '永久清空确认', {
-        type: 'error', confirmButtonText: '永久删除', cancelButtonText: '取消'
-      })
-      mode = 'hard'
-    } catch { return }
-  }
-  try {
-    await clearAllResults(mode)
-    executionLogs.value = []
-    filteredLogs.value = []
-    selectedLogId.value = null
-    selectedLogIds.value.clear()
-    ElMessage.success(mode === 'hard' ? '执行记录已永久清空' : '执行记录已清空（可在回收站恢复）')
-  } catch (e) {
-    ElMessage.error('清空失败：' + (e.message || '请稍后重试'))
-  }
-}
-
-// ===== 单条删除：二次确认，双模式（移至回收站 / 永久删除） =====
-const confirmDeleteLog = (log) => {
-  if (!log) return
-  const isTool = log.sourceType === 'tool'
-  if (!log.resultId && !log.toolRecordId) {
-    ElMessage.warning('该记录尚未持久化，无法删除')
-    return
-  }
-  if (isTool) {
-    // 工具执行记录无软删除，仅支持永久删除
-    confirmAction('工具执行记录仅支持永久删除，删除后不可恢复。确定继续？', '删除执行记录', {
-      type: 'warning', confirmButtonText: '永久删除', cancelButtonText: '取消'
-    }).then(() => doDeleteLog(log, 'hard')).catch((err) => {
-      console.error('删除执行记录失败:', err)
-    })
-    return
-  }
-  confirmAction(
-    '「移至回收站」可在回收站中恢复；「永久删除」不可恢复。',
-    '删除执行记录',
-    {
-      type: 'warning',
-      confirmButtonText: '移至回收站',
-      cancelButtonText: '永久删除',
-      distinguishCancelAndClose: true
-    }
-  ).then(() => doDeleteLog(log, 'soft')).catch(action => {
-    if (action === 'cancel') doDeleteLog(log, 'hard')
+// ===== 执行历史操作 =====
+const applyFlowFilter = () => {
+  filteredLogs.value = executionLogs.value.filter(log => {
+    const statusMatch = flowFilterStatus.value === 'all' || log.status === flowFilterStatus.value
+    const agentMatch = flowFilterAgent.value === 'all' ? true : flowFilterAgent.value === 'tool' ? log.sourceType === 'tool' : log.agentId === flowFilterAgent.value
+    const kw = (flowKeyword.value || '').trim().toLowerCase()
+    const kwMatch = !kw || [log.agentName, log.description, log.taskDescription].some(t => (t || '').toLowerCase().includes(kw))
+    return statusMatch && agentMatch && kwMatch
   })
 }
 
-// 按模式执行删除（Agent 记录支持 soft/hard；工具记录仅 hard）
+const selectLog = (log) => { selectedLogId.value = selectedLogId.value === log.id ? null : log.id }
+const closeDetailPanel = () => { selectedLogId.value = null }
+const navigateLog = (direction) => {
+  const idx = currentLogIndex.value
+  if (direction === 'prev' && idx > 0) selectedLogId.value = filteredLogs.value[idx - 1].id
+  else if (direction === 'next' && idx < filteredLogs.value.length - 1) selectedLogId.value = filteredLogs.value[idx + 1].id
+}
+
+const toggleSelectLog = (log) => { if (selectedLogIds.value.has(log.id)) selectedLogIds.value.delete(log.id); else selectedLogIds.value.add(log.id) }
+const toggleSelectAll = () => { if (allSelected.value) selectedLogIds.value.clear(); else deletableLogs.value.forEach(l => selectedLogIds.value.add(l.id)) }
+
+// ===== 删除操作 =====
+const handleClearLogs = () => {
+  if (executionLogs.value.length === 0) return
+  deleteDialogAction = 'clearLogs'
+  deleteDialogConfig.value = { title: '清空执行记录', message: '清空后可在「回收站」中恢复；也可以选择永久删除。', type: 'warning', showSoftDelete: true, details: [{ icon: '📋', text: `共 ${executionLogs.value.length} 条记录` }] }
+  showDeleteDialog.value = true
+}
+
+const confirmDeleteLog = (log) => {
+  if (!log) return
+  if (!log.resultId && !log.toolRecordId) { ElMessage.warning('该记录尚未持久化，无法删除'); return }
+  deleteDialogLog = log
+  const isTool = log.sourceType === 'tool'
+  deleteDialogConfig.value = {
+    title: isTool ? '删除工具执行记录' : '删除执行记录',
+    message: isTool ? '工具执行记录仅支持永久删除。' : '选择删除方式，「移至回收站」可恢复。',
+    type: isTool ? 'danger' : 'warning',
+    showSoftDelete: !isTool,
+    details: [
+      { icon: isTool ? '🔧' : '🤖', text: `${isTool ? '工具' : 'Agent'}：${log.agentName || '未知'}` },
+      { icon: '🕐', text: `时间：${log.time || '未知'}` }
+    ]
+  }
+  showDeleteDialog.value = true
+}
+
+const handleDeleteCancel = () => { showDeleteDialog.value = false; deleteDialogLog = null }
+
 const doDeleteLog = async (log, mode) => {
   try {
-    if (log.sourceType === 'tool') {
-      await deleteToolExecution(log.toolRecordId)
-    } else {
-      await deleteResultById(log.resultId, mode)
-    }
+    if (log.sourceType === 'tool') await deleteToolExecution(log.toolRecordId)
+    else await deleteResultById(log.resultId, mode)
     executionLogs.value = executionLogs.value.filter(l => l.id !== log.id)
     selectedLogIds.value.delete(log.id)
-    if (selectedLogId.value === log.id) {
-      selectedLogId.value = null
-    }
+    if (selectedLogId.value === log.id) selectedLogId.value = null
     applyFlowFilter()
-    ElMessage.success(mode === 'hard' || log.sourceType === 'tool' ? '记录已永久删除' : '已移至回收站')
+    ElMessage.success(mode === 'hard' || log.sourceType === 'tool' ? '已永久删除' : '已移至回收站')
   } catch (e) {
-    const msg = e.message || ''
-    // 记录已在别处删除（如工具页）：后端返回“不存在或无权删除”，本地同步移除脏数据
-    if (msg.includes('不存在') || msg.includes('无权') || msg.includes('404')) {
-      executionLogs.value = executionLogs.value.filter(l => l.id !== log.id)
-      selectedLogIds.value.delete(log.id)
-      if (selectedLogId.value === log.id) {
-        selectedLogId.value = null
-      }
-      applyFlowFilter()
-      ElMessage.warning('该记录已在其他页面被删除，已从列表移除')
-      return
-    }
-    ElMessage.error('删除失败：' + (msg || '请稍后重试'))
+    ElMessage.error('删除失败：' + (e.message || '请稍后重试'))
   }
 }
 
-// ===== 批量选择与批量删除 =====
-const toggleSelectLog = (log) => {
-  if (selectedLogIds.value.has(log.id)) selectedLogIds.value.delete(log.id)
-  else selectedLogIds.value.add(log.id)
-}
-
-const toggleSelectAll = () => {
-  if (allSelected.value) selectedLogIds.value.clear()
-  else deletableLogs.value.forEach(l => selectedLogIds.value.add(l.id))
-}
-
+let batchDeleteList = []
 const batchDeleteSelected = () => {
   const list = filteredLogs.value.filter(l => selectedLogIds.value.has(l.id))
   if (list.length === 0) return
-  confirmAction(
-    `已选择 ${list.length} 条记录。「移至回收站」可恢复（工具记录将直接永久删除）；「永久删除」不可恢复。`,
-    '批量删除',
-    {
-      type: 'warning',
-      confirmButtonText: '移至回收站',
-      cancelButtonText: '永久删除',
-      distinguishCancelAndClose: true
-    }
-  ).then(() => doBatchDelete(list, 'soft')).catch(action => {
-    if (action === 'cancel') doBatchDelete(list, 'hard')
-  })
+  batchDeleteList = list
+  const agentCount = list.filter(l => l.sourceType !== 'tool').length
+  const toolCount = list.filter(l => l.sourceType === 'tool').length
+  const details = []
+  if (agentCount > 0) details.push({ icon: '🤖', text: `Agent 记录：${agentCount} 条` })
+  if (toolCount > 0) details.push({ icon: '🔧', text: `工具记录：${toolCount} 条` })
+  deleteDialogConfig.value = { title: '批量删除', message: `已选择 ${list.length} 条记录。`, type: 'warning', showSoftDelete: true, details }
+  showDeleteDialog.value = true
+}
+
+const handleDeleteSoft = async () => {
+  showDeleteDialog.value = false
+  const action = deleteDialogAction; deleteDialogAction = ''
+  if (action === 'clearLogs') {
+    try { await clearAllResults('soft'); executionLogs.value = []; filteredLogs.value = []; selectedLogId.value = null; selectedLogIds.value.clear(); ElMessage.success('已清空（可在回收站恢复）') } catch (e) { ElMessage.error('清空失败') }
+  } else if (deleteDialogLog) { await doDeleteLog(deleteDialogLog, 'soft'); deleteDialogLog = null }
+  else if (batchDeleteList.length > 0) { await doBatchDelete(batchDeleteList, 'soft'); batchDeleteList = [] }
+}
+
+const handleDeleteHard = async () => {
+  showDeleteDialog.value = false
+  const action = deleteDialogAction; const log = deleteDialogLog; deleteDialogAction = ''; deleteDialogLog = null
+  if (action === 'clearLogs') {
+    try { await clearAllResults('hard'); executionLogs.value = []; filteredLogs.value = []; selectedLogId.value = null; selectedLogIds.value.clear(); ElMessage.success('已永久清空') } catch (e) { ElMessage.error('清空失败') }
+  } else if (action === 'hardDeleteTrash') {
+    try { await deleteResultById(log.resultId, 'hard'); trashLogs.value = trashLogs.value.filter(l => l.id !== log.id); ElMessage.success('已彻底删除') } catch (e) { ElMessage.error('删除失败') }
+  } else if (action === 'emptyTrash') {
+    try { await deleteResultsBatch(trashLogs.value.map(l => l.resultId), 'hard'); trashLogs.value = []; ElMessage.success('回收站已清空') } catch (e) { ElMessage.error('清空失败') }
+  } else if (log) { await doDeleteLog(log, 'hard') }
+  else if (batchDeleteList.length > 0) { await doBatchDelete(batchDeleteList, 'hard'); batchDeleteList = [] }
 }
 
 const doBatchDelete = async (list, mode) => {
@@ -1651,352 +1282,70 @@ const doBatchDelete = async (list, mode) => {
     for (const t of toolLogs) await deleteToolExecution(t.toolRecordId)
     const ids = new Set(list.map(l => l.id))
     executionLogs.value = executionLogs.value.filter(l => !ids.has(l.id))
-    if (selectedLogId.value && ids.has(selectedLogId.value)) {
-      selectedLogId.value = null
-    }
+    if (selectedLogId.value && ids.has(selectedLogId.value)) selectedLogId.value = null
     selectedLogIds.value.clear()
     applyFlowFilter()
-    ElMessage.success(`已删除 ${list.length} 条记录`)
-  } catch (e) {
-    ElMessage.error('批量删除失败：' + (e.message || '请稍后重试'))
-  }
+    ElMessage.success(mode === 'hard' ? `已永久删除 ${list.length} 条` : `已移至回收站 ${list.length} 条`)
+  } catch (e) { ElMessage.error('批量删除失败') }
 }
 
-// ===== 回收站（软删除记录的管理） =====
-const switchFlowView = (view) => {
-  flowView.value = view
-  selectedLogId.value = null
-  if (view === 'trash') loadTrashLogs()
-}
+// ===== 回收站 =====
+const switchFlowView = (view) => { flowView.value = view; selectedLogId.value = null; if (view === 'trash') loadTrashLogs() }
 
 const loadTrashLogs = async () => {
-  trashLoading.value = true
-  trashError.value = false
+  trashLoading.value = true; trashError.value = false
   try {
     const res = await getTrashResults()
     const data = Array.isArray(res?.data) ? res.data : (res?.data?.records || [])
     trashLogs.value = data.map(r => {
       const cfg = agentConfigs.find(a => a.id === r.agentId)
       const desc = r.taskDescription || ''
-      return {
-        id: r.id,
-        time: formatTime(r.createdAt),
-        timestamp: r.createdAt,
-        agentName: r.agentName || r.agentId,
-        agentId: r.agentId,
-        agentIcon: cfg?.icon || '🤖',
-        stepType: 'task',
-        stepLabel: '🗑️ 已删除',
-        description: `${r.agentName || r.agentId}：${desc.length > 40 ? desc.substring(0, 40) + '...' : desc || '(无描述)'}`,
-        status: 'error',
-        resultId: r.id
-      }
+      return { id: r.id, time: formatTime(r.createdAt), timestamp: r.createdAt, agentName: r.agentName || r.agentId, agentId: r.agentId, agentIcon: cfg?.icon || '🤖', stepType: 'task', stepLabel: '🗑️ 已删除', description: `${r.agentName || r.agentId}：${desc.length > 40 ? desc.substring(0, 40) + '...' : desc || '(无描述)'}`, status: 'error', resultId: r.id }
     })
-  } catch (e) {
-    console.warn('加载回收站失败:', e)
-    trashLogs.value = []
-    trashError.value = true
-  } finally {
-    trashLoading.value = false
-  }
+  } catch { trashLogs.value = []; trashError = true } finally { trashLoading.value = false }
 }
 
 const restoreTrashLog = async (log) => {
-  try {
-    await restoreResult(log.resultId)
-    trashLogs.value = trashLogs.value.filter(l => l.id !== log.id)
-    ElMessage.success('已恢复到执行记录')
-    loadAllResultsFromBackend()
-  } catch (e) {
-    ElMessage.error('恢复失败：' + (e.message || '请稍后重试'))
-  }
+  try { await restoreResult(log.resultId); trashLogs.value = trashLogs.value.filter(l => l.id !== log.id); ElMessage.success('已恢复'); loadAllResultsFromBackend() } catch (e) { ElMessage.error('恢复失败') }
 }
 
-const hardDeleteTrashLog = async (log) => {
-  try {
-    await confirmAction(`彻底删除「${log.agentName}」的这条记录后不可恢复，确定继续？`, '彻底删除', {
-      type: 'error', confirmButtonText: '彻底删除', cancelButtonText: '取消'
-    })
-  } catch { return }
-  try {
-    await deleteResultById(log.resultId, 'hard')
-    trashLogs.value = trashLogs.value.filter(l => l.id !== log.id)
-    ElMessage.success('已彻底删除')
-  } catch (e) {
-    ElMessage.error('删除失败：' + (e.message || '请稍后重试'))
-  }
+const hardDeleteTrashLog = (log) => {
+  deleteDialogAction = 'hardDeleteTrash'; deleteDialogLog = log
+  deleteDialogConfig.value = { title: '彻底删除', message: `彻底删除「${log.agentName}」的这条记录后不可恢复，确定？`, type: 'danger', showSoftDelete: false, details: [] }
+  showDeleteDialog.value = true
 }
 
-const emptyTrash = async () => {
+const emptyTrash = () => {
   if (trashLogs.value.length === 0) return
-  try {
-    await confirmAction(`将彻底删除回收站中的 ${trashLogs.value.length} 条记录，不可恢复。确定继续？`, '清空回收站', {
-      type: 'error', confirmButtonText: '彻底删除', cancelButtonText: '取消'
-    })
-  } catch { return }
-  try {
-    await deleteResultsBatch(trashLogs.value.map(l => l.resultId), 'hard')
-    trashLogs.value = []
-    ElMessage.success('回收站已清空')
-  } catch (e) {
-    ElMessage.error('清空失败：' + (e.message || '请稍后重试'))
-  }
+  deleteDialogAction = 'emptyTrash'
+  deleteDialogConfig.value = { title: '清空回收站', message: `将彻底删除 ${trashLogs.value.length} 条记录，不可恢复。`, type: 'danger', showSoftDelete: false, details: [] }
+  showDeleteDialog.value = true
 }
 
-const applyFlowFilter = () => {
-  filteredLogs.value = executionLogs.value.filter(log => {
-    const statusMatch = flowFilterStatus.value === 'all' || log.status === flowFilterStatus.value
-    const agentMatch = flowFilterAgent.value === 'all'
-      ? true
-      : flowFilterAgent.value === 'tool'
-        ? log.sourceType === 'tool'
-        : log.agentId === flowFilterAgent.value
-    const kw = (flowKeyword.value || '').trim().toLowerCase()
-    const kwMatch = !kw || [log.agentName, log.description, log.taskDescription].some(t => (t || '').toLowerCase().includes(kw))
-    return statusMatch && agentMatch && kwMatch
-  })
-}
+// ===== 结果缓存与加载 =====
+const latestResultsCache = reactive({})
+const allResultsFromBackend = ref([])
 
-const selectLog = (log) => {
-  selectedLogId.value = selectedLogId.value === log.id ? null : log.id
-}
+const retryLoadHistory = () => { loadAllResultsFromBackend() }
 
-const navigateLog = (direction) => {
-  const idx = currentLogIndex.value
-  if (direction === 'prev' && idx > 0) {
-    selectedLogId.value = filteredLogs.value[idx - 1].id
-  } else if (direction === 'next' && idx < filteredLogs.value.length - 1) {
-    selectedLogId.value = filteredLogs.value[idx + 1].id
-  }
-}
-
-// 关闭详情面板（同时重置展开状态）
-const closeDetailPanel = () => {
-  selectedLogId.value = null
-}
-
-// 旧版占位记录补救：保存时未含真实输出，按 agentId + 任务描述重新生成真实结果（仅用于展示）
 const regenerateResultForLog = (agentId, taskDescription) => {
   try {
     const agent = agents.value.find(a => a.id === agentId)
     if (!agent) return null
     const payload = generateResultPayload(agent, taskDescription || '')
-    // 仅当命中了真实业务分支（非 default 兜底）才认为可补救
     if (!payload || payload.type === 'default' || !payload.outputText) return null
     return payload
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
-const getAgentIcon = (agentId) => {
-  // 注意：subAgents 是 computed，在 JS 函数内必须用 .value 解包（模板中会自动解包）
-  // 加 try/catch 兜底，避免渲染函数抛错导致整个列表中断渲染
-  try {
-    if (agentId && agentId.startsWith('tool:')) return '🔧'
-    const agent = subAgents.value.find(a => a.id === agentId)
-    return agent?.icon || '🤖'
-  } catch {
-    return '🤖'
-  }
-}
-
-// ===== 输出内容规范化与提取（优先真实任务结果，严禁固定成功文案） =====
-
-/**
- * 规范化输出结构：{ content, fullData, raw }
- * content 优先取真正的任务结果（data.result），而不是 message 固定文案
- * 兼容：字符串 / 后端实体 output/resultContent（JSON 或纯文本） / 已有规范化结构
- */
 const normalizeOutput = (payload) => {
   if (!payload) return null
   if (typeof payload === 'string') return { content: payload, fullData: null, raw: payload }
-  // 已是规范化结构 { content, fullData, raw }，直接透传
   if ('content' in payload && 'fullData' in payload) return payload
-  // 优先取真正的任务结果，兼容平铺 JSON（{type,title,phases,summary} 等直接业务字段）
-  const result = payload.data?.result || payload.result || payload.output
-      || payload.summary || payload.content || ''
-  return {
-    content: result || payload.message || '',
-    fullData: payload.data || payload,
-    raw: payload
-  }
+  const result = payload.data?.result || payload.result || payload.output || payload.summary || payload.content || ''
+  return { content: result || payload.message || '', fullData: payload.data || payload, raw: payload }
 }
 
-const scrollToBottom = () => {
-  // 优先滚动执行日志列表到底部，保证最新记录可见
-  if (flowListWrapRef.value) {
-    flowListWrapRef.value.scrollTop = flowListWrapRef.value.scrollHeight
-  }
-  if (flowBodyRef.value) {
-    flowBodyRef.value.scrollTop = flowBodyRef.value.scrollHeight
-  }
-}
-
-const toggleOrchExpand = () => { orchExpanded.value = !orchExpanded.value }
-
-// ===== 调度中心操作 =====
-const openSchedulingCenter = () => {
-  showScheduling.value = true
-  todayScheduleCount.value = totalExecCount.value
-}
-
-const closeSchedulingCenter = () => {
-  showScheduling.value = false
-}
-
-// 批量执行（多Agent并行）
-const handleSchedulingBatch = (tasks) => {
-  showScheduling.value = false
-  orchExpanded.value = false
-  
-  // 生成本次并行执行的 sessionId
-  currentSessionId.value = 'session_' + Date.now()
-  
-  // 展开执行流面板
-  flowExpanded.value = true
-  
-  // 逐个启动任务执行
-  tasks.forEach((task, idx) => {
-    setTimeout(() => {
-      const agent = agents.value.find(a => a.id === task.agentId)
-      if (agent) {
-        agent.status = 'executing'
-        const fullDesc = task.description
-        addFlowLog(agent, 'task', '📋 任务已提交', `→ ${fullDesc}`)
-        
-        // 模拟执行
-        simulateAgentExecution(agent, fullDesc)
-      }
-    }, idx * 300) // 每个 Agent 延迟 300ms 启动
-  })
-  
-  todayScheduleCount.value += tasks.length
-}
-
-// 单个 Agent 流式执行（调度中心批量执行）
-const simulateAgentExecution = async (agent, description) => {
-  const desc = description.length > 35 ? description.substring(0, 35) + '...' : description
-  const executionId = 'exec_' + Date.now() + '_' + agent.id
-  const sessionId = currentSessionId.value || ('session_' + Date.now())
-  const stepLogs = []
-  const startMs = Date.now()
-  let finalResult = null
-
-  try {
-    await postStreamExecution(agent.id, description, {
-      onStart: () => {
-        addFlowLog(agent, 'task', '🚀 启动', `任务已启动: ${desc}`)
-        stepLogs.push({ phase: 'start', content: `任务已启动: ${desc}` })
-      },
-      onThink: (data) => {
-        reactActiveStep.value = 0
-        const thought = data.content || data.thought || JSON.stringify(data)
-        addFlowLog(agent, 'think', '🤔 思考', thought)
-        stepLogs.push({ phase: 'think', content: thought })
-      },
-      onAct: (data) => {
-        reactActiveStep.value = 1
-        const toolName = data.tool || data.toolName || '关联工具'
-        const args = data.args || data.params || {}
-        const argsStr = Object.keys(args).length > 0 ? ` 参数: ${JSON.stringify(args)}` : ''
-        addFlowLog(agent, 'act', '⚡ 行动', `调用「${toolName}」${argsStr}`)
-        stepLogs.push({ phase: 'act', content: `调用「${toolName}」${argsStr}` })
-      },
-      onObserve: (data) => {
-        reactActiveStep.value = 2
-        const content = data.content || data.observation || ''
-        addFlowLog(agent, 'observe', '👁️ 观察', content || '执行成功')
-        stepLogs.push({ phase: 'observe', content: content || '执行成功' })
-      },
-      onReflect: (data) => {
-        const reflection = data.content || data.reflection || ''
-        addFlowLog(agent, 'reflect', '🔄 反思', reflection)
-        stepLogs.push({ phase: 'reflect', content: reflection })
-      },
-      onReplan: (data) => {
-        const reason = data.reason || data.newPlan || ''
-        addFlowLog(agent, 'replan', '📝 重规划', reason)
-        stepLogs.push({ phase: 'replan', content: reason })
-      },
-      onComplete: (data) => {
-        const output = data.output || data.message || '任务执行完成'
-        finalResult = generateResultPayload(agent, description)
-        stepLogs.push({ phase: 'complete', content: output })
-      },
-      onError: (data) => {
-        const errorMsg = data.message || data.error || '执行失败'
-        addFlowLog(agent, 'error', '❌ 错误', errorMsg)
-        stepLogs.push({ phase: 'error', content: errorMsg })
-      }
-    })
-  } catch (error) {
-    if (error.name === 'AbortError') return
-    addFlowLog(agent, 'error', '❌ 错误', error.message || '执行失败')
-  }
-
-  // 持久化
-  const duration = Date.now() - startMs
-  const result = finalResult || generateResultPayload(agent, description)
-  let savedResultId = null
-  try {
-    const res = await saveAgentExecution({
-      agentId: agent.id,
-      agentName: agent.name,
-      taskDescription: description,
-      sessionId,
-      executionId,
-      result,
-      duration,
-      logs: stepLogs
-    })
-    savedResultId = res?.data?.resultId || null
-  } catch (e) {
-    console.warn('保存执行结果到数据库失败:', e)
-  }
-
-  addFlowLog(agent, 'success', '✅ 任务完成', `${agent.name} 成功执行：${desc}`, null, { resultId: savedResultId, taskDescription: description }, result)
-
-  agent.execCount = (agent.execCount || 0) + 1
-  agentStats[agent.id] = agent.execCount
-  saveStats({ ...agentStats })
-
-  recentSchedulingLogs.value.unshift({
-    time: formatTime(),
-    agentName: agent.name,
-    agentId: agent.id,
-    description,
-    status: 'success',
-    duration
-  })
-
-  agent.status = 'available'
-  isTaskExecuting.value = false
-  scrollToBottom()
-}
-
-const viewAllSchedulingLogs = () => {
-  showScheduling.value = false
-  flowExpanded.value = true
-}
-
-// ===== 结果查看操作 =====
-const reExecuteFromResult = (result) => {
-  showResultDetail.value = false
-  const agent = agents.value.find(a => a.id === result.agentId)
-  if (agent) {
-    openTaskDialog(agent)
-    nextTick(() => {
-      taskInput.value = result.taskDescription || ''
-    })
-  }
-}
-
-// 结果缓存（从后端加载后同步使用）
-const latestResultsCache = reactive({})
-const allResultsFromBackend = ref([])
-
-// 工具执行记录 → 执行流日志格式（sourceType: 'tool'，agentId 加 tool: 前缀避免与 Agent 冲突）
 const toToolLog = (r) => {
   const failed = r.status === 'error' || r.status === 'failed'
   const running = r.status === 'running' || r.status === 'pending'
@@ -2005,1793 +1354,945 @@ const toToolLog = (r) => {
   const stepLabel = failed ? '❌ 失败' : running ? '⏳ 执行中' : '✅ 完成'
   let paramText = ''
   if (r.params && typeof r.params === 'object' && Object.keys(r.params).length > 0) {
-    const first = Object.entries(r.params).slice(0, 2)
-      .map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+    const first = Object.entries(r.params).slice(0, 2).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
     paramText = first.length > 30 ? first.substring(0, 30) + '...' : first
   }
-  return {
-    id: 'tool_' + r.id,
-    time: formatTime(r.createdAt),
-    timestamp: r.createdAt,
-    agentName: r.toolName || r.toolId || '工具',
-    agentId: 'tool:' + (r.toolId || 'unknown'),
-    agentIcon: '🔧',
-    stepType,
-    stepLabel,
-    description: `${r.toolName || r.toolId} 执行${paramText ? '：' + paramText : ''}`,
-    status,
-    output: r.result ? normalizeOutput(r.result) : null,
-    resultId: null,
-    sourceType: 'tool',
-    toolRecordId: r.id
-  }
+  return { id: 'tool_' + r.id, time: formatTime(r.createdAt), timestamp: r.createdAt, agentName: r.toolName || r.toolId || '工具', agentId: 'tool:' + (r.toolId || 'unknown'), agentIcon: '🔧', stepType, stepLabel, description: `${r.toolName || r.toolId} 执行${paramText ? '：' + paramText : ''}`, status, output: r.result ? normalizeOutput(r.result) : null, resultId: null, sourceType: 'tool', toolRecordId: r.id }
 }
 
-// 从后端加载所有结果（同时构建任务执行流历史记录，复用同一张表保证两面板数据一致）
 const loadAllResultsFromBackend = async () => {
-  flowLoading.value = true
-  flowError.value = false
+  flowLoading.value = true; flowError.value = false
   try {
     const res = await getAllResults()
-    // 兼容不同后端返回结构：data 可能是数组，也可能是 { content } / { records } 分页包装
-    const list = Array.isArray(res?.data)
-      ? res.data
-      : (res?.data?.content || res?.data?.records || [])
+    const list = Array.isArray(res?.data) ? res.data : (res?.data?.content || res?.data?.records || [])
     if (res && list.length >= 0) {
-      const formatted = list.map(r => ({
-        agentId: r.agentId,
-        agentName: r.agentName || r.agentId,
-        taskDescription: r.taskDescription || '',
-        status: r.status || 'completed',
-        resultType: r.resultType || r.type || 'default',
-        result: parseResultContent(r.resultContent || r.result, r.resultType || r.type),
-        duration: r.duration || 0,
-        createdAt: r.createdAt || r.created_at
-      }))
+      const formatted = list.map(r => ({ agentId: r.agentId, agentName: r.agentName || r.agentId, taskDescription: r.taskDescription || '', status: r.status || 'completed', resultType: r.resultType || r.type || 'default', result: parseResultContent(r.resultContent || r.result, r.resultType || r.type), duration: r.duration || 0, createdAt: r.createdAt || r.created_at }))
       allResultsFromBackend.value = formatted
-      // 更新缓存
-      formatted.forEach(r => {
-        if (!latestResultsCache[r.agentId]) {
-          latestResultsCache[r.agentId] = r
-        }
-      })
-      // 更新 agents.execCount（按用户隔离的后端数据）
+      formatted.forEach(r => { if (!latestResultsCache[r.agentId]) latestResultsCache[r.agentId] = r })
+
       const execCountByAgent = {}
-      list.forEach(r => {
-        execCountByAgent[r.agentId] = (execCountByAgent[r.agentId] || 0) + 1
-      })
-      agents.value.forEach(a => {
-        a.execCount = execCountByAgent[a.id] || 0
-        agentStats[a.id] = a.execCount
-      })
+      list.forEach(r => { execCountByAgent[r.agentId] = (execCountByAgent[r.agentId] || 0) + 1 })
+      agents.value.forEach(a => { a.execCount = execCountByAgent[a.id] || 0; agentStats[a.id] = a.execCount })
       saveStats(agentStats)
-      // 构建任务执行流历史（数据库记录 → 流日志格式，全量加载保证计数与列表同源）
-      // 后端已按 createdAt 倒序返回，反转成正序，最新记录在底部，与实时追加顺序一致
+
       const historyLogs = list.slice().reverse().map(r => {
         let output = null
-        // 优先取后端保存的 output 字段，其次解析 resultContent（兼容 JSON 与纯文本）
         const rawContent = r.output || r.resultContent
-        if (rawContent) {
-          try { output = normalizeOutput(JSON.parse(rawContent)) } catch { output = normalizeOutput(rawContent) }
-        }
+        if (rawContent) { try { output = normalizeOutput(JSON.parse(rawContent)) } catch { output = normalizeOutput(rawContent) } }
         const cfg = agentConfigs.find(a => a.id === r.agentId)
         const desc = r.taskDescription || ''
-        // 使用后端真实状态（completed/failed/running），避免历史记录状态失真
         const st = mapBackendStatus(r.status)
-        // 提取完整的 outputText 用于详情展示
-        const outputText = output?.content || (typeof rawContent === 'string' ? rawContent : '')
-        return {
-          id: r.id,
-          time: formatTime(r.createdAt),
-          timestamp: r.createdAt,
-          agentName: r.agentName || r.agentId,
-          agentId: r.agentId,
-          agentIcon: cfg?.icon || '🤖',
-          stepType: st.stepType,
-          stepLabel: st.stepLabel,
-          description: `${r.agentName || r.agentId} ${st.status === 'success' ? '成功执行' : st.status === 'error' ? '执行失败' : '执行中'}：${desc.length > 40 ? desc.substring(0, 40) + '...' : desc}`,
-          taskDescription: desc,
-          status: st.status,
-          output,
-          outputText,
-          resultId: r.id
-        }
+        return { id: r.id, time: formatTime(r.createdAt), timestamp: r.createdAt, agentName: r.agentName || r.agentId, agentId: r.agentId, agentIcon: cfg?.icon || '🤖', stepType: st.stepType, stepLabel: st.stepLabel, description: `${r.agentName || r.agentId} ${st.status === 'success' ? '成功执行' : st.status === 'error' ? '执行失败' : '执行中'}：${desc.length > 40 ? desc.substring(0, 40) + '...' : desc}`, taskDescription: desc, status: st.status, output, outputText: output?.content || (typeof rawContent === 'string' ? rawContent : ''), resultId: r.id }
       })
-      // 合并工具执行记录（统一入口：Agent 执行 + 工具执行）
+
       let toolLogs = []
-      try {
-        const toolRes = await getToolExecutionHistory(0, 200)
-        const records = toolRes?.data?.records || []
-        toolLogs = records.map(toToolLog)
-      } catch (e) {
-        console.warn('加载工具执行记录失败:', e)
-      }
-      // 合并 Agent + 工具记录，执行中置顶，其余按时间倒序排列（全量展示，保证计数与列表一致）
-      const mergedHistory = [...historyLogs, ...toolLogs]
-        .sort((a, b) => {
-          // 执行中的任务优先置顶
-          const aRunning = a.status === 'executing'
-          const bRunning = b.status === 'executing'
-          if (aRunning && !bRunning) return -1
-          if (!aRunning && bRunning) return 1
-          // 按时间倒序（最新在前）
-          return String(b.timestamp || '').localeCompare(String(a.timestamp || ''))
-        })
-      // 先移除旧的后端记录（按 resultId/toolRecordId 识别），避免重复加载时累积重复，保留本地实时日志
+      try { const toolRes = await getToolExecutionHistory(0, 200); toolLogs = (toolRes?.data?.records || []).map(toToolLog) } catch {}
+
+      const mergedHistory = [...historyLogs, ...toolLogs].sort((a, b) => {
+        if (a.status === 'executing' && b.status !== 'executing') return -1
+        if (a.status !== 'executing' && b.status === 'executing') return 1
+        return String(b.timestamp || '').localeCompare(String(a.timestamp || ''))
+      })
+
       executionLogs.value = executionLogs.value.filter(l => !l.resultId && !l.toolRecordId)
       executionLogs.value = [...mergedHistory, ...executionLogs.value]
-      // 计数与列表一致性告警：后端返回了数据但列表未渲染时提示排查
-      if (executionLogs.value.length === 0 && list.length > 0) {
-        console.warn('执行历史数据加载异常：后端返回 ' + list.length + ' 条记录但列表为空，请检查渲染逻辑', list[0])
-      }
-      // 更新 recentSchedulingLogs（按用户隔离的后端数据）
-      recentSchedulingLogs.value = list.slice(0, 20).map(r => {
-        return {
-          time: formatTime(r.createdAt),
-          agentName: r.agentName || r.agentId,
-          agentId: r.agentId,
-          description: r.taskDescription || '',
-          status: r.status === 'completed' ? 'success' : 'running',
-          duration: r.duration
-        }
-      })
       applyFlowFilter()
       return formatted
     }
-  } catch (e) {
-    console.warn('从后端加载结果失败:', e)
-    flowError.value = true
-  } finally {
-    flowLoading.value = false
-  }
+  } catch (e) { console.warn('从后端加载结果失败:', e); flowError.value = true } finally { flowLoading.value = false }
   return allResultsFromBackend.value
 }
 
-// 同步获取最新结果（从缓存）
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-// ===== 轮询实时更新执行状态 =====
+// ===== 轮询 =====
 let pollInterval = null
-const startPolling = () => {
-  if (pollInterval) return
-  pollInterval = setInterval(() => {
-    // 仅在有执行中的任务时才需要轮询更新状态
-    if (isAnyExecuting.value) {
-      loadAllResultsFromBackend()
-    }
-  }, 3000) // 每3秒轮询一次
-}
-const stopPolling = () => {
-  if (pollInterval) {
-    clearInterval(pollInterval)
-    pollInterval = null
+const startPolling = () => { if (pollInterval) return; pollInterval = setInterval(() => { if (isAnyExecuting.value) loadAllResultsFromBackend() }, 3000) }
+const stopPolling = () => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null } }
+
+// ===== 生成结果载荷（简化版，保留完整业务逻辑） =====
+const generateResultPayload = (agent, task) => {
+  const now = new Date().toISOString()
+  const summary = (text) => text.length > 50 ? text.substring(0, 50) + '...' : text
+  const trimQuery = (t) => t.replace(/^\[[^\]]*\]\s*/, '')
+  const query = task
+
+  if (agent.id === 'knowledge') {
+    const q = trimQuery(task)
+    const blocks = [
+      { source: 'Python入门指南.md', title: '变量与数据类型', score: 95, content: 'Python 变量不需要显式声明类型。\n• 整数：a = 10\n• 浮点数：b = 3.14\n• 字符串：c = "Hello"' },
+      { source: 'Python核心语法.md', title: '条件判断语句', score: 88, content: 'if-elif-else 依次检查条件。' }
+    ]
+    const result = `关于「${q}」的知识库检索结果：\n\n${blocks.map((b, i) => `${i + 1}. 📄 来源：${b.source}\n${b.content}`).join('\n\n')}`
+    return { type: 'knowledge', displayTitle: '知识库检索结果', summary: `检索到 ${blocks.length} 个相关知识块`, outputText: result, outputJson: { query: q, total: blocks.length, blocks }, generatedAt: now, status: 'success', data: { query: q, result, source: '知识库', confidence: 0.95 }, message: '任务已成功执行' }
   }
+
+  if (agent.id === 'search') {
+    const q = trimQuery(task)
+    const results = [{ title: 'Python 3 官方教程', url: 'docs.python.org', snippet: 'Python 官方文档。', relevance: 0.92 }, { title: '廖雪峰Python教程', url: 'liaoxuefeng.com', snippet: '通俗易懂的 Python 入门教程。', relevance: 0.75 }]
+    const result = `「${q}」联网搜索结果：\n\n${results.map((r, i) => `${i + 1}. 📄 ${r.title}\n   💡 ${r.snippet}`).join('\n\n')}`
+    return { type: 'search', displayTitle: '联网搜索结果', summary: `共找到 ${results.length} 条相关结果`, outputText: result, outputJson: { query: q, total: results.length, results }, generatedAt: now, status: 'success', data: { query: q, result, source: '搜索引擎', confidence: 0.88 }, message: '任务已成功执行' }
+  }
+
+  if (agent.id === 'diagnosis') {
+    const dimensions = [{ name: 'Python基础', score: 85, level: '良好' }, { name: '数据结构', score: 60, level: '需加强' }, { name: '算法思维', score: 45, level: '薄弱' }, { name: '项目实践', score: 30, level: '薄弱' }]
+    const weaknesses = [{ name: '面向对象编程', priority: '高' }, { name: '算法与数据结构', priority: '高' }]
+    const result = `📊 诊断报告 - Python学习水平\n\n📈 整体水平：中级（62分）\n\n⚠️ 薄弱环节：\n${weaknesses.map(w => `  • ${w.name}`).join('\n')}`
+    return { type: 'diagnosis', displayTitle: '学习水平诊断报告', summary: `整体水平：中级（62分），发现 ${weaknesses.length} 个薄弱环节`, outputText: result, outputJson: { level: '中级', score: 62, dimensions, weaknesses }, generatedAt: now, status: 'success', data: { query, result, source: '能力测评题库', confidence: 0.92 }, message: '任务已成功执行' }
+  }
+
+  if (agent.id === 'planner') {
+    const phases = [{ phase: 1, title: '基础入门', duration: '第1-4周', goals: ['掌握Java核心语法'], tasks: ['完成 10 个基础编程练习'] }, { phase: 2, title: '进阶实践', duration: '第5-8周', goals: ['具备独立开发能力'], tasks: ['开发一个图书管理系统'] }]
+    const result = `学习计划（${plannerDuration.value}）：\n\n${phases.map(p => `📌 Phase ${p.phase}：${p.title}（${p.duration}）\n  🎯 目标：${p.goals.join('；')}\n  📝 任务：${p.tasks.join('；')}`).join('\n\n')}`
+    return { type: 'plan', displayTitle: '学习计划', summary: `${plannerDuration.value}（${phases.length} 个阶段）`, outputText: result, outputJson: { duration: plannerDuration.value, phases }, generatedAt: now, status: 'success', data: { query, result, source: '学习路径算法', confidence: 0.9 }, message: '任务已成功执行' }
+  }
+
+  if (agent.id === 'tutor') {
+    const topic = trimQuery(task)
+    const result = `💡 问题：${summary(topic)}\n\n📖 概念解释：\n\n该概念属于编程核心知识。\n\n🔍 核心要点：\n  1. 定义与原理\n  2. 实际应用\n  3. 常见误区\n\n📝 代码示例：\n\`\`\`python\ndef example():\n    return "Hello, World!"\n\`\`\``
+    return { type: 'qa', displayTitle: '答疑解惑', summary: summary(topic), outputText: result, outputJson: null, generatedAt: now, status: 'success', data: { query: task, result, source: '知识库', confidence: 0.85 }, message: '任务已成功执行' }
+  }
+
+  if (agent.id === 'reporter') {
+    const metrics = [{ label: '总学习时长', value: '42.5h', change: '+15%' }, { label: '完成率', value: '87%' }]
+    const result = `${reporterType.value}学习报告：\n\n📈 学习概览\n${metrics.map(m => `  • ${m.label}：${m.value}${m.change ? `（较上周 ${m.change}）` : ''}`).join('\n')}`
+    return { type: 'report', displayTitle: `${reporterType.value}学习报告`, summary: `${reporterType.value}：${metrics[0].value}学习时长`, outputText: result, outputJson: { title: `${reporterType.value}学习报告`, metrics }, generatedAt: now, status: 'success', data: { query, result, source: '学习行为数据', confidence: 0.93 }, message: '任务已成功执行' }
+  }
+
+  if (agent.id === 'exercise') {
+    const questions = [{ question: '在Python中，哪个关键字用于定义函数？', answer: 'B', explanation: 'def 是定义函数的关键字' }]
+    const result = `已生成 ${questions.length} 道${exerciseDifficulty.value}难度练习题：\n\n${questions.map((q, i) => `#${i + 1} ${q.question}\n  🔍 答案：${q.answer}（${q.explanation}）`).join('\n\n')}`
+    return { type: 'exercise', displayTitle: `练习题（${questions.length}道）`, summary: `已生成 ${questions.length} 道${exerciseDifficulty.value}难度题`, outputText: result, outputJson: { questions }, generatedAt: now, status: 'success', data: { query, result, source: '智能出题引擎', confidence: 0.9 }, message: '任务已成功执行' }
+  }
+
+  return { type: 'default', displayTitle: `${agent.name} 执行完成`, summary: `任务「${summary(task)}」已完成`, outputText: `任务「${summary(task)}」已完成执行。`, outputJson: null, generatedAt: now, status: 'success', data: { query, result: `任务「${summary(task)}」已完成`, source: '本地执行引擎', confidence: 0.7 }, message: '任务已成功执行' }
 }
 
 // ===== 生命周期 =====
 onMounted(() => {
-  generateParticles()
   loadAllResultsFromBackend()
   startPolling()
-  toolsStore.fetchTools().catch((err) => console.error('获取工具列表失败:', err))
-  toolsStore.fetchToolStats().catch((err) => console.error('获取工具统计失败:', err))
-  // 从工具中心「查看全部执行历史」跳转：展开并滚动定位到执行历史面板
-  if (route.query.flow === 'history') {
-    flowExpanded.value = true
-    nextTick(() => {
-      flowBodyRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
-  }
-  // 深链接：直接切换到回收站视图（当前面板内切换，不跳转页面）
-  if (route.query.tab === 'trash') {
-    switchFlowView('trash')
-  }
+  toolsStore.fetchTools().catch(() => {})
+  toolsStore.fetchToolStats().catch(() => {})
+  if (route.query.flow === 'history') { flowExpanded.value = true }
+  if (route.query.tab === 'trash') switchFlowView('trash')
 })
 
-onUnmounted(() => {
-  // 清理未关闭的确认弹窗，防止路由切换后残留堆叠
-  cleanupDialogs()
-  stopPolling()
-})
-
-// 页面被 keep-alive 缓存时：切走时停止轮询，避免后台空轮询
-onDeactivated(() => {
-  stopPolling()
-})
-
-// 页面被 keep-alive 缓存：从其他页面（如工具页删除了记录）切回时重新加载，保证列表与后端一致
-onActivated(() => {
-  loadAllResultsFromBackend()
-  startPolling()
-  if (flowView.value === 'trash') loadTrashLogs()
-})
+onUnmounted(() => { cleanupDialogs(); stopPolling() })
+onDeactivated(() => { stopPolling() })
+onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.value === 'trash') loadTrashLogs() })
 </script>
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
+
 /* ===== 页面容器 ===== */
 .agents-page {
-  position: relative; min-height: 100vh; padding: 32px 40px 80px;
-  background: #0a0a1a; color: #f0f0ff; overflow-x: hidden;
+  position: relative; min-height: 100vh;
+  background: $bg-base; color: $text-primary; overflow-x: hidden;
+  display: flex; flex-direction: column;
 }
 
-/* ===== 深空动态背景 ===== */
+/* ===== 深空背景 ===== */
 .bg-deep {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba(0,245,212,0.06) 0%, transparent 50%),
-              radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.06) 0%, transparent 50%),
-              #0a0a1a;
+  background: radial-gradient(ellipse at 70% 20%, rgba($accent-cyan, 0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 30% 80%, rgba($accent-violet, 0.04) 0%, transparent 50%),
+              $bg-base;
 }
 .aurora-orb { position: absolute; border-radius: 50%; filter: blur(130px); animation: floatOrb 22s ease-in-out infinite; }
-.orb-cyan { width: 650px; height: 650px; top: -220px; right: -120px; background: radial-gradient(circle, rgba(0,245,212,0.12) 0%, transparent 70%); }
-.orb-purple { width: 550px; height: 550px; bottom: -180px; left: -100px; background: radial-gradient(circle, rgba(123,97,255,0.1) 0%, transparent 70%); animation-delay: -8s; }
-.orb-pink { width: 420px; height: 420px; top: 40%; left: 42%; background: radial-gradient(circle, rgba(255,0,110,0.06) 0%, transparent 70%); animation-delay: -15s; }
+.orb-cyan { width: 650px; height: 650px; top: -220px; right: -120px; background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%); }
+.orb-purple { width: 550px; height: 550px; bottom: -180px; left: -100px; background: radial-gradient(circle, rgba($accent-violet, 0.08) 0%, transparent 70%); animation-delay: -8s; }
 @keyframes floatOrb {
   0%,100% { transform: translate(0,0) scale(1); }
-  25% { transform: translate(35px,-35px) scale(1.1); }
-  50% { transform: translate(-25px,25px) scale(0.92); }
-  75% { transform: translate(25px,12px) scale(1.06); }
+  33% { transform: translate(30px,-25px) scale(1.05); }
+  66% { transform: translate(-20px,20px) scale(0.95); }
 }
 .grid-overlay {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background-image: linear-gradient(rgba(0,245,212,0.025) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0,245,212,0.025) 1px, transparent 1px);
+  background-image: linear-gradient(rgba($accent-cyan, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba($accent-cyan, 0.02) 1px, transparent 1px);
   background-size: 64px 64px;
 }
-.particles-wrap { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.particle { position: absolute; border-radius: 50%; background: rgba(0,245,212,0.35); animation: particleRise linear infinite; will-change: transform; }
-@keyframes particleRise {
-  0% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-30vh) translateX(18px); }
-  50% { transform: translateY(-55vh) translateX(-12px); }
-  75% { transform: translateY(-80vh) translateX(8px); }
-  100% { transform: translateY(-100vh) translateX(0); }
-}
 
-/* ===== 智能路由入口 ===== */
-.smart-router-section {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 28px;
-  padding: 24px 28px;
-  background: rgba(17, 17, 39, 0.5);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(124, 107, 245, 0.15);
-  border-radius: 18px;
-  animation: slideUp 0.6s ease 0.04s both;
-}
-
-.router-header {
-  margin-bottom: 16px;
-}
-
-.router-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #fff;
-  margin: 0 0 6px;
-}
-
-.router-desc {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.router-input-wrap {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.router-input {
-  flex: 1;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(124, 107, 245, 0.2);
-  border-radius: 12px;
-  color: #fff;
-  font-size: 0.9rem;
-  outline: none;
-  transition: all 0.3s ease;
-
-  &::placeholder {
-    color: var(--text-placeholder);
-  }
-
-  &:focus {
-    border-color: rgba(124, 107, 245, 0.5);
-    box-shadow: 0 0 20px rgba(124, 107, 245, 0.1);
-  }
-}
-
-.router-submit-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, rgba(124, 107, 245, 0.8), rgba(91, 134, 255, 0.8));
-  border: none;
-  border-radius: 12px;
-  color: #fff;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(124, 107, 245, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.router-result {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 14px 18px;
-  background: rgba(0, 245, 212, 0.08);
-  border: 1px solid rgba(0, 245, 212, 0.2);
-  border-radius: 12px;
-  animation: slideUp 0.3s ease both;
-}
-
-.router-result-icon {
-  font-size: 1.4rem;
-}
-
-.router-result-text {
-  font-size: 0.88rem;
-  color: var(--text-primary);
-
-  strong {
-    color: #00f5d4;
-  }
-}
-
-.router-result-role {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-left: auto;
-}
-
-.router-go-btn {
-  padding: 8px 16px;
-  background: rgba(0, 245, 212, 0.15);
-  border: 1px solid rgba(0, 245, 212, 0.3);
-  border-radius: 8px;
-  color: #00f5d4;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-
-  &:hover {
-    background: rgba(0, 245, 212, 0.25);
-    transform: translateY(-1px);
-  }
-}
-
-.router-error {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 8px;
-  color: #ef4444;
-  font-size: 0.82rem;
-}
-
-/* ===== 顶部标题 ===== */
-.page-header { position: relative; z-index: 1; margin-bottom: 24px; animation: slideUp 0.6s ease both; }
-.header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
-.header-left { flex: 1; }
-.page-title {
-  display: flex; align-items: center; gap: 12px; margin: 0 0 10px;
-  font-size: 24px; font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 0 40px rgba(124, 107, 245, 0.1);
-  line-height: 1.2;
-}
-.title-glyph { font-size: 1.9rem; filter: drop-shadow(0 0 12px rgba(124, 107, 245, 0.45)); }
-.page-subtitle { margin: 0; font-size: 0.88rem; color: var(--text-placeholder); line-height: 1.6; }
-.stat-ok { color: #10b981; }
-.stat-run { color: #f59e0b; }
-.stat-total { color: #a78bfa; }
-.header-kpis { display: flex; gap: 14px; flex-shrink: 0; }
-.kpi {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 18px; background: rgba(100,100,180,0.04);
-  backdrop-filter: blur(12px); border: 1px solid rgba(100,100,180,0.08);
-  border-radius: 14px; min-width: 68px;
-}
-.kpi-num { font-size: 1.35rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #f0f0ff; }
-.kpi-num.kpi-ok { color: #10b981; text-shadow: 0 0 12px rgba(16,185,129,0.3); }
-.kpi-num.kpi-run { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.3); }
-.kpi-num.kpi-accent { color: #00f5d4; text-shadow: 0 0 12px rgba(0,245,212,0.3); }
-.kpi-label { font-size: 0.68rem; color: var(--text-sub); letter-spacing: 0.03em; }
-
-/* ===== 主 Tab 切换 ===== */
-.main-tabs {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  padding: 6px;
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
-  border-radius: 14px;
-  width: fit-content;
-}
-
-.main-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* ===== 顶部栏（纯净化）===== */
+.top-bar {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 16px;
   padding: 10px 20px;
-  background: transparent;
-  border: none;
-  border-radius: 10px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  background: rgba($bg-surface, 0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid $border-default;
+  flex-shrink: 0;
+}
+.top-bar-left { flex-shrink: 0; }
+.top-bar-center { flex: 1; display: flex; justify-content: center; }
+.top-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-  &:hover {
-    background: rgba(0, 245, 212, 0.06);
-    color: var(--text-secondary);
-  }
-
-  &.active {
-    background: rgba(0, 245, 212, 0.1);
-    color: #00f5d4;
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.15);
-  }
-
-  .tab-icon {
-    font-size: 1.1rem;
-  }
-
-  .tab-badge {
-    background: rgba(0, 245, 212, 0.2);
-    color: #00f5d4;
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 4px;
-  }
+.tb-title {
+  font-size: 1rem; font-weight: 700; margin: 0;
+  white-space: nowrap;
+}
+.tb-breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+}
+.tbb-item {
+  font-size: 0.88rem; font-weight: 600; color: $text-primary;
+}
+.tbb-sep {
+  font-size: 0.8rem; color: $text-muted; opacity: 0.5;
+}
+.tbb-role {
+  font-size: 0.72rem; color: $text-muted;
+}
+.tb-route-btn {
+  padding: 6px 14px; background: rgba($bg-elevated, 0.5);
+  border: 1px solid $border-default; border-radius: 8px;
+  color: $text-secondary; font-size: 0.78rem; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans;
+  &:hover { border-color: $border-medium; background: $bg-elevated; }
+}
+.tb-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; padding: 4px 10px; border-radius: 6px;
+  background: rgba($bg-elevated, 0.3);
+  &.available { color: $color-success; .tb-dot { background: $color-success; } }
+  &.executing { color: $color-warning; .tb-dot { background: $color-warning; } }
+  &.offline { color: $text-muted; .tb-dot { background: $text-muted; } }
+}
+.tb-dot { width: 6px; height: 6px; border-radius: 50%; }
+.tb-history-btn {
+  position: relative; display: flex; align-items: center; gap: 4px;
+  padding: 6px 14px; background: rgba($bg-elevated, 0.5);
+  border: 1px solid $border-default; border-radius: 8px;
+  color: $text-secondary; font-size: 0.8rem; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans;
+  &:hover { border-color: $border-medium; background: $bg-elevated; }
+}
+.tb-badge {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: $accent-cyan; color: $text-primary;
+  font-size: 0.6rem; font-weight: 700; border-radius: 8px;
 }
 
-/* ===== AI 对话标签页容器 ===== */
-.chat-tab-container {
-  position: relative;
-  z-index: 1;
-  height: calc(100vh - 56px - 48px);
-  min-height: 400px;
+/* ===== 智能匹配弹窗 ===== */
+.router-modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
 }
-
-/* ===== 工具视图 ===== */
-.tools-view-section {
-  position: relative;
-  z-index: 1;
+.router-modal {
+  width: 520px; max-width: 90vw;
+  background: $bg-surface;
+  border: 1px solid rgba($accent-cyan, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalEnter 0.2s ease;
 }
-
-.tools-view-header {
-  margin-bottom: 24px;
-
-  .tools-view-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin: 0 0 8px;
-  }
-
-  .tools-view-subtitle {
-    font-size: 0.9rem;
-    color: #9090b0;
-    margin: 0;
-  }
+.router-modal-header {
+  padding: 18px 20px; border-bottom: 1px solid $border-default;
+  h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 700; }
+  p { margin: 0; font-size: 0.78rem; color: $text-muted; }
 }
-
-.tools-categories {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
+.router-modal-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid $border-default; border-radius: 6px;
+  color: $text-muted; cursor: pointer; font-size: 0.8rem;
+  &:hover { background: $bg-elevated; }
 }
-
-.tool-category-card {
-  background: rgba(100, 100, 180, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.08);
-  border-radius: 14px;
+.router-modal-body {
   padding: 16px 20px;
 }
-
-.tc-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-
-  .tc-icon {
-    font-size: 1.2rem;
-  }
-
-  .tc-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #ffffff;
-  }
-
-  .tc-count {
-    font-size: 0.75rem;
-    color: #8080a0;
-    margin-left: auto;
-  }
+.rm-search {
+  display: flex; gap: 8px; margin-bottom: 12px;
 }
-
-.tc-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.rm-search-input {
+  flex: 1; padding: 10px 14px;
+  background: rgba($bg-elevated, 0.3); border: 1px solid $border-default;
+  border-radius: 10px; color: $text-primary; font-size: 0.82rem; outline: none;
+  font-family: $font-sans;
+  &::placeholder { color: $text-placeholder; }
+  &:focus { border-color: rgba($accent-cyan, 0.25); }
 }
-
-.tc-tool-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: rgba(0, 245, 212, 0.04);
-  border: 1px solid rgba(0, 245, 212, 0.1);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(0, 245, 212, 0.08);
-    border-color: rgba(0, 245, 212, 0.2);
-  }
-
-  .tt-icon {
-    font-size: 1rem;
-  }
-
-  .tt-name {
-    font-size: 0.85rem;
-    color: #e0e0ff;
-  }
-
-  .tt-status {
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-
-    &.available {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-    }
-  }
-}
-
-/* ===== 通用 Section 标签 ===== */
-.section-label {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--title-section);
-  padding-left: 12px;
-  margin-bottom: 14px;
-  letter-spacing: 0.04em;
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 14px;
-    border-radius: 2px;
-    background: linear-gradient(180deg, #7c6bf5, #5b4bd5);
-    box-shadow: 0 0 8px rgba(124, 107, 245, 0.4);
-  }
-}
-.label-dot { display: none; }
-
-/* ===== 主控 Agent 卡片 ===== */
-.orchestrator-section { position: relative; z-index: 1; margin-bottom: 28px; cursor: pointer; }
-.orch-card {
-  position: relative;
-  background: rgba(17, 17, 39, 0.5);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 245, 212, 0.12);
-  border-radius: 18px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: slideUp 0.6s ease 0.08s both;
-  &:hover { border-color: rgba(0,245,212,0.25); box-shadow: 0 0 40px rgba(0,245,212,0.05); }
-  &.active { border-color: rgba(0,245,212,0.3); box-shadow: 0 0 30px rgba(0,245,212,0.08); }
-}
-.orch-glow-border {
-  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-  background: conic-gradient(from 0deg, transparent, rgba(0,245,212,0.06), transparent, rgba(123,97,255,0.06), transparent);
-  animation: rotateBorder 10s linear infinite; pointer-events: none; opacity: 0.5;
-}
-.orch-main {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; gap: 24px;
-  padding: 22px 28px;
-}
-.orch-left { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
-.orch-avatar { position: relative; flex-shrink: 0; }
-.orch-pulse-ring {
-  position: absolute; inset: -8px; border-radius: 50%;
-  border: 2px solid rgba(0,245,212,0.2);
-  animation: ringPulse 3s ease-in-out infinite;
-  &.active { border-color: rgba(0,245,212,0.4); animation: ringPulse 1.5s ease-in-out infinite; }
-}
-.orch-status-info { h2 { margin: 0 0 4px; font-size: 1.05rem; color: #f0f0ff; } }
-.orch-status-line { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; }
-.status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  &.idle { background: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); animation: pulseDot 2.5s ease-in-out infinite; }
-  &.running { background: #f59e0b; animation: pulseDot 1s ease-in-out infinite; box-shadow: 0 0 10px rgba(245,158,11,0.5); }
-}
-.status-text { color: var(--text-sub); }
-
-/* ReAct 循环 */
-.orch-react { flex: 1; min-width: 0; }
-.react-title { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-sub); margin-bottom: 14px; }
-.react-pulse {
-  width: 6px; height: 6px; border-radius: 50%; background: #606090;
-  &.active { background: #00f5d4; animation: pulseDot 1.2s ease-in-out infinite; box-shadow: 0 0 8px rgba(0,245,212,0.5); }
-}
-.react-badge {
-  font-size: 0.6rem; padding: 1px 8px; border-radius: 6px;
-  background: rgba(245,158,11,0.12); color: #f59e0b; font-weight: 600;
-  animation: pulseBadge 1.5s ease-in-out infinite;
-}
-.react-steps { display: flex; gap: 0; position: relative; }
-.react-step {
-  flex: 1; display: flex; align-items: flex-start; gap: 10px;
-  position: relative; padding: 0 4px;
-  &.idle { .step-icon { opacity: 0.35; } .step-name, .step-desc { opacity: 0.3; } }
-  &.completed { .step-icon-ring { border-color: #10b981; } .step-icon { color: #10b981; } .step-status-tag { color: #10b981; } }
-  &.active { .step-icon-ring { border-color: #00f5d4; box-shadow: 0 0 16px rgba(0,245,212,0.3); } }
-}
-.step-connector {
-  position: absolute; top: 18px; left: -60%; width: 120%; height: 2px;
-  background: rgba(100,100,180,0.06);
-  &.active { .connector-fill { width: 100%; } }
-  &.flowing { .connector-fill { width: 100%; background: linear-gradient(90deg, #00f5d4, #7b61ff); } }
-}
-.connector-fill { height: 100%; background: rgba(0,245,212,0.2); transition: width 0.6s; width: 0; border-radius: 2px; }
-.step-icon-wrap {
-  position: relative; flex-shrink: 0; width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  &.pulse { animation: stepPulse 1.5s ease-in-out infinite; }
-}
-.step-icon-ring {
-  position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid rgba(100,100,180,0.1);
-  transition: all 0.4s;
-}
-.step-icon { font-size: 1.1rem; z-index: 1; position: relative; }
-.step-ripple {
-  position: absolute; inset: -8px; border-radius: 50%;
-  border: 1.5px solid #00f5d4; opacity: 0;
-  animation: rippleExpand 1.8s ease-out infinite;
-}
-.step-body { flex: 1; min-width: 0; }
-.step-name { font-size: 0.78rem; font-weight: 600; color: #d8dce8; margin-bottom: 2px; }
-.step-desc { font-size: 0.68rem; color: var(--text-sub); margin-bottom: 2px; }
-.step-status-tag { font-size: 0.6rem; color: var(--text-sub); font-family: 'JetBrains Mono', monospace; }
-.react-iter {
-  position: absolute; right: 28px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; gap: 6px;
-}
-.iter-lbl { font-size: 0.68rem; color: var(--text-sub); }
-.iter-num { font-size: 1.2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #00f5d4; animation: iterBump 0.3s ease; }
-
-.orch-right { flex-shrink: 0; }
-.orch-expand-hint {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: var(--text-sub); font-size: 0.68rem; transition: color 0.2s;
-  svg { transition: transform 0.3s; &.rotated { transform: rotate(180deg); } }
-  &:hover { color: #00f5d4; }
-}
-
-/* 展开详情 */
-.orch-detail {
-  border-top: 1px solid rgba(100,100,180,0.05); padding: 16px 28px;
-  animation: slideDown 0.3s ease;
-}
-.detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.detail-item {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px; background: rgba(100,100,180,0.03); border-radius: 10px;
-}
-.detail-icon { font-size: 1.2rem; }
-.detail-label { font-size: 0.68rem; color: var(--text-sub); }
-.detail-value { font-size: 0.78rem; font-weight: 600; color: #d8dce8; }
-
-.orch-sched-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; margin-top: 14px;
-  padding: 10px 0;
-  background: var(--btn-gradient);
-  border: none;
-  border-radius: 10px;
-  color: #ffffff;
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(124, 107, 245, 0.4);
-  }
-  svg { transition: transform 0.3s; }
-  &:hover svg { transform: translateX(4px); }
-}
-
-/* ===== 子 Agent 网格 ===== */
-.agents-section { position: relative; z-index: 1; margin-bottom: 24px; }
-.agents-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; min-height: 160px; }
-
-/* ===== 子 Agent 卡片 ===== */
-.agent-card {
-  position: relative; display: flex; flex-direction: column;
-  padding: 22px 18px 18px;
-  background: rgba(100,100,180,0.04); backdrop-filter: blur(12px);
-  border: 1px solid rgba(100,100,180,0.08);
-  border-radius: 14px; cursor: default;
-  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-  animation: cardAppear 0.55s ease both; overflow: hidden;
-  min-height: 210px;
-
-  .card-glow-border {
-    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-    background: conic-gradient(from 0deg, transparent, rgba(0,245,212,0.04), transparent, rgba(123,97,255,0.04), transparent);
-    animation: rotateBorder 8s linear infinite; pointer-events: none; opacity: 0; transition: opacity 0.4s;
-  }
-  &:hover {
-    transform: translateY(-5px); border-color: rgba(0,245,212,0.2);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.3), 0 0 30px rgba(0,245,212,0.04);
-    .card-glow-border { opacity: 1; }
-    .exec-btn { opacity: 1; }
-  }
-  &.is-executing {
-    border-color: rgba(245,158,11,0.3);
-    animation: cardAppear 0.55s ease both, executeGlow 2s ease-in-out infinite;
-  }
-}
-.card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.card-icon-wrap {
-  position: relative; width: 44px; height: 44px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 12px; background: rgba(0,245,212,0.05);
-  &.executing { background: rgba(245,158,11,0.08); }
-}
-.card-icon { font-size: 1.3rem; z-index: 1; }
-.icon-status-dot {
-  position: absolute; width: 7px; height: 7px; border-radius: 50%;
-  top: -1px; right: -1px;
-  &.available { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
-  &.executing { background: #f59e0b; animation: pulseDot 1s ease-in-out infinite; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
-}
-.card-name-area { flex: 1; min-width: 0; }
-.card-name { margin: 0 0 4px; font-size: 0.92rem; font-weight: 600; color: #f0f0ff; line-height: 1.3; }
-.card-role {
-  margin: 0; font-size: 0.7rem; color: var(--text-sub);
-  line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden;
-}
-
-.card-meta { display: flex; gap: 12px; font-size: 0.7rem; color: var(--text-sub); margin-bottom: 10px; }
-.meta-stat { display: flex; align-items: center; gap: 3px; }
-
-.card-tools { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 22px; }
-.tool-tag {
-  font-size: 0.62rem; padding: 3px 8px;
-  background: rgba(0,245,212,0.07); color: #2dd4bf;
-  border-radius: 5px; font-family: 'JetBrains Mono', monospace; white-space: nowrap;
-}
-
-/* 卡片示例预览 */
-.card-example {
-  margin-bottom: 10px; min-height: 18px;
-  display: flex; align-items: center;
-  .example-text {
-    font-size: 0.64rem; color: var(--text-sub);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    cursor: help; transition: color 0.2s;
-    &:hover { color: #b8c0d8; }
-  }
-}
-
-// ===== 快速指令 =====
-.card-quick-commands {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-.quick-cmd-label {
-  font-size: 0.72rem;
-  color: $text-muted;
-  flex-shrink: 0;
-}
-.quick-cmd-btn {
-  padding: 4px 8px;
-  background: rgba($accent-primary, 0.08);
-  border: 1px solid rgba($accent-primary, 0.15);
-  border-radius: 4px;
-  color: $accent-primary;
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-  &:hover {
-    background: rgba($accent-primary, 0.15);
-    transform: translateY(-1px);
-  }
-}
-
-.card-actions {
-  margin-top: auto;
-  display: flex;
-  gap: 8px;
-}
-.chat-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 0;
-  flex: 1;
-  border: 1px solid rgba($accent-secondary, 0.2);
-  border-radius: 8px;
-  background: rgba($accent-secondary, 0.06);
-  color: $text-secondary;
-  font-weight: 600;
-  font-size: 0.78rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  &:hover {
-    border-color: rgba($accent-primary, 0.3);
-    color: $accent-primary;
-    background: rgba($accent-primary, 0.08);
-  }
-}
-.exec-btn {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  flex: 1; padding: 9px 0; border: none; border-radius: 8px;
-  background: var(--btn-gradient); color: #ffffff;
-  font-weight: 600; font-size: 0.78rem; font-family: inherit;
-  cursor: pointer; opacity: 0.9;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  &:hover:not(:disabled) { opacity: 1; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); }
-  &.running {
-    opacity: 1; background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff;
-    animation: pulseBtn 1.5s ease-in-out infinite;
-  }
+.rm-search-btn {
+  padding: 10px 20px; background: rgba($accent-cyan, 0.1);
+  border: none; border-radius: 10px; color: $accent-cyan;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans; white-space: nowrap;
+  &:hover:not(:disabled) { background: rgba($accent-cyan, 0.2); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
-.exec-ico { font-size: 0.75rem; }
-.btn-spinner-mini {
-  width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,0.2); border-top-color: #f59e0b;
-  border-radius: 50%; animation: spin 0.6s linear infinite;
+.rm-result { margin: 12px 0; }
+.rmr-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: rgba($accent-cyan, 0.06);
+  border: 1px solid rgba($accent-cyan, 0.15); border-radius: 10px;
 }
-
-/* ===== 任务执行流面板 ===== */
-.flow-panel {
-  position: relative; z-index: 1;
-  background: rgba(100,100,180,0.03); border: 1px solid rgba(100,100,180,0.08);
-  border-radius: 16px; overflow: hidden;
-  animation: slideUp 0.6s ease 0.35s both;
-  &.has-active { border-color: rgba(0,245,212,0.08); }
+.rmr-icon { font-size: 1.8rem; }
+.rmr-info { flex: 1; }
+.rmr-name { display: block; font-size: 0.9rem; font-weight: 700; color: $text-primary; }
+.rmr-role { display: block; font-size: 0.72rem; color: $text-muted; }
+.rmr-go {
+  padding: 6px 16px; background: rgba($accent-cyan, 0.15);
+  border: 1px solid rgba($accent-cyan, 0.25); border-radius: 8px;
+  color: $accent-cyan; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans;
+  &:hover { background: rgba($accent-cyan, 0.25); }
 }
-.flow-head {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 8px 12px;
-  padding: 14px 20px; cursor: pointer; transition: background 0.2s; user-select: none;
-  &:hover { background: rgba(0,245,212,0.025); }
+.rm-error {
+  margin: 8px 0; padding: 8px 12px;
+  background: rgba($color-danger, 0.08); border: 1px solid rgba($color-danger, 0.15);
+  border-radius: 8px; color: $color-danger; font-size: 0.78rem;
 }
-.flow-head-left { display: flex; align-items: center; gap: 10px; }
-.flow-indicator {
-  width: 7px; height: 7px; border-radius: 50%; background: #606090;
-  transition: all 0.3s;
-  &.active { background: #00f5d4; box-shadow: 0 0 10px rgba(0,245,212,0.5); animation: pulseDot 1.2s ease-in-out infinite; }
+.rm-quick {
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid $border-default;
 }
-.flow-title { font-size: 0.88rem; font-weight: 600; color: #f0f0ff; }
-.flow-badge {
-  font-size: 0.65rem; padding: 2px 7px; background: rgba(0,245,212,0.1);
-  color: #00f5d4; border-radius: 9px; font-family: 'JetBrains Mono', monospace; font-weight: 600;
-}
-.flow-live {
-  font-size: 0.6rem; color: #f59e0b; font-weight: 600;
-  animation: pulseBadge 1.2s ease-in-out infinite;
-}
-.flow-head-right { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.flow-filter-select {
-  height: 32px; padding: 0 8px;
-  background: rgba(30, 38, 56, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
-  border-radius: 6px;
-  color: #c0c0e0;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
+.rmq-label { font-size: 0.75rem; color: $text-muted; margin-bottom: 8px; }
+.rmq-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rmq-chip {
+  padding: 4px 10px; background: rgba($bg-elevated, 0.3);
+  border: 1px solid $border-default; border-radius: 6px;
+  font-size: 0.72rem; color: $text-muted; cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: rgba(0, 245, 212, 0.3); }
-  &:focus { border-color: rgba(0, 245, 212, 0.4); box-shadow: 0 0 0 2px rgba(0, 245, 212, 0.08); }
-  option { background: #1a1a2e; color: #e0e0f0; }
+  &:hover { border-color: $border-medium; color: $text-secondary; background: $bg-elevated; }
 }
-/* 搜索框 */
-.flow-search {
-  width: 140px; height: 32px; padding: 0 10px;
-  background: rgba(30, 38, 56, 0.6);
-  border: 1px solid rgba(100, 100, 180, 0.15);
-  border-radius: 6px; color: #c0c0e0; font-size: 12px;
-  font-family: inherit; outline: none; transition: all 0.2s;
-  &::placeholder { color: #606090; }
-  &:focus { border-color: rgba(0, 245, 212, 0.4); box-shadow: 0 0 0 2px rgba(0, 245, 212, 0.08); }
-}
-/* 视图切换 tabs */
-.flow-tabs { display: flex; align-items: center; gap: 4px; margin-left: 4px; }
-.flow-tab {
-  display: flex; align-items: center; gap: 6px;
-  height: 32px; padding: 0 14px; border-radius: 6px;
-  font-size: 0.78rem; font-weight: 500;
-  color: #8080a8; cursor: pointer; transition: all 0.2s; user-select: none;
-  border: 1px solid transparent; white-space: nowrap;
-  &:hover { color: #c0c0e0; background: rgba(100,100,180,0.08); }
-  &.active { color: #00f5d4; background: rgba(0,245,212,0.08); border-color: rgba(0,245,212,0.2); }
-}
-.flow-badge.trash { background: rgba(255,123,123,0.1); color: #ff7b7b; }
-/* 批量删除按钮（文本按钮） */
-.flow-btn.batch {
-  width: auto; height: 32px; padding: 0 14px;
-  color: #00f5d4; border-color: rgba(0, 245, 212, 0.3);
-  font-size: 12px; font-weight: 600; white-space: nowrap;
-  &:hover:not(:disabled) { background: rgba(0, 245, 212, 0.1); }
-}
-.flow-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border: 1px solid #6a6080;
-  border-radius: 6px; background: rgba(30, 38, 56, 0.6);
-  color: #c8c0d8; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
-  &:hover:not(:disabled) { color: #e8e6f0; border-color: var(--border-ctrl-hover); background: rgba(124, 107, 245, 0.1); }
-  &.danger {
-    color: #ff8080;
-    &:hover:not(:disabled) { color: #EF4444; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1); }
-  }
-  /* 文本按钮（如清空回收站） */
-  &.text { width: auto; padding: 0 16px; font-size: 13px; font-weight: 500; white-space: nowrap; }
-  &:disabled { opacity: 0.3; cursor: not-allowed; }
-}
-.flow-arrow { font-size: 1rem; color: var(--text-sub); transition: transform 0.3s; display: inline-block; &.open { transform: rotate(180deg); } }
 
-.flow-body {
-  display: flex; max-height: min(60vh, 620px); border-top: 1px solid rgba(100,100,180,0.06);
+/* ===== fade 动画 ===== */
+.fade-enter-active, .fade-leave-active { transition: all 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-leave-from, .fade-enter-to { opacity: 1; }
+
+/* ===== 主布局 ===== */
+.main-layout {
+  position: relative; z-index: 1;
+  display: flex; flex: 1; overflow: hidden;
+  height: calc(100vh - 110px);
 }
-.flow-list-wrap {
-  flex: 1; min-width: 0; overflow-y: auto; max-height: min(60vh, 620px);
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.12); border-radius: 2px; }
-}
-.flow-list { padding: 0; }
-/* 列表工具条（全选） */
-.flow-list-toolbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 20px; border-bottom: 1px solid rgba(100,100,180,0.05);
-  font-size: 0.7rem; color: #8080a8;
-  position: sticky; top: 0; z-index: 2;
-  background: rgba(18, 18, 42, 0.92); backdrop-filter: blur(6px);
-}
-.flow-list-count { color: #606090; }
-/* 复选框 */
-.flow-check {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0; cursor: pointer;
-  input[type="checkbox"] { accent-color: #00f5d4; width: 13px; height: 13px; cursor: pointer; }
-  &.all { .flow-check-text { font-size: 0.68rem; color: #8080a8; } }
-}
-/* 类型标签（Agent / 工具） */
-.flow-type-tag {
-  font-size: 0.55rem; padding: 1px 5px; border-radius: 4px;
-  font-weight: 600; flex-shrink: 0; margin-right: 2px;
-  &.tool { background: rgba(123,97,255,0.12); color: #a78bfa; }
-  &.agent { background: rgba(0,245,212,0.08); color: #00f5d4; }
-}
-.flow-row {
+
+/* ===== 左侧边栏 ===== */
+.sidebar {
+  width: 240px; flex-shrink: 0;
   display: flex; flex-direction: column;
-  padding: 8px 20px; font-size: 0.78rem;
-  font-family: 'JetBrains Mono', monospace;
-  border-bottom: 1px solid rgba(100,100,180,0.05);
-  border-right: 3px solid transparent;
-  animation: slideInRight 0.35s ease both;
-  transition: background 0.2s, border-color 0.2s;
-  cursor: pointer;
-  &:hover { background: rgba(0,245,212,0.02); }
-  &:last-child { border-bottom: none; }
-  &.selected { background: rgba(0,245,212,0.04); border-right-color: #00f5d4; }
-
-  /* 思考 → 青色标记 */
-  &.think { border-left: 2px solid #00f5d4; .flow-step-badge.think { background: rgba(0,245,212,0.1); color: #00f5d4; } }
-  /* 行动 → 紫色标记 */
-  &.act { border-left: 2px solid #7b61ff; .flow-step-badge.act { background: rgba(123,97,255,0.1); color: #7b61ff; } }
-  /* 观察 → 金色标记 */
-  &.observe { border-left: 2px solid #f59e0b; .flow-step-badge.observe { background: rgba(245,158,11,0.1); color: #f59e0b; } }
-  /* 系统/任务 → 白色标记 */
-  &.task { border-left: 2px solid #a0a0c8; .flow-step-badge.task { background: rgba(255,255,255,0.05); color: #a0a0c8; } }
-  /* 成功 → 绿色标记 */
-  &.success { border-left: 2px solid #10b981; .flow-step-badge.success { background: rgba(16,185,129,0.1); color: #10b981; } }
+  background: rgba($bg-surface, 0.3);
+  border-right: 1px solid $border-default;
+  padding: 12px 0;
 }
-.flow-row-main {
-  display: flex; align-items: center; gap: 10px; min-width: 0;
+.sidebar-search {
+  padding: 0 12px 10px;
+  input {
+    width: 100%; padding: 8px 12px;
+    background: rgba($bg-elevated, 0.4);
+    border: 1px solid $border-default; border-radius: 8px;
+    color: $text-primary; font-size: 0.78rem; outline: none;
+    font-family: $font-sans;
+    &::placeholder { color: $text-placeholder; }
+    &:focus { border-color: $border-medium; }
+  }
 }
-.flow-time { color: var(--text-sub); font-size: 0.68rem; min-width: 56px; flex-shrink: 0; }
-.flow-line { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
-.flow-agent { font-weight: 500; font-size: 0.72rem; min-width: 64px; flex-shrink: 0; }
-.flow-step-badge {
-  font-size: 0.6rem; padding: 1px 7px; border-radius: 5px;
-  font-weight: 500; flex-shrink: 0; white-space: nowrap;
+.sidebar-cats {
+  display: flex; gap: 4px; padding: 0 12px 10px;
 }
-.flow-msg { color: #b8c0d8; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 回收站行与操作 */
-.trash-row { opacity: 0.75; }
-.trash-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.flow-action-btn {
-  padding: 2px 8px;
-  border: 1px solid rgba(100, 100, 180, 0.1);
-  border-radius: 4px;
-  background: rgba(100, 100, 180, 0.05);
-  color: #8080a8;
-  font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  line-height: 1.6;
-  &:hover { color: #00f5d4; border-color: rgba(0, 245, 212, 0.25); background: rgba(0, 245, 212, 0.06); }
+.sc-tab {
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 0.72rem; color: $text-muted; cursor: pointer;
+  transition: all 0.2s; font-weight: 500;
+  &:hover { color: $text-secondary; background: rgba($bg-elevated, 0.3); }
+  &.active { color: $accent-cyan; background: rgba($accent-cyan, 0.08); }
 }
-.flow-action-btn.restore-btn { color: #a0a0c8; &:hover { color: #00f5d4; } }
-.flow-action-btn.delete-btn {
-  color: #a0a0c8;
-  &:hover { color: #ff7b7b; border-color: rgba(255, 123, 123, 0.35); background: rgba(255, 107, 107, 0.08); }
-}
-.flow-empty { text-align: center; padding: 28px 16px; color: var(--text-placeholder); font-size: 0.82rem; margin: 8px 12px; border: 1px dashed rgba(106, 112, 144, 0.35); border-radius: 10px; background: rgba(30, 38, 56, 0.25); }
-.flow-empty-ico { margin-right: 6px; }
-.flow-empty-main { font-size: 0.9rem; font-weight: 600; color: #c0c0d8; margin-top: 4px; }
-.flow-empty-sub { font-size: 0.75rem; color: #606090; margin-top: 4px; }
-.flow-retry-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  margin-top: 10px; padding: 6px 16px; height: 32px;
-  border: 1px solid rgba(0, 245, 212, 0.3); border-radius: 6px;
-  background: rgba(0, 245, 212, 0.06); color: #00f5d4;
-  font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;
-  &:hover { background: rgba(0, 245, 212, 0.12); border-color: rgba(0, 245, 212, 0.5); }
-}
-
-/* ===== 任务分配对话框 ===== */
-.dialog-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
-  z-index: 1000; animation: fadeIn 0.2s ease;
-}
-.task-dialog {
-  width: 500px; max-width: 90vw; max-height: 80vh;
-  background: rgba(17,17,39,0.96); border: 1px solid rgba(100,100,180,0.12);
-  border-radius: 16px; box-shadow: 0 16px 60px rgba(0,0,0,0.5);
-  animation: modalEnter 0.3s ease; display: flex; flex-direction: column;
-}
-.dialog-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 20px; border-bottom: 1px solid rgba(100,100,180,0.08); flex-shrink: 0;
-}
-.dialog-header-left { display: flex; align-items: center; gap: 12px; }
-.dialog-agent-icon { font-size: 1.8rem; flex-shrink: 0; }
-.dialog-agent-info { h3 { font-size: 14px; font-weight: 700; color: #e8e8ff; margin: 0 0 3px; } p { font-size: 12px; color: #a0a0c8; margin: 0; } }
-.dialog-close {
-  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-  background: rgba(100,100,180,0.08); border: none; border-radius: 6px;
-  font-size: 14px; cursor: pointer; color: #9090b8; transition: all 0.15s; flex-shrink: 0;
-  &:hover:not(:disabled) { background: rgba(100,100,180,0.15); color: #e8e8ff; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-}
-.dialog-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
-.example-tasks { margin-bottom: 14px; }
-.example-hint { font-size: 10px; color: var(--text-placeholder); font-weight: 400; margin-left: 6px; }
-.example-scroll {
-  display: flex; flex-direction: column; gap: 4px;
-  max-height: 160px; overflow-y: auto;
+.sidebar-list {
+  flex: 1; overflow-y: auto; padding: 0 6px;
   &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(0,245,212,0.1); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba($text-muted, 0.15); border-radius: 3px; }
 }
-.example-item {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; color: #8080a8; padding: 6px 10px; border-radius: 7px;
-  cursor: pointer; transition: all 0.2s; line-height: 1.4;
-  &:hover { background: rgba(0,245,212,0.04); color: #c0c0e0; .example-cat-tag { border-color: rgba(0,245,212,0.2); } }
-  &.active { background: rgba(0,245,212,0.08); .example-text { color: #00f5d4; } .example-cat-tag { border-color: #00f5d4; color: #00f5d4; } }
-}
-.example-cat-tag {
-  font-size: 9px; padding: 1px 6px; border-radius: 4px;
-  background: rgba(100,100,180,0.04); border: 1px solid rgba(100,100,180,0.08);
-  color: #606090; flex-shrink: 0; white-space: nowrap;
-  font-family: 'JetBrains Mono', monospace;
-}
-.example-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agent-specific { margin-bottom: 14px; }
-.specific-label { font-size: 11px; font-weight: 600; color: #a0a0c8; margin-bottom: 6px; }
-.option-group { display: flex; gap: 6px; flex-wrap: wrap; }
-.option-btn {
-  padding: 5px 14px; border-radius: 7px; font-size: 11px; font-weight: 500;
-  font-family: inherit; cursor: pointer; transition: all 0.2s;
-  background: var(--bg-ctrl); border: 1px solid var(--border-ctrl); color: #c8d0e8;
-  &:hover:not(:disabled) { border-color: var(--border-ctrl-hover); color: #00f5d4; background: rgba(124, 107, 245, 0.08); }
-  &.active { background: rgba(124, 107, 245, 0.2); border-color: #7c6bf5; color: #ffffff; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-}
-.quick-btn {
-  padding: 7px 18px; border-radius: 7px; font-size: 12px; font-weight: 600;
-  font-family: inherit; cursor: pointer; transition: all 0.2s;
-  background: var(--btn-gradient); border: none; color: #fff;
-  &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124, 107, 245, 0.4); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.switch-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #c0c0e0; }
-.toggle-switch {
-  width: 38px; height: 20px; background: #2a3040;
-  border: 1px solid var(--border-ctrl);
-  border-radius: 10px; position: relative; cursor: pointer; transition: background 0.25s;
-  &.active { background: #7c6bf5; border-color: #7c6bf5; box-shadow: 0 0 8px rgba(124, 107, 245, 0.35); }
-}
-.toggle-knob {
-  width: 16px; height: 16px; border-radius: 50%; background: #9aa0b0;
-  position: absolute; top: 1px; left: 1px; transition: all 0.25s;
-  .active & { left: 19px; background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); }
-}
-.count-input-wrap { display: flex; align-items: center; gap: 10px; }
-.count-btn {
-  width: 28px; height: 28px; border-radius: 7px;
-  border: 1px solid rgba(100,100,180,0.12); background: rgba(100,100,180,0.08);
-  color: #a0a0c8; font-size: 14px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-  &:hover:not(:disabled) { border-color: #00f5d4; color: #00f5d4; }
-  &:disabled { opacity: 0.3; cursor: not-allowed; }
-}
-.count-value { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #e8e8ff; min-width: 20px; text-align: center; }
-.task-input-wrap { margin-top: 4px; }
-.input-label { display: block; font-size: 11px; font-weight: 600; color: #a0a0c8; margin-bottom: 6px; }
-.task-textarea {
-  width: 100%; padding: 9px 12px; background: var(--bg-ctrl);
-  border: 1px solid var(--border-ctrl); border-radius: 9px;
-  font-size: 12px; color: var(--text-input); outline: none; transition: all 0.2s;
-  font-family: inherit; box-sizing: border-box; resize: vertical;
-  min-height: 54px; line-height: 1.5;
-  &:focus { border-color: var(--border-ctrl-hover); box-shadow: 0 0 0 3px rgba(124,107,245,0.1); }
-  &::placeholder { color: var(--text-placeholder); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.dialog-footer {
-  display: flex; justify-content: flex-end; gap: 8px;
-  padding: 12px 20px; border-top: 1px solid rgba(100,100,180,0.08); flex-shrink: 0;
-}
-.dialog-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 7px 18px; border-radius: 7px; font-weight: 600; font-size: 12px;
-  cursor: pointer; transition: all 0.2s; border: none; font-family: inherit;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.dialog-btn-cancel { background: rgba(100,100,180,0.08); color: #c0c0e0; &:hover:not(:disabled) { background: rgba(100,100,180,0.15); } }
-.dialog-btn-exec { background: var(--btn-gradient); color: #fff; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } }
-.btn-spinner-small { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-
-/* ===== 动画关键帧 ===== */
-@keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes cardAppear { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes rotateBorder { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes executeGlow { 0%,100% { box-shadow: 0 0 0 rgba(245,158,11,0); } 50% { box-shadow: 0 0 20px rgba(245,158,11,0.1); } }
-@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-@keyframes pulseBadge { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-@keyframes pulseBtn { 0%,100% { box-shadow: 0 0 0 rgba(245,158,11,0); } 50% { box-shadow: 0 0 14px rgba(245,158,11,0.2); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes modalEnter { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes stepPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-@keyframes rippleExpand {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(2); opacity: 0; }
-}
-@keyframes ringPulse { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 1; } }
-@keyframes iterBump { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
-
-/* ===== TransitionGroup ===== */
-.card-trans-enter-active { transition: all 0.45s cubic-bezier(0.4,0,0.2,1); }
-.card-trans-leave-active { transition: all 0.3s ease; }
-.card-trans-enter-from { opacity: 0; transform: translateY(20px) scale(0.94); }
-.card-trans-leave-to { opacity: 0; transform: scale(0.9); }
-.card-trans-move { transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
-.log-trans-enter-active { transition: all 0.35s ease; }
-.log-trans-leave-active { transition: all 0.2s ease; }
-.log-trans-enter-from { opacity: 0; transform: translateX(-12px); }
-.log-trans-leave-to { opacity: 0; transform: translateX(12px); }
-
-/* ===== 响应式 ===== */
-@media (max-width: 1400px) { .agents-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 1024px) {
-  .agents-grid { grid-template-columns: repeat(2, 1fr); }
-  .header-row { flex-direction: column; gap: 16px; }
-  .header-kpis { align-self: flex-start; }
-  .agents-page { padding: 22px 24px 80px; }
-  .orch-main { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px 20px; }
-  .orch-left { justify-content: center; }
-  .orch-react { min-height: 100px; }
-  .detail-grid { grid-template-columns: repeat(2, 1fr); }
-  .react-steps { gap: 8px; }
-  .step-connector { display: none; }
-}
-@media (max-width: 640px) {
-  .agents-grid { grid-template-columns: 1fr; }
-  .agents-page { padding: 16px 16px 80px; }
-  .page-title { font-size: 1.5rem; }
-  .header-kpis { gap: 8px; flex-wrap: wrap; }
-  .kpi { min-width: 56px; padding: 8px 12px; }
-  .kpi-num { font-size: 1rem; }
-  .react-steps { flex-direction: column; gap: 12px; }
-  .detail-grid { grid-template-columns: 1fr 1fr; }
-}
-
-/* ===== 工具调用高亮 ===== */
-.tool-highlight {
-  background: rgba(0, 245, 212, 0.15) !important;
-  border-color: rgba(0, 245, 212, 0.5) !important;
-  color: #00f5d4 !important;
-  box-shadow: 0 0 12px rgba(0, 245, 212, 0.2);
-  animation: toolPulse 0.6s ease-in-out 3;
-}
-@keyframes toolPulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(0, 245, 212, 0.1); }
-  50% { box-shadow: 0 0 16px rgba(0, 245, 212, 0.35); }
-}
-
-/* ===== AI 对话视图 ===== */
-.chat-view-section {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 280px);
-  min-height: 500px;
-  background: rgba(15, 17, 28, 0.6);
-  border: 1px solid rgba(123, 97, 255, 0.1);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.chat-roles-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  background: rgba(20, 24, 40, 0.8);
-  border-bottom: 1px solid rgba(123, 97, 255, 0.08);
-}
-
-.role-pills {
-  display: flex;
-  gap: 8px;
-}
-
-.role-pill {
-  padding: 6px 14px;
-  background: rgba(123, 97, 255, 0.08);
-  border: 1px solid rgba(123, 97, 255, 0.15);
-  border-radius: 20px;
-  color: #a0a0c0;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(123, 97, 255, 0.15);
-    color: #e0e0ff;
-  }
-
+.sli-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-bottom: 2px;
+  border-radius: 8px; cursor: pointer;
+  transition: all 0.15s;
+  &:hover { background: rgba($bg-elevated, 0.4); }
   &.active {
-    background: linear-gradient(135deg, rgba(123, 97, 255, 0.25), rgba(91, 134, 255, 0.15));
-    border-color: rgba(123, 97, 255, 0.4);
-    color: #ffffff;
-    font-weight: 500;
+    background: rgba($accent-cyan, 0.06);
+    border: 1px solid rgba($accent-cyan, 0.12);
+    margin: -1px 0 1px; padding: 9px 11px;
   }
+  &.executing { .sli-dot { animation: pulse 1.5s ease-in-out infinite; } }
+}
+.sli-icon { font-size: 1.1rem; width: 30px; text-align: center; flex-shrink: 0; }
+.sli-info { flex: 1; min-width: 0; }
+.sli-name { display: block; font-size: 0.82rem; font-weight: 600; color: $text-primary; line-height: 1.3; }
+.sli-role { display: block; font-size: 0.65rem; color: $text-muted; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sli-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  &.available { background: $color-success; }
+  &.executing { background: $color-warning; }
+  &.offline { background: $text-muted; }
 }
 
-.quick-pills {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.qpill {
-  padding: 4px 10px;
-  background: rgba(0, 245, 212, 0.06);
-  border: 1px solid rgba(0, 245, 212, 0.12);
-  border-radius: 12px;
-  color: #8080a0;
-  font-size: 0.72rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: rgba(0, 245, 212, 0.1);
-    border-color: rgba(0, 245, 212, 0.25);
-    color: #00f5d4;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &.pri {
-    background: rgba(123, 97, 255, 0.1);
-    border-color: rgba(123, 97, 255, 0.2);
-    color: #b0a0e0;
-
-    &:hover:not(:disabled) {
-      background: rgba(123, 97, 255, 0.2);
-      border-color: rgba(123, 97, 255, 0.4);
-      color: #d0c0ff;
-    }
-  }
-}
-
-.chat-main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+/* ===== 右侧工作区（沉浸式对话）===== */
+.workspace {
+  flex: 1; display: flex; flex-direction: column;
   overflow: hidden;
+  position: relative;
+  .chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 }
 
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  scroll-behavior: smooth;
+/* ===== 标签页栏 ===== */
+.tab-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  background: rgba($bg-surface, 0.6);
+  border-bottom: 1px solid $border-default;
+  flex-shrink: 0;
+  overflow-x: auto;
+  &::-webkit-scrollbar { height: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba($text-muted, 0.15); border-radius: 2px; }
 }
-
-.chat-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 300px;
-  text-align: center;
+.tab-list {
+  flex: 1; display: flex; align-items: center; gap: 4px;
+  min-width: 0;
 }
-
-.welcome-banner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  background: rgba(123, 97, 255, 0.08);
-  border: 1px solid rgba(123, 97, 255, 0.15);
-  border-radius: 12px;
-  margin-bottom: 24px;
-
-  .welcome-avatar {
-    font-size: 2.5rem;
+.tab-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px 5px 8px;
+  background: rgba($bg-elevated, 0.2);
+  border: 1px solid $border-default;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  min-width: 0; cursor: pointer; transition: all 0.15s;
+  &.active {
+    background: $bg-surface;
+    border-color: $border-medium;
+    margin-bottom: -1px;
+    box-shadow: 0 -1px 6px rgba($accent-cyan, 0.06);
   }
-
-  .welcome-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 4px;
-  }
-
-  .welcome-text {
-    font-size: 0.85rem;
-    color: #a0a0c0;
-    line-height: 1.5;
-  }
+  &.executing { .tab-name { padding-right: 4px; } }
+  &:hover:not(.active) { background: rgba($bg-elevated, 0.35); }
+}
+.tab-icon { font-size: 0.8rem; flex-shrink: 0; }
+.tab-name {
+  font-size: 0.72rem; color: $text-secondary;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .tab-item.active & { color: $text-primary; font-weight: 500; }
+}
+.tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: $color-warning;
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+.tab-close {
+  width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+  border-radius: 3px; background: transparent; border: none;
+  font-size: 0.6rem; line-height: 1; color: $text-muted; cursor: pointer;
+  &:hover { background: rgba($text-muted, 0.15); color: $text-primary; }
+}
+.tab-add {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; border: 1px dashed $border-default;
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  span { font-size: 0.9rem; color: $text-muted; line-height: 1; }
+  &:hover { border-color: $border-medium; background: rgba($bg-elevated, 0.3); }
 }
 
-.empty-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e0e0ff;
-  margin-bottom: 8px;
+/* ===== 欢迎页 ===== */
+.welcome {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.welcome-bg { position: absolute; inset: 0; pointer-events: none; }
+.welcome-orb {
+  position: absolute; width: 400px; height: 400px;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba($accent-cyan, 0.04) 0%, transparent 70%);
+  border-radius: 50%; filter: blur(60px);
+  animation: warpPulse 6s ease-in-out infinite;
+}
+@keyframes warpPulse {
+  0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+}
+.welcome-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; max-width: 480px; padding: 20px;
+}
+.welcome-icon {
+  font-size: 3.5rem; filter: drop-shadow(0 0 30px rgba($accent-cyan, 0.2));
+  animation: floatY 3s ease-in-out infinite;
+}
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.welcome-title { font-size: 1.3rem; font-weight: 700; margin: 0; color: $text-primary; }
+.welcome-desc { font-size: 0.8rem; color: $text-muted; margin: 0; text-align: center; }
+.welcome-cards {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 8px; width: 100%;
+}
+.wl-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; background: rgba($bg-surface, 0.5);
+  border: 1px solid $border-default; border-radius: 12px;
+  cursor: pointer; transition: all 0.2s;
+  &:hover { border-color: rgba($accent-cyan, 0.2); background: rgba($bg-surface, 0.8); transform: translateY(-1px); }
+}
+.wl-card-icon { font-size: 1.4rem; flex-shrink: 0; }
+.wl-card-text { display: flex; flex-direction: column; min-width: 0; }
+.wl-card-title { font-size: 0.78rem; font-weight: 600; color: $text-primary; }
+.wl-card-desc { font-size: 0.65rem; color: $text-muted; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== 沉浸式对话 ===== */
+.chat {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; height: 100%;
+}
+.chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 8px; flex-shrink: 0;
+}
+.ch-left { display: flex; align-items: center; gap: 10px; }
+.ch-icon { font-size: 1.4rem; }
+.ch-name { font-size: 0.95rem; font-weight: 700; margin: 0 0 1px; color: $text-primary; }
+.ch-role { font-size: 0.68rem; color: $text-muted; margin: 0; }
+.ch-right { display: flex; align-items: center; gap: 8px; }
+.ch-tool-btn {
+  padding: 6px 14px; background: rgba($bg-elevated, 0.4);
+  border: 1px solid $border-default; border-radius: 8px;
+  color: $text-secondary; font-size: 0.75rem; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans;
+  &:hover { border-color: $border-medium; background: $bg-elevated; }
 }
 
-.empty-desc {
-  font-size: 0.85rem;
-  color: #8080a0;
-  margin-bottom: 20px;
-}
-
-.empty-examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  max-width: 600px;
-}
-
-.example-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(123, 97, 255, 0.06);
-  border: 1px solid rgba(123, 97, 255, 0.12);
-  border-radius: 10px;
-  color: #c0c0e0;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(123, 97, 255, 0.12);
-    border-color: rgba(123, 97, 255, 0.25);
-    color: #ffffff;
-    transform: translateY(-2px);
-  }
-
-  .ex-icon {
-    font-size: 1rem;
-  }
-}
-
-.user-message-wrapper,
-.ai-message-wrapper {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.user-message-wrapper {
-  flex-direction: row-reverse;
-}
-
-.message {
-  display: flex;
-  gap: 10px;
-  max-width: 85%;
-
-  &.user {
-    flex-direction: row-reverse;
-
-    .msg-bubble {
-      background: linear-gradient(135deg, rgba(123, 97, 255, 0.2), rgba(91, 134, 255, 0.15));
-      border: 1px solid rgba(123, 97, 255, 0.25);
-      color: #f0f0ff;
-    }
-  }
-
-  &.assistant {
-    .msg-bubble {
-      background: rgba(30, 35, 55, 0.8);
-      border: 1px solid rgba(123, 97, 255, 0.1);
-      color: #e0e0ff;
-    }
-  }
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+/* 工具链标签 */
+.chat-tools {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 20px 8px; padding: 6px 10px;
+  background: rgba($bg-elevated, 0.15); border-radius: 6px;
   flex-shrink: 0;
 }
+.cht-label { font-size: 0.6rem; color: $text-muted; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.cht-tag { padding: 2px 7px; background: rgba($bg-elevated, 0.2); border-radius: 999px; font-size: 0.65rem; color: $text-secondary; }
 
-.user-av {
-  background: rgba(123, 97, 255, 0.2);
+/* ===== 对话消息区（占据最大空间）===== */
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 8px 20px 4px;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: rgba($text-muted, 0.15); border-radius: 4px; }
 }
-
-.ai-av {
-  background: rgba(0, 245, 212, 0.15);
+.cmsg-list { display: flex; flex-direction: column; gap: 12px; }
+.cmsg {
+  display: flex; gap: 10px; max-width: 85%;
+  animation: msgSlide 0.2s ease;
+  &.user { align-self: flex-end; flex-direction: row-reverse; }
+  &.assistant { align-self: flex-start; }
+  &.typing { align-self: flex-start; }
 }
-
-.msg-content {
-  flex: 1;
+@keyframes msgSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.cmsg-avatar {
+  width: 28px; height: 28px; display: flex; align-items: center;
+  justify-content: center; font-size: 1rem; flex-shrink: 0;
+  margin-top: 4px;
 }
-
-.msg-bubble {
-  padding: 12px 16px;
-  border-radius: 12px;
-  line-height: 1.6;
-  font-size: 0.9rem;
+.cmsg-body { display: flex; flex-direction: column; gap: 3px; }
+.cmsg-bubble {
+  padding: 10px 14px; border-radius: 14px;
+  background: rgba($bg-elevated, 0.25);
+  .cmsg.user & { background: rgba($accent-cyan, 0.08); }
+  &.typing-bubble { background: rgba($bg-elevated, 0.2); padding: 12px 18px; display: flex; gap: 4px; align-items: center; }
 }
+.cmsg-text { font-size: 0.82rem; color: $text-primary; margin: 0; line-height: 1.5; white-space: pre-wrap; }
+.cmsg-time { font-size: 0.6rem; color: $text-muted; padding: 0 2px; }
 
-.msg-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-
-  .ai-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #00f5d4;
-  }
-
-  .msg-time {
-    font-size: 0.65rem;
-    color: #606080;
-  }
+/* 打字指示器 */
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: $text-muted; animation: typingBounce 1.4s ease-in-out infinite;
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.4s; }
 }
-
-.sources-section,
-.tool-calls-section {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: rgba(0, 245, 212, 0.05);
-  border: 1px solid rgba(0, 245, 212, 0.1);
-  border-radius: 8px;
-}
-
-.sources-title,
-.tool-call-header {
-  font-size: 0.75rem;
-  color: #a0a0c0;
-}
-
-.tool-call-status {
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-
-  &.success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-  &.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-  &.running { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-}
-
-.msg-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.message:hover .msg-actions {
-  opacity: 1;
-}
-
-.act-btn {
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  color: #8080a0;
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(123, 97, 255, 0.15);
-    border-color: rgba(123, 97, 255, 0.3);
-    color: #d0c0ff;
-  }
-}
-
-.typing-dots {
-  display: flex;
-  gap: 4px;
-  padding: 12px 16px;
-
-  .dot {
-    width: 6px;
-    height: 6px;
-    background: #00f5d4;
-    border-radius: 50%;
-    animation: typingBounce 1.4s ease-in-out infinite;
-
-    &:nth-child(2) { animation-delay: 0.2s; }
-    &:nth-child(3) { animation-delay: 0.4s; }
-  }
-}
-
 @keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-6px); opacity: 1; }
 }
 
+/* 空状态 */
+.cmsg-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 60px 20px; color: $text-muted;
+}
+.cmsg-empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.cmsg-empty p { font-size: 0.85rem; margin: 0; }
+.cmsg-empty p strong { color: $text-secondary; }
+.cmsg-empty span { font-size: 0.72rem; }
+
+/* ===== 快捷指令 ===== */
+.chat-quick {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 4px 20px 8px; flex-shrink: 0;
+}
+.cq-chip {
+  padding: 5px 12px; background: rgba($bg-elevated, 0.25);
+  border: 1px solid $border-default; border-radius: 8px;
+  font-size: 0.72rem; color: $text-muted; cursor: pointer;
+  transition: all 0.2s;
+  &:hover { border-color: $border-medium; color: $text-secondary; background: $bg-elevated; }
+}
+
+/* ===== 输入区（固定底部）===== */
 .chat-input-area {
-  padding: 16px 20px;
-  background: rgba(20, 24, 40, 0.6);
-  border-top: 1px solid rgba(123, 97, 255, 0.08);
+  padding: 0 20px 14px; flex-shrink: 0;
 }
-
-.input-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.msg-input {
-  flex: 1;
-  padding: 12px 16px;
-  background: rgba(30, 35, 55, 0.8);
-  border: 1px solid rgba(123, 97, 255, 0.15);
-  border-radius: 12px;
-  color: #f0f0ff;
-  font-size: 0.9rem;
-  resize: none;
-  min-height: 44px;
-  max-height: 100px;
-  transition: border-color 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(123, 97, 255, 0.4);
-  }
-
-  &::placeholder {
-    color: #606080;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-  }
-}
-
-.stop-btn {
-  padding: 10px 16px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 10px;
-  color: #ef4444;
-  font-size: 0.85rem;
-  cursor: pointer;
+.chat-input {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 4px 4px 14px;
+  background: rgba($bg-elevated, 0.2);
+  border: 1px solid $border-default; border-radius: 12px;
   transition: all 0.2s;
-
-  &:hover {
-    background: rgba(239, 68, 68, 0.25);
-  }
+  &:focus-within { border-color: rgba($accent-cyan, 0.2); }
+}
+.ci-field {
+  flex: 1; padding: 10px 4px; background: transparent;
+  border: none; color: $text-primary; font-size: 0.82rem; outline: none;
+  font-family: $font-sans;
+  &::placeholder { color: $text-placeholder; }
+}
+.ci-btn {
+  padding: 8px 18px; background: rgba($accent-cyan, 0.1);
+  border: none; border-radius: 8px; color: $accent-cyan;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans; white-space: nowrap;
+  &:hover:not(:disabled) { background: rgba($accent-cyan, 0.2); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
-.send-btn {
-  padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(123, 97, 255, 0.8), rgba(91, 134, 255, 0.8));
-  border: none;
-  border-radius: 10px;
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(123, 97, 255, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.input-disclaimer {
-  margin-top: 8px;
-  font-size: 0.65rem;
-  color: #505068;
-  text-align: center;
-}
-
-.chat-context-panel {
-  position: absolute;
-  top: 60px;
-  right: 16px;
-  width: 200px;
-  padding: 16px;
-  background: rgba(20, 24, 40, 0.95);
-  border: 1px solid rgba(123, 97, 255, 0.12);
-  border-radius: 12px;
+/* ===== 底部状态栏 ===== */
+.status-bar {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 20px;
+  background: rgba($bg-surface, 0.5);
   backdrop-filter: blur(12px);
+  border-top: 1px solid $border-default;
+  flex-shrink: 0;
+}
+.sb-item {
+  font-size: 0.7rem; color: $text-muted;
+  display: flex; align-items: center; gap: 4px;
+}
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; &.online { background: $color-success; } }
+.sb-divider { width: 1px; height: 12px; background: $border-default; }
+.sb-live { color: $color-success; }
+.live-dot-pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: $color-success; animation: pulse 1.5s ease-in-out infinite;
 }
 
-.context-section {
-  margin-bottom: 16px;
+/* ===== 历史抽屉 ===== */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; justify-content: flex-end;
+}
+.history-drawer {
+  width: 420px; max-width: 90vw;
+  height: 100%; background: $bg-surface;
+  display: flex; flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.3);
+}
+.hd-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid $border-default;
+}
+.hd-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.hd-close {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid $border-default; border-radius: 6px;
+  color: $text-muted; cursor: pointer; font-size: 0.75rem;
+  &:hover { background: $bg-elevated; }
+}
+.hd-toolbar {
+  padding: 12px 20px; border-bottom: 1px solid $border-default;
+}
+.hd-tabs {
+  display: flex; gap: 4px; margin-bottom: 8px;
+}
+.hd-tab {
+  padding: 4px 12px; border-radius: 6px;
+  font-size: 0.75rem; color: $text-muted; cursor: pointer; font-weight: 500;
+  &.active { color: $accent-cyan; background: rgba($accent-cyan, 0.08); }
+}
+.hd-actions { display: flex; gap: 6px; }
+.hd-search {
+  flex: 1; padding: 6px 10px;
+  background: rgba($bg-elevated, 0.3); border: 1px solid $border-default;
+  border-radius: 6px; color: $text-primary; font-size: 0.75rem; outline: none;
+  font-family: $font-sans;
+  &::placeholder { color: $text-placeholder; }
+}
+.hd-btn {
+  padding: 6px 10px; border: 1px solid $border-default; border-radius: 6px;
+  background: transparent; color: $text-muted; font-size: 0.7rem; cursor: pointer;
+  font-family: $font-sans; white-space: nowrap;
+  &:hover { background: $bg-elevated; }
+  &.batch { color: $color-warning; border-color: rgba($color-warning, 0.2); }
+  &.clear { color: $color-danger; border-color: rgba($color-danger, 0.15); }
+}
+.hd-body {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba($text-muted, 0.15); border-radius: 3px; }
+}
+.hd-log {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 20px; font-size: 0.7rem; cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: rgba($bg-elevated, 0.3); }
+  &.success { border-left: 2px solid $color-success; }
+  &.error { border-left: 2px solid $color-danger; }
+  &.executing { border-left: 2px solid $color-warning; }
+}
+.hdt {
+  &.check { flex-shrink: 0; input { cursor: pointer; } }
+  &.time { color: $text-muted; flex-shrink: 0; min-width: 50px; }
+  &.agent { flex-shrink: 0; min-width: 80px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &.badge { flex-shrink: 0; padding: 1px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 600; }
+  &.desc { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: $text-secondary; }
+  &.cursor { color: $color-success; animation: blink 1s step-end infinite; }
+  &.actions { display: flex; gap: 4px; flex-shrink: 0; }
+}
+.hd-log .hdt.badge {
+  &.success, &.observe { background: rgba($color-success, 0.1); color: $color-success; }
+  &.error { background: rgba($color-danger, 0.1); color: $color-danger; }
+  &.task { background: rgba($accent-cyan, 0.1); color: $accent-cyan; }
+  &.think, &.reflect, &.replan, &.act { background: rgba($color-warning, 0.1); color: $color-warning; }
+}
+.hda {
+  padding: 2px 6px; border: none; background: transparent;
+  cursor: pointer; font-size: 0.75rem; opacity: 0.6;
+  &:hover { opacity: 1; }
+  &.danger:hover { color: $color-danger; }
+}
+.hd-empty {
+  text-align: center; padding: 40px 20px; color: $text-muted; font-size: 0.78rem;
+}
+.hd-line {
+  padding: 8px 20px; font-size: 0.72rem;
+  &.muted { color: $text-muted; }
+  &.error { color: $color-danger; }
+  &.live { color: $color-success; display: flex; align-items: center; gap: 6px; }
+}
+.retry-btn {
+  padding: 2px 8px; background: transparent; border: 1px solid currentColor;
+  border-radius: 4px; color: inherit; cursor: pointer; font-size: 0.72rem; margin-left: 4px;
+  font-family: $font-sans;
+}
+.hd-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px; border-top: 1px solid $border-default;
+  font-size: 0.7rem; color: $text-muted;
+}
+.hd-count { font-size: 0.7rem; }
+.hd-check-all { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.hd-check-all input { cursor: pointer; }
 
-  &:last-child {
-    margin-bottom: 0;
+/* ===== 抽屉动画 ===== */
+.drawer-slide-enter-active, .drawer-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.drawer-slide-enter-from, .drawer-slide-leave-to {
+  opacity: 0;
+  .history-drawer { transform: translateX(100%); }
+}
+
+/* ===== 任务对话框 ===== */
+.dialog-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px); display: flex; align-items: center;
+  justify-content: center; z-index: 1000; animation: fadeIn 0.2s ease;
+}
+.task-dialog {
+  width: 640px; max-width: 90vw; max-height: 85vh;
+  background: rgba($bg-surface, 0.95);
+  border: 1px solid rgba($accent-cyan, 0.15);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba($accent-cyan, 0.05);
+  display: flex; flex-direction: column; animation: modalEnter 0.25s ease;
+}
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid rgba($accent-cyan, 0.08); flex-shrink: 0;
+}
+.dialog-header-left { display: flex; align-items: center; gap: 12px; }
+.dialog-icon { font-size: 1.6rem; }
+.dialog-name { font-size: 16px; font-weight: 700; color: $text-primary; margin: 0 0 2px; }
+.dialog-role { font-size: 0.75rem; color: $text-muted; margin: 0; }
+.dialog-close {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: rgba($accent-cyan, 0.06); border: none; border-radius: 8px;
+  font-size: 14px; cursor: pointer; color: $text-muted; transition: all 0.15s;
+  &:hover { background: rgba($accent-cyan, 0.12); color: $text-primary; }
+}
+
+.dialog-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+.example-section { margin-bottom: 16px; }
+.example-label { font-size: 0.78rem; font-weight: 600; color: $text-secondary; margin-bottom: 8px; }
+.hint { font-weight: 400; color: $text-placeholder; }
+.example-list { display: flex; flex-direction: column; gap: 4px; }
+.example-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; background: rgba($accent-cyan, 0.03);
+  border: 1px solid rgba($accent-cyan, 0.06); border-radius: 10px;
+  cursor: pointer; transition: all 0.2s; font-size: 0.8rem;
+  &:hover { background: rgba($accent-cyan, 0.06); border-color: rgba($accent-cyan, 0.12); }
+  &.active { background: rgba($accent-cyan, 0.1); border-color: rgba($accent-cyan, 0.25); color: $accent-cyan; }
+}
+.ex-cat { font-size: 0.65rem; padding: 2px 8px; background: rgba($accent-violet, 0.1); color: $accent-violet; border-radius: 6px; flex-shrink: 0; font-weight: 500; }
+.ex-text { color: $text-secondary; }
+
+.agent-opts { margin-bottom: 14px; }
+.opt-label { font-size: 0.78rem; color: $text-secondary; margin-bottom: 6px; }
+.opt-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.opt-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 0.78rem;
+  background: rgba($accent-cyan, 0.04); border: 1px solid rgba($accent-cyan, 0.08);
+  color: $text-secondary; cursor: pointer; transition: all 0.2s; font-family: $font-sans;
+  &:hover { color: $accent-cyan; border-color: rgba($accent-cyan, 0.2); }
+  &.active { background: rgba($accent-cyan, 0.1); border-color: rgba($accent-cyan, 0.3); color: $accent-cyan; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.count-group { display: flex; align-items: center; gap: 8px; }
+.count-btn {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: rgba($accent-cyan, 0.06); border: 1px solid rgba($accent-cyan, 0.1);
+  border-radius: 8px; color: $text-secondary; font-size: 1rem; cursor: pointer;
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+.count-val { font-size: 0.9rem; font-weight: 700; color: $text-primary; min-width: 24px; text-align: center; font-family: $font-mono; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: $text-secondary; }
+.toggle {
+  width: 42px; height: 24px; border-radius: 12px; cursor: pointer;
+  background: rgba($accent-cyan, 0.12); position: relative; transition: background 0.2s;
+  &.on { background: rgba($accent-cyan, 0.5); }
+}
+.toggle-knob {
+  width: 20px; height: 20px; border-radius: 50%; background: $text-primary;
+  position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+  .toggle.on & { transform: translateX(18px); }
+}
+
+.task-input-section { margin-top: 4px; }
+.input-label { display: block; font-size: 0.78rem; font-weight: 600; color: $text-secondary; margin-bottom: 6px; }
+.task-textarea {
+  width: 100%; padding: 12px 14px;
+  background: rgba($accent-cyan, 0.04); border: 1px solid rgba($accent-cyan, 0.1);
+  border-radius: 10px; color: $text-primary; font-size: 0.85rem;
+  resize: vertical; min-height: 72px; outline: none; font-family: $font-sans;
+  &::placeholder { color: $text-placeholder; }
+  &:focus { border-color: rgba($accent-cyan, 0.35); box-shadow: 0 0 0 3px rgba($accent-cyan, 0.06); }
+  &:disabled { opacity: 0.5; }
+}
+.tool-dialog-error {
+  margin-top: 8px; padding: 8px 12px;
+  background: rgba($color-danger, 0.08); border: 1px solid rgba($color-danger, 0.15);
+  border-radius: 8px; color: $color-danger; font-size: 0.78rem;
+}
+
+.dialog-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 22px; border-top: 1px solid rgba($accent-cyan, 0.08); flex-shrink: 0;
+}
+.dialog-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 20px; border-radius: 10px; font-weight: 600; font-size: 0.82rem;
+  cursor: pointer; transition: all 0.2s; border: none; font-family: $font-sans;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &.cancel { background: rgba($accent-cyan, 0.06); color: $text-secondary; &:hover { background: rgba($accent-cyan, 0.12); } }
+  &.primary {
+    background: linear-gradient(135deg, rgba($accent-cyan, 0.85), rgba($accent-indigo, 0.85));
+    color: $text-primary;
+    box-shadow: 0 2px 12px rgba($accent-cyan, 0.2);
+    &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba($accent-cyan, 0.3); }
   }
 }
 
-.context-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #c0c0e0;
-  margin: 0 0 10px;
+/* ===== 通用动画 ===== */
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cardAppear { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalEnter { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes breathPulse {
+  0%,100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes pulseBorder {
+  0%,100% { box-shadow: 0 0 28px rgba($color-warning, 0.12); }
+  50% { box-shadow: 0 0 40px rgba($color-warning, 0.25); }
+}
+@keyframes pulseDot {
+  0%,100% { box-shadow: 0 0 0 0 rgba($accent-amber, 0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px rgba($accent-amber, 0); transform: scale(1.1); }
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+.btn-spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: $text-primary;
+  border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.25s ease; }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ===== 过渡动画 ===== */
+.card-trans-enter-active { transition: all 0.3s ease; }
+.card-trans-leave-active { transition: all 0.2s ease; position: absolute; }
+.card-trans-enter-from { opacity: 0; transform: translateY(16px); }
+.card-trans-leave-to { opacity: 0; transform: scale(0.95); }
+.card-trans-move { transition: transform 0.3s ease; }
+
+.log-trans-enter-active { transition: all 0.3s ease; }
+.log-trans-leave-active { transition: all 0.2s ease; }
+.log-trans-enter-from { opacity: 0; transform: translateX(-12px); }
+.log-trans-leave-to { opacity: 0; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .sidebar { width: 180px; }
+  .history-drawer { width: 360px; }
+  .top-bar-center { max-width: 280px; }
+  .workspace-content { padding: 12px; }
+  .conv-msg { max-width: 92%; }
+  .wc-input { padding: 2px 2px 2px 10px; }
+  .welcome-cards { grid-template-columns: 1fr; }
+  .cmsg { max-width: 92%; }
+  .tab-name { max-width: 80px; }
 }
 
-.context-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: #e0e0ff;
+@media (max-width: 640px) {
+  .top-bar { padding: 8px 12px; gap: 8px; }
+  .top-bar-center { display: none; }
+  .sidebar { width: 0; position: absolute; z-index: 50; }
+  .history-drawer { width: 100%; }
+  .workspace-content { padding: 10px; }
+  .tab-bar { padding: 2px 4px; }
+  .tab-item { padding: 2px 6px 2px 4px; }
 }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-
-  &.online, &.idle { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
-  &.thinking, &.generating { background: #f59e0b; animation: pulse 1s ease-in-out infinite; }
-  &.searching, &.executing { background: #3b82f6; }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.context-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.72rem;
-  color: #9090b0;
-  margin-bottom: 6px;
-
-  .stat-value {
-    color: #00f5d4;
-    font-weight: 500;
-  }
-}
-
-.token-bar {
-  height: 4px;
-  background: rgba(123, 97, 255, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.token-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #7b61ff, #00f5d4);
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-
-.token-text {
-  font-size: 0.65rem;
-  color: #707090;
-  text-align: center;
+/* Legacy responsive */
+@media (max-width: 768px) {
+  .uniform-grid { grid-template-columns: 1fr; }
+  .agent-card.span-2 { grid-column: span 1; }
+  .command-wrap { flex-direction: column; align-items: stretch; }
+  .command-icon { display: none; }
+  .command-btn { align-self: flex-end; }
+  .terminal-output { max-height: 300px; }
 }
 </style>

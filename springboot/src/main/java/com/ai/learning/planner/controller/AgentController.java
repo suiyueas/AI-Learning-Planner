@@ -1,12 +1,14 @@
 package com.ai.learning.planner.controller;
 
 import com.ai.learning.planner.agent.dto.AgentInfo;
+import com.ai.learning.planner.agent.dto.ReasoningLevel;
 import com.ai.learning.planner.agent.dto.TaskRequest;
 import com.ai.learning.planner.agent.dto.TaskResult;
 import com.ai.learning.planner.agent.orchestrator.Orchestrator;
 import com.ai.learning.planner.dto.AgentExecutionRequest;
 import com.ai.learning.planner.dto.ApiResponse;
 import com.ai.learning.planner.entity.AgentExecution;
+import com.ai.learning.planner.interceptor.PointsInterceptor;
 import com.ai.learning.planner.security.AuditService;
 import com.ai.learning.planner.security.SecurityContextHolder;
 import com.ai.learning.planner.service.AgentService;
@@ -19,8 +21,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+import jakarta.annotation.PreDestroy;
 
 /**
  * 智能体控制器
@@ -35,17 +41,37 @@ public class AgentController {
     private final AgentService agentService;
     private final AuditService auditService;
     private final SecurityContextHolder securityContextHolder;
+    private final PointsInterceptor pointsInterceptor;
     private final Executor taskExecutor;
+
+    /** 跟踪活跃的 SSE 连接，用于优雅关闭 */
+    private final Set<SseEmitter> activeEmitters = ConcurrentHashMap.newKeySet();
+    /** 并发 SSE 连接数限制 */
+    private final Semaphore sseSemaphore = new Semaphore(30, true);
+    private static final long SSE_TIMEOUT_MS = 300_000L; // 5 分钟
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("[SSE] 应用关闭，清理 {} 个活跃 Agent SSE 连接", activeEmitters.size());
+        activeEmitters.forEach(emitter -> {
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
+        activeEmitters.clear();
+    }
 
     public AgentController(Orchestrator orchestrator,
                           AgentService agentService,
                           AuditService auditService,
                           SecurityContextHolder securityContextHolder,
+                          PointsInterceptor pointsInterceptor,
                           Executor taskExecutor) {
         this.orchestrator = orchestrator;
         this.agentService = agentService;
         this.auditService = auditService;
         this.securityContextHolder = securityContextHolder;
+        this.pointsInterceptor = pointsInterceptor;
         this.taskExecutor = taskExecutor;
         log.info("AgentController 初始化完成，使用 Spring 管理的任务执行器");
     }
@@ -78,12 +104,20 @@ public class AgentController {
      */
     @PostMapping("/execute")
     public ApiResponse<TaskResult> executeTask(@Valid @RequestBody TaskRequest request) {
-        log.info("执行任务: agentId={}, message={}", request.getAgentId(), request.getMessage());
+        log.info("执行任务: agentId={}, message={}, reasoningLevel={}",
+                request.getAgentId(), request.getMessage(), request.getReasoningLevel());
         String userId = securityContextHolder.getCurrentUserId();
         long start = System.currentTimeMillis();
         try {
+            // 积分检查：普通用户每次Agent调用消耗积分
+            if (userId != null) {
+                Long userIdLong = Long.parseLong(userId);
+                pointsInterceptor.checkAndConsumeByFeature(userIdLong, "AGENT");
+            }
+
+            ReasoningLevel level = ReasoningLevel.fromValue(request.getReasoningLevel());
             TaskResult result = orchestrator.executeTask(
-                    request.getAgentId(), request.getMessage());
+                    request.getAgentId(), request.getMessage(), level);
             auditService.logAgentExecution(userId, request.getAgentId(), request.getMessage(),
                     true, System.currentTimeMillis() - start, null);
             return ApiResponse.success(result);
@@ -101,44 +135,60 @@ public class AgentController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamTask(
             @RequestParam String agentId,
-            @RequestParam String message) {
-        log.info("流式执行任务: agentId={}, message={}", agentId, message);
+            @RequestParam String message,
+            @RequestParam(defaultValue = "standard") String reasoningLevel) {
+        log.info("流式执行任务: agentId={}, message={}, reasoningLevel={}", agentId, message, reasoningLevel);
 
-        // 创建SseEmitter，超时时间5分钟
-        SseEmitter emitter = new SseEmitter(300000L);
+        // 并发连接数限制
+        if (!sseSemaphore.tryAcquire()) {
+            log.warn("[SSE] 连接数已满，拒绝请求: agentId={}", agentId);
+            SseEmitter rejectEmitter = new SseEmitter(1000L);
+            try {
+                rejectEmitter.send(SseEmitter.event().name("error")
+                        .data(Map.of("message", "服务器连接数已满，请稍后重试")));
+            } catch (Exception ignored) {}
+            rejectEmitter.complete();
+            return rejectEmitter;
+        }
 
-        // 设置超时回调
+        ReasoningLevel level = ReasoningLevel.fromValue(reasoningLevel);
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        activeEmitters.add(emitter);
+
+        Runnable releaseResources = () -> {
+            activeEmitters.remove(emitter);
+            sseSemaphore.release();
+        };
+
         emitter.onTimeout(() -> {
             log.warn("[SSE] 流式任务超时: agentId={}", agentId);
             try {
-                emitter.send(SseEmitter.event()
-                        .name("timeout")
+                emitter.send(SseEmitter.event().name("timeout")
                         .data(Map.of("message", "任务执行超时")));
             } catch (Exception e) {
                 log.warn("[SSE] 超时发送失败: {}", e.getMessage());
             }
             emitter.complete();
+            releaseResources.run();
         });
 
-        // 设置错误回调
         emitter.onError(e -> {
             log.error("[SSE] 流式任务异常: agentId={}", agentId, e);
+            releaseResources.run();
         });
 
-        // 设置完成回调
         emitter.onCompletion(() -> {
             log.info("[SSE] 流式任务完成: agentId={}", agentId);
+            releaseResources.run();
         });
 
-        // 异步执行任务
         taskExecutor.execute(() -> {
             try {
-                orchestrator.executeTaskStream(agentId, message, emitter);
+                orchestrator.executeTaskStream(agentId, message, emitter, level);
             } catch (Exception e) {
                 log.error("[SSE] 流式执行异常: agentId={}", agentId, e);
                 try {
-                    emitter.send(SseEmitter.event()
-                            .name("error")
+                    emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", "执行异常: " + e.getMessage())));
                 } catch (Exception ex) {
                     log.warn("[SSE] 异常发送失败: {}", ex.getMessage());
@@ -157,37 +207,57 @@ public class AgentController {
      */
     @PostMapping(value = "/execute/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter executeStream(@RequestBody TaskRequest request) {
-        log.info("POST流式执行任务: agentId={}, message={}", request.getAgentId(), request.getMessage());
+        log.info("POST流式执行任务: agentId={}, message={}, reasoningLevel={}",
+                request.getAgentId(), request.getMessage(), request.getReasoningLevel());
 
-        SseEmitter emitter = new SseEmitter(300000L);
+        // 并发连接数限制
+        if (!sseSemaphore.tryAcquire()) {
+            log.warn("[SSE] POST连接数已满，拒绝请求: agentId={}", request.getAgentId());
+            SseEmitter rejectEmitter = new SseEmitter(1000L);
+            try {
+                rejectEmitter.send(SseEmitter.event().name("error")
+                        .data(Map.of("message", "服务器连接数已满，请稍后重试")));
+            } catch (Exception ignored) {}
+            rejectEmitter.complete();
+            return rejectEmitter;
+        }
+
+        ReasoningLevel level = ReasoningLevel.fromValue(request.getReasoningLevel());
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        activeEmitters.add(emitter);
+
+        Runnable releaseResources = () -> {
+            activeEmitters.remove(emitter);
+            sseSemaphore.release();
+        };
 
         emitter.onTimeout(() -> {
             log.warn("[SSE] POST流式任务超时: agentId={}", request.getAgentId());
             emitter.complete();
+            releaseResources.run();
         });
 
         emitter.onError(e -> {
             log.error("[SSE] POST流式任务异常: agentId={}", request.getAgentId(), e);
+            releaseResources.run();
         });
+
+        emitter.onCompletion(releaseResources::run);
 
         CompletableFuture.runAsync(() -> {
             try {
-                // 发送开始事件
-                emitter.send(SseEmitter.event()
-                        .name("start")
+                emitter.send(SseEmitter.event().name("start")
                         .data(Map.of(
                                 "agentId", request.getAgentId(),
                                 "message", request.getMessage(),
+                                "reasoningLevel", level.getValue(),
                                 "state", "RUNNING"
                         )));
-
-                // 执行流式任务
-                orchestrator.executeTaskStream(request.getAgentId(), request.getMessage(), emitter);
+                orchestrator.executeTaskStream(request.getAgentId(), request.getMessage(), emitter, level);
             } catch (Exception e) {
                 log.error("[SSE] POST流式执行异常: agentId={}", request.getAgentId(), e);
                 try {
-                    emitter.send(SseEmitter.event()
-                            .name("error")
+                    emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", "执行异常: " + e.getMessage())));
                 } catch (Exception ex) {
                     log.warn("[SSE] 异常发送失败: {}", ex.getMessage());
@@ -195,10 +265,47 @@ public class AgentController {
             } finally {
                 try {
                     emitter.complete();
-                } catch (Exception ignored) {
-                }
+                } catch (Exception ignored) {}
             }
         }, taskExecutor);
+
+        return emitter;
+    }
+
+    /**
+     * 多Agent编排执行（SSE流式）
+     * 将复杂任务拆解为多个子任务，并行分配给多个Agent，聚合结果
+     */
+    @PostMapping(value = "/orchestrate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter orchestrateTask(@RequestBody Map<String, String> request) {
+        String message = request.get("message");
+        log.info("多Agent编排: message={}", message);
+
+        if (!sseSemaphore.tryAcquire()) {
+            log.warn("[SSE] 连接数已满，拒绝编排请求");
+            SseEmitter rejectEmitter = new SseEmitter(1000L);
+            try { rejectEmitter.send(SseEmitter.event().name("error").data(Map.of("message", "服务器连接数已满")));
+            } catch (Exception ignored) {}
+            rejectEmitter.complete();
+            return rejectEmitter;
+        }
+
+        SseEmitter emitter = new SseEmitter(600_000L); // 10分钟超时
+        activeEmitters.add(emitter);
+
+        Runnable releaseResources = () -> { activeEmitters.remove(emitter); sseSemaphore.release(); };
+        emitter.onTimeout(() -> { try { emitter.send(SseEmitter.event().name("timeout").data(Map.of("message", "编排超时"))); } catch (Exception ignored) {} emitter.complete(); releaseResources.run(); });
+        emitter.onError(e -> releaseResources.run());
+        emitter.onCompletion(releaseResources::run);
+
+        taskExecutor.execute(() -> {
+            try {
+                orchestrator.executeMultiAgentStream(message, emitter);
+            } catch (Exception e) {
+                log.error("编排异常", e);
+                try { emitter.send(SseEmitter.event().name("error").data(Map.of("message", "编排异常: " + e.getMessage()))); } catch (Exception ex) { log.warn("异常发送失败", ex); }
+            } finally { emitter.complete(); }
+        });
 
         return emitter;
     }

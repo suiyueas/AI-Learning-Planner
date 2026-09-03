@@ -1,32 +1,33 @@
 ﻿<template>
   <div class="profile-page">
-    <div class="bg-aurora">
-      <div class="aurora-layer aurora-1"></div>
-      <div class="aurora-layer aurora-2"></div>
-    </div>
-
     <div class="profile-container">
-      <!-- 顶部：返回按钮 + 标题 -->
-      <div class="profile-header">
-        <button class="back-btn" title="返回上一页" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-        </button>
-        <h1 class="header-title">个人信息</h1>
-        <div class="header-actions">
-          <button class="header-action-btn" title="编辑资料" @click="scrollToForm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
+      <!-- 顶部：标题（统一规范） -->
+      <header class="page-header">
+        <div class="header-row">
+          <div class="header-left">
+            <h1 class="page-title">
+              <span class="title-glyph">👤</span>
+              <span>个人信息</span>
+              <span class="title-sub">管理个人资料与偏好设置</span>
+            </h1>
+          </div>
+          <div class="header-right">
+            <button class="header-action-btn" title="编辑资料" @click="scrollToForm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              <span>编辑资料</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <!-- 头像区域（居中） -->
+      <!-- 头像区域（居中） - 增强版 -->
       <div class="avatar-section glass-card">
+        <!-- 呼吸光球背景 -->
+        <div class="avatar-breathing-glow"></div>
+        <div class="avatar-pulse-ring"></div>
         <!-- 骨架屏 -->
         <div v-if="isLoadingProfile" class="avatar-main skeleton-avatar"></div>
         <div v-else class="avatar-main">
@@ -457,6 +458,14 @@ const retryAchievements = () => {
   achievementStore.fetchAchievements()
 }
 
+// 粒子样式生成（增强版）
+const particleStyle = (i) => ({
+  left: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 20}s`,
+  animationDuration: `${15 + Math.random() * 25}s`,
+  opacity: 0.2 + Math.random() * 0.4
+})
+
 onMounted(async () => {
   // 并行加载所有数据
   await Promise.all([
@@ -473,20 +482,6 @@ onMounted(async () => {
   // 加载干预阈值偏好
   loadInterventionPreferences()
 })
-
-/**
- * 返回上一页
- */
-function goBack() {
-  const from = route.query.from
-  if (from) {
-    router.push(from)
-  } else if (window.history.length > 1) {
-    router.go(-1)
-  } else {
-    router.push('/home')
-  }
-}
 
 /**
  * 滚动到编辑表单区域
@@ -607,14 +602,59 @@ async function handleLogout() {
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
+
 .profile-page {
   min-height: calc(100vh - 80px);
   position: relative;
   overflow: hidden;
   padding: 24px;
-  background: $bg-primary;
 }
 
+/* ===== 粒子背景（增强版 - 双色发光） ===== */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  animation: particle-float 20s linear infinite;
+  
+  &.cyan {
+    background: rgba(0, 245, 212, 0.6);
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.5), 0 0 20px rgba(0, 245, 212, 0.3);
+  }
+  
+  &.purple {
+    background: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ===== 极光背景（增强版） ===== */
 .bg-aurora {
   position: fixed;
   inset: 0;
@@ -625,32 +665,53 @@ async function handleLogout() {
 .aurora-layer {
   position: absolute;
   border-radius: 50%;
-  filter: blur(120px);
-  animation: aurora 20s ease-in-out infinite;
+  filter: blur(150px);
+  animation: aurora 25s ease-in-out infinite;
 }
 
 .aurora-1 {
-  width: 500px;
-  height: 500px;
-  top: -100px;
-  right: -50px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.08) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  right: -100px;
+  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
 }
 
 .aurora-2 {
+  width: 500px;
+  height: 500px;
+  bottom: -150px;
+  left: -100px;
+  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
+  animation-delay: -8s;
+}
+
+.aurora-3 {
   width: 400px;
   height: 400px;
-  bottom: -100px;
-  left: -50px;
-  background: radial-gradient(circle, rgba(123, 97, 255, 0.07) 0%, transparent 70%);
-  animation-delay: -7s;
+  top: 40%;
+  left: 40%;
+  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
+  animation-delay: -15s;
 }
 
 @keyframes aurora {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(30px, -30px) scale(1.1); }
-  50% { transform: translate(-20px, 20px) scale(0.95); }
-  75% { transform: translate(20px, 10px) scale(1.05); }
+  25% { transform: translate(40px, -40px) scale(1.15); }
+  50% { transform: translate(-30px, 30px) scale(0.9); }
+  75% { transform: translate(25px, 15px) scale(1.1); }
+}
+
+/* ===== 网格纹理 ===== */
+.bg-grid-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
 .profile-container {
@@ -663,87 +724,95 @@ async function handleLogout() {
   gap: 20px;
 }
 
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 4px 0;
-}
+/* ===== 页面头部（统一规范） ===== */
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
+  @include page-header-btn-ghost;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   justify-content: center;
-  background: rgba($bg-primary, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba($accent-secondary, 0.12);
-  border-radius: 12px;
-  color: $text-secondary;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  flex-shrink: 0;
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.2);
+  color: $accent-indigo;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.3);
-    color: $accent-primary;
+    border-color: rgba($accent-indigo, 0.35);
+    color: $accent-indigo-light;
+    background: rgba($accent-indigo, 0.15);
     transform: translateX(-2px);
-    box-shadow: 0 0 20px rgba($accent-primary, 0.12);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
   }
 }
 
-.header-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: $text-primary;
-  flex: 1;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .header-action-btn {
+  @include page-header-btn-ghost;
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
+  padding: 0;
   justify-content: center;
-  background: rgba($bg-primary, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba($accent-secondary, 0.12);
-  border-radius: 10px;
-  color: $text-secondary;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.2);
+  color: $accent-indigo;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.25);
-    color: $accent-primary;
-    box-shadow: 0 0 16px rgba($accent-primary, 0.1);
+    border-color: rgba($accent-indigo, 0.35);
+    color: $accent-indigo-light;
+    background: rgba($accent-indigo, 0.15);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
   }
 }
 
 .glass-card {
+  position: relative;
   background: rgba($bg-primary, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba($accent-secondary, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.25s ease;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
 
   &:hover {
-    box-shadow: 0 8px 32px rgba($accent-primary, 0.08);
-    border-color: rgba($accent-primary, 0.15);
+    border-color: rgba($accent-secondary, 0.18);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   }
 }
 
+
+
 .avatar-section {
+  position: relative;
   padding: 32px 24px 24px;
   text-align: center;
+  overflow: hidden;
+}
+
+/* 呼吸光球背景（简化） */
+.avatar-breathing-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba($accent-primary, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.avatar-pulse-ring {
+  display: none;
+}
+
+@keyframes avatarBreathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 
 .avatar-main {
@@ -785,8 +854,8 @@ async function handleLogout() {
   color: $accent-primary;
   font-weight: 500;
   padding: 6px 16px;
-  background: rgba($accent-primary, 0.08);
-  border: 1px solid rgba($accent-primary, 0.12);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.1);
   border-radius: 20px;
   margin-bottom: 8px;
 }
@@ -802,22 +871,26 @@ async function handleLogout() {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   padding: 0 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-card-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 14px 8px;
-  background: rgba($accent-secondary, 0.05);
+  background: rgba($bg-primary, 0.6);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($accent-primary, 0.04);
-    border-color: rgba($accent-primary, 0.12);
+    background: rgba($bg-primary, 0.8);
+    border-color: rgba($accent-secondary, 0.18);
     transform: translateY(-2px);
   }
 }
@@ -826,16 +899,14 @@ async function handleLogout() {
   font-size: 1.5rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
-  background: linear-gradient(135deg, $accent-primary, #3a86ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: $accent-primary;
+  text-shadow: 0 0 12px rgba($accent-primary, 0.2);
   line-height: 1.2;
 }
 
 .stat-card-label {
   font-size: 0.75rem;
-  color: #a0a0c8;
+  color: $text-secondary;
   font-weight: 500;
 }
 
@@ -869,7 +940,7 @@ async function handleLogout() {
   color: $text-primary;
   margin: 0 0 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba($accent-secondary, 0.08);
+  border-bottom: 1px solid rgba($accent-secondary, 0.06);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -890,14 +961,14 @@ async function handleLogout() {
 .form-label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #a0a0c8;
+  color: $text-secondary;
 }
 
 .form-input,
 .form-textarea {
   padding: 10px 14px;
-  background: rgba($accent-secondary, 0.06);
-  border: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   font-size: 0.9rem;
   color: $text-primary;
@@ -937,20 +1008,20 @@ async function handleLogout() {
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, $accent-primary, #3a86ff);
-  color: #fff;
-  border: none;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.2);
+  color: $accent-primary;
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba($accent-primary, 0.2);
   align-self: flex-start;
 
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba($accent-primary, 0.3);
+    background: linear-gradient(135deg, rgba($accent-primary, 0.25), rgba(0, 85, 255, 0.15));
+    border-color: rgba($accent-primary, 0.35);
+    transform: translateY(-1px);
   }
 
   &:disabled {
@@ -970,7 +1041,7 @@ async function handleLogout() {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid rgba($accent-secondary, 0.06);
+  border-bottom: 1px solid rgba($accent-secondary, 0.04);
 
   &:last-child {
     border-bottom: none;
@@ -990,7 +1061,7 @@ async function handleLogout() {
 
 .stats-row-label {
   font-size: 0.85rem;
-  color: #a0a0c8;
+  color: $text-secondary;
 }
 
 .stats-row-value {
@@ -1003,7 +1074,7 @@ async function handleLogout() {
 .progress-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba($accent-secondary, 0.06);
+  border-top: 1px solid rgba($accent-secondary, 0.04);
 }
 
 .progress-header {
@@ -1015,18 +1086,17 @@ async function handleLogout() {
 
 .progress-title {
   font-size: 0.85rem;
-  color: #a0a0c8;
+  color: $text-secondary;
 }
 
 .progress-percent {
   font-size: 0.85rem;
   font-weight: 600;
   color: $accent-primary;
-  font-family: 'JetBrains Mono', monospace;
 }
 
 .progress-bar {
-  height: 8px;
+  height: 6px;
   background: rgba($accent-secondary, 0.08);
   border-radius: 4px;
   overflow: hidden;
@@ -1034,7 +1104,7 @@ async function handleLogout() {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $accent-primary, #3a86ff);
+  background: $accent-primary;
   border-radius: 4px;
   transition: width 1s ease;
 }
@@ -1063,7 +1133,6 @@ async function handleLogout() {
   border-radius: 20px;
   color: $accent-primary;
   margin-left: auto;
-  font-family: 'JetBrains Mono', monospace;
 }
 
 .skeleton-badge {
@@ -1089,7 +1158,8 @@ async function handleLogout() {
   align-items: center;
   gap: 8px;
   padding: 16px 12px;
-  background: rgba($accent-secondary, 0.04);
+  background: rgba($bg-primary, 0.5);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 12px;
   text-align: center;
@@ -1097,20 +1167,16 @@ async function handleLogout() {
   position: relative;
 
   &.unlocked {
-    background: rgba($accent-primary, 0.04);
-    border-color: rgba($accent-primary, 0.12);
+    border-color: rgba($accent-primary, 0.15);
 
     &:hover {
-      background: rgba($accent-primary, 0.08);
-      border-color: rgba($accent-primary, 0.2);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba($accent-primary, 0.1);
+      border-color: rgba($accent-primary, 0.3);
+      transform: translateY(-2px);
     }
   }
 
   &:not(.unlocked) {
-    opacity: 0.7;
-    filter: grayscale(0.5);
+    opacity: 0.5;
   }
 }
 
@@ -1136,15 +1202,9 @@ async function handleLogout() {
   justify-content: center;
   font-size: 1.5rem;
   background: rgba($accent-secondary, 0.06);
-  border: 1px solid rgba($accent-secondary, 0.1);
   border-radius: 12px;
   flex-shrink: 0;
   transition: all 0.3s ease;
-
-  .unlocked & {
-    background: rgba($accent-primary, 0.08);
-    border-color: rgba($accent-primary, 0.15);
-  }
 
   &.locked {
     opacity: 0.5;
@@ -1186,8 +1246,8 @@ async function handleLogout() {
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  border: 1px solid rgba(255, 64, 96, 0.25);
-  background: rgba($bg-primary, 0.6);
+  border: 1px solid rgba(255, 64, 96, 0.2);
+  background: rgba($bg-primary, 0.5);
   backdrop-filter: blur(12px);
   color: #ff4060;
   border-radius: 12px;
@@ -1197,10 +1257,9 @@ async function handleLogout() {
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 64, 96, 0.08);
-    border-color: rgba(255, 64, 96, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(255, 64, 96, 0.12);
+    background: rgba(255, 64, 96, 0.06);
+    border-color: rgba(255, 64, 96, 0.35);
+    transform: translateY(-1px);
   }
 }
 
@@ -1375,7 +1434,7 @@ async function handleLogout() {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba($accent-secondary, 0.04);
+  background: rgba($bg-primary, 0.4);
   border: 1px solid rgba($accent-secondary, 0.08);
   border-radius: 10px;
   margin-bottom: 16px;

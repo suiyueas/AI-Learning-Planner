@@ -1,7 +1,9 @@
 package com.ai.learning.planner.service;
 
+import com.ai.learning.planner.entity.CheckinRecord;
 import com.ai.learning.planner.entity.LearningEvent;
 import com.ai.learning.planner.entity.ToolExecutionRecord;
+import com.ai.learning.planner.repository.CheckinRecordRepository;
 import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
 import com.ai.learning.planner.repository.LearningEventRepository;
 import com.ai.learning.planner.repository.ToolExecutionRecordRepository;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class AchievementService {
 
     private final LearningEventRepository learningEventRepository;
+    private final CheckinRecordRepository checkinRecordRepository;
     private final ToolExecutionRecordRepository toolExecutionRecordRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
 
@@ -81,11 +84,12 @@ public class AchievementService {
                 .map(event -> event.getEventKey())
                 .collect(Collectors.toSet());
 
-        List<LearningEvent> checkinEvents = getCheckinEvents(userId);
-        int totalCheckins = checkinEvents.size();
-        int streak = calculateCheckinStreak(checkinEvents);
-        int earlyBirdCount = countEarlyBirdCheckins(checkinEvents);
-        int nightOwlCount = countNightOwlCheckins(checkinEvents);
+        // 从 checkin_records 表获取打卡数据（统一数据源）
+        List<CheckinRecord> checkinRecords = getCheckinRecords(userId);
+        int totalCheckins = checkinRecords.size();
+        int streak = calculateCheckinStreak(checkinRecords);
+        int earlyBirdCount = countEarlyBirdCheckins(checkinRecords);
+        int nightOwlCount = countNightOwlCheckins(checkinRecords);
         int distinctTools = countDistinctTools(userId);
         long documentCount = countUserDocuments(userId);
 
@@ -128,27 +132,34 @@ public class AchievementService {
         return result;
     }
 
-    public LearningEvent doCheckIn(String userId) {
-        LearningEvent checkinEvent = LearningEvent.builder()
-                .id(UUID.randomUUID().toString())
-                .userId(userId)
-                .eventType("checkin")
-                .eventKey("checkin_" + System.currentTimeMillis())
-                .description("每日打卡")
-                .createdAt(LocalDateTime.now())
-                .build();
-        return learningEventRepository.save(checkinEvent);
+    /**
+     * 获取用户打卡记录（从 checkin_records 表）
+     */
+    public List<CheckinRecord> getCheckinRecords(Long userId) {
+        return checkinRecordRepository.findByUserIdOrderByCheckinDateDesc(userId);
     }
 
-    public List<LearningEvent> getCheckinEvents(String userId) {
-        return learningEventRepository.findByUserIdAndEventTypeOrderByCreatedAtDesc(userId, "checkin");
+    /**
+     * 获取用户打卡记录（内部方法，String userId 兼容）
+     */
+    private List<CheckinRecord> getCheckinRecords(String userId) {
+        try {
+            Long userIdLong = Long.parseLong(userId);
+            return checkinRecordRepository.findByUserIdOrderByCheckinDateDesc(userIdLong);
+        } catch (NumberFormatException e) {
+            log.warn("Invalid userId format: {}", userId);
+            return Collections.emptyList();
+        }
     }
 
-    private int calculateCheckinStreak(List<LearningEvent> checkinEvents) {
-        if (checkinEvents.isEmpty()) return 0;
+    /**
+     * 计算连续打卡天数（从 checkin_records 表）
+     */
+    private int calculateCheckinStreak(List<CheckinRecord> checkinRecords) {
+        if (checkinRecords.isEmpty()) return 0;
 
-        Set<LocalDate> checkinDates = checkinEvents.stream()
-                .map(e -> e.getCreatedAt().toLocalDate())
+        Set<LocalDate> checkinDates = checkinRecords.stream()
+                .map(CheckinRecord::getCheckinDate)
                 .collect(Collectors.toSet());
 
         List<LocalDate> sortedDates = new ArrayList<>(checkinDates);
@@ -168,16 +179,24 @@ public class AchievementService {
         return streak;
     }
 
-    private int countEarlyBirdCheckins(List<LearningEvent> checkinEvents) {
-        return (int) checkinEvents.stream()
-                .filter(e -> e.getCreatedAt().toLocalTime().isBefore(LocalTime.of(8, 0)))
-                .count();
+    /**
+     * 统计早起打卡次数（从 checkin_records 表）
+     * 注意：checkin_records 表只有日期没有时间，这里简化处理返回0
+     * 如需精确统计早起/夜猫子，需要在 checkin_records 表中添加时间字段
+     */
+    private int countEarlyBirdCheckins(List<CheckinRecord> checkinRecords) {
+        // checkin_records 表只有日期，无法判断具体打卡时间
+        // 暂时返回0，如需此功能需要扩展表结构
+        return 0;
     }
 
-    private int countNightOwlCheckins(List<LearningEvent> checkinEvents) {
-        return (int) checkinEvents.stream()
-                .filter(e -> e.getCreatedAt().toLocalTime().isAfter(LocalTime.of(23, 0)))
-                .count();
+    /**
+     * 统计夜猫子打卡次数（从 checkin_records 表）
+     */
+    private int countNightOwlCheckins(List<CheckinRecord> checkinRecords) {
+        // checkin_records 表只有日期，无法判断具体打卡时间
+        // 暂时返回0，如需此功能需要扩展表结构
+        return 0;
     }
 
     private int countDistinctTools(String userId) {

@@ -120,8 +120,8 @@ service.interceptors.response.use(
       }
     } else if (error.code === 'ECONNABORTED') {
       errorMessage = '请求超时，请稍后重试'
-    } else if (error.message.includes('Network Error')) {
-      errorMessage = '网络连接异常，请检查网络'
+    } else if (error.message.includes('Network Error') || error.message.includes('ECONNREFUSED')) {
+      errorMessage = '后端服务未启动，请确保服务器正在运行'
     }
 
     // 将具体错误信息挂到 error.message，使调用方 catch(e) 能拿到真实原因
@@ -197,26 +197,6 @@ export const upload = (url, file, onProgress = null) => {
         onProgress(percentCompleted)
       }
     }
-  })
-}
-
-// 封装文件下载
-export const download = (url, params = {}, filename = '') => {
-  return service({
-    method: 'get',
-    url,
-    params,
-    responseType: 'blob'
-  }).then((response) => {
-    const blob = new Blob([response])
-    const downloadUrl = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = filename || 'download'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(downloadUrl)
   })
 }
 

@@ -1,11 +1,12 @@
 // ============================================
-// 全局样式 · 智能暖色
-// 深色背景 + 金色光晕 + 科技深度
+// 知途 (Zhitu) · 全局样式
+// 清新科技风 · Vercel/Supabase 风格
 // ============================================
 
 @use 'sass:color';
 @use './variables' as *;
-@import './interactions.css';
+@use './_mixins' as *;
+@use './_animations' as *;
 
 // ============================================
 // 基础重置
@@ -23,44 +24,17 @@ html {
 
 body {
   font-family: $font-sans;
-  background: $bg-primary;
+  background: $bg-base;
   color: $text-primary;
-  line-height: 1.6;
+  line-height: $leading-normal;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-// 科技感网格纹理
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
-  background-size: 80px 80px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-// 暖色光晕背景
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba($accent-primary, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba($accent-blue, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 60% at 20% 80%, rgba($accent-purple, 0.03) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+  font-size: $text-base;
 }
 
 #app {
-  position: relative;
-  z-index: 1;
   min-height: 100vh;
 }
 
@@ -68,12 +42,12 @@ body::after {
 // 链接
 // ============================================
 a {
-  color: $accent-primary;
+  color: $accent-indigo;
   text-decoration: none;
   transition: color $transition-fast;
 
   &:hover {
-    color: lighten($accent-primary, 10%);
+    color: $accent-indigo-light;
   }
 }
 
@@ -83,18 +57,9 @@ a {
 h1, h2, h3, h4, h5, h6 {
   font-family: $font-display;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: $leading-tight;
   color: $text-primary;
-  letter-spacing: 0.01em;
-}
-
-// ============================================
-// 段落
-// ============================================
-p, .description, .card-text {
-  color: $text-secondary;
-  font-weight: 400;
-  line-height: 1.7;
+  letter-spacing: -0.01em;
 }
 
 // ============================================
@@ -102,22 +67,23 @@ p, .description, .card-text {
 // ============================================
 code, pre {
   font-family: $font-mono;
-  font-size: 0.88em;
+  font-size: 0.875em;
 }
 
 code {
-  background: rgba($accent-primary, 0.1);
+  background: rgba($accent-indigo, 0.1);
   padding: 2px 6px;
-  border-radius: 4px;
-  color: $accent-primary;
+  border-radius: $radius-xs;
+  color: $accent-indigo-light;
 }
 
 pre {
-  background: $bg-elevated;
-  border: 1px solid $border-subtle;
+  background: $bg-base;
+  border: 1px solid $border-default;
   border-radius: $radius-md;
-  padding: $space-md;
+  padding: $space-4;
   overflow-x: auto;
+  line-height: 1.6;
 
   code {
     background: none;
@@ -162,23 +128,23 @@ input, textarea, select {
   font-family: inherit;
   font-size: inherit;
   color: $text-primary;
-  background: $bg-surface;
-  border: 1px solid $border-subtle;
-  border-radius: $radius-sm;
+  background: $bg-base;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
   outline: none;
   transition: border-color $transition-fast, box-shadow $transition-fast;
 
   &:focus {
-    border-color: $accent-primary;
-    box-shadow: 0 0 0 3px rgba($accent-primary, 0.1), 0 0 20px rgba($accent-primary, 0.05);
+    border-color: $border-focus;
+    box-shadow: $glow-focus;
   }
 }
 
 // ============================================
-// 选择文本颜色
+// 选中文本颜色
 // ============================================
 ::selection {
-  background: rgba($accent-primary, 0.25);
+  background: rgba($accent-indigo, 0.25);
   color: $text-primary;
 }
 
@@ -186,8 +152,8 @@ input, textarea, select {
 // 滚动条
 // ============================================
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -195,189 +161,60 @@ input, textarea, select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba($accent-primary, 0.15);
+  background: $border-medium;
   border-radius: 3px;
 
   &:hover {
-    background: rgba($accent-primary, 0.3);
+    background: $text-muted;
   }
 }
 
 // ============================================
-// 核心动效关键帧
+// 通用样式类
 // ============================================
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.text-truncate {
+  @include text-truncate;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.text-center {
+  text-align: center;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba($accent-primary, 0.1); }
-  50% { box-shadow: 0 0 40px rgba($accent-primary, 0.2); }
-}
-
-// ============================================
-// 工具类
-// ============================================
-.fade-in { animation: fadeIn 0.4s ease; }
-.fade-in-up { animation: fadeInUp 0.4s ease; }
-.slide-in-left { animation: slideInLeft 0.3s ease; }
-.slide-in-right { animation: slideInRight 0.3s ease; }
-
-.gradient-text {
-  background: linear-gradient(135deg, $accent-primary 0%, lighten($accent-primary, 15%) 50%, $accent-secondary 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-// ============================================
-// 玻璃态卡片
-// ============================================
-.glass-card {
-  @include card-base;
-
-  // 顶部高光线
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba($accent-primary, 0.2), transparent);
-    pointer-events: none;
-  }
-}
-
-// 扫光效果
-.sweep-card {
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      45deg,
-      transparent 40%,
-      rgba($accent-primary, 0.03) 45%,
-      rgba($accent-primary, 0.06) 50%,
-      rgba($accent-primary, 0.03) 55%,
-      transparent 60%
-    );
-    transform: translateX(-100%) rotate(0deg);
-    transition: transform 0.8s ease;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  &:hover::before {
-    transform: translateX(100%) rotate(0deg);
-  }
-}
-
-// 呼吸发光
-.breathing-glow {
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
-// 分割线
-.divider {
+.sr-only {
+  position: absolute;
+  width: 1px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, $border-subtle, transparent);
-  margin: $space-lg 0;
-}
-
-// ============================================
-// 通用组件样式
-// ============================================
-
-// 进度条
-.progress-bar {
-  height: 6px;
-  background: rgba($accent-primary, 0.1);
-  border-radius: $radius-full;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-
-  &__fill {
-    height: 100%;
-    background: linear-gradient(90deg, $accent-primary, $accent-secondary);
-    border-radius: $radius-full;
-    transition: width 0.8s ease;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      animation: shimmer 2s infinite;
-    }
-  }
-}
-
-// 卡片网格
-.card-grid {
-  display: grid;
-  gap: $space-lg;
-
-  &--2 { grid-template-columns: repeat(2, 1fr); }
-  &--3 { grid-template-columns: repeat(3, 1fr); }
-  &--4 { grid-template-columns: repeat(4, 1fr); }
-  &--auto {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 // ============================================
 // Element Plus 深色主题覆盖
 // ============================================
 
+// 强制深色背景
+html, body, #app {
+  background-color: $bg-base !important;
+}
+
 // 下拉面板
 .el-select-dropdown,
 .el-dropdown-menu,
 .el-picker-panel,
-.el-date-picker,
-.el-time-panel,
 .el-popover,
 .el-tooltip__popper,
 .el-popper {
   background-color: $bg-elevated !important;
-  border-color: $border-subtle !important;
+  border-color: $border-default !important;
 }
 
 .el-select-dropdown {
-  background: rgba($bg-elevated, 0.98) !important;
-  backdrop-filter: blur(16px);
-  border: 1px solid $border-subtle !important;
+  background: $bg-elevated !important;
+  border: 1px solid $border-default !important;
   border-radius: $radius-md !important;
   box-shadow: $shadow-lg !important;
   padding: 4px !important;
@@ -385,88 +222,65 @@ input, textarea, select {
 
 .el-select-dropdown__item {
   color: $text-secondary !important;
-  font-size: 13px;
+  font-size: $text-sm;
   border-radius: $radius-sm;
   padding: 6px 12px;
   margin: 2px 0;
 
   &:hover {
-    background: rgba($accent-primary, 0.1) !important;
+    background: rgba($accent-indigo, 0.1) !important;
     color: $text-primary !important;
   }
   &.selected {
-    color: $accent-primary !important;
-    background: rgba($accent-primary, 0.08) !important;
+    color: $accent-indigo !important;
+    background: rgba($accent-indigo, 0.08) !important;
     font-weight: 600;
   }
-}
-
-// 强制深色背景
-html, body, #app {
-  background-color: $bg-primary !important;
 }
 
 // 按钮
 .el-button {
+  font-weight: 500;
+  border-radius: $radius-md;
+
   &--primary {
-    background: linear-gradient(135deg, $accent-primary, darken($accent-primary, 8%));
-    border: 1px solid transparent;
-    color: #1a1d24;
-    font-weight: 600;
-    position: relative;
-    overflow: hidden;
+    background: $accent-indigo;
+    border-color: $accent-indigo;
+    color: $text-inverse;
 
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1), transparent);
-      opacity: 0;
-      transition: opacity $transition-normal;
-    }
-
-    &:hover {
-      background: linear-gradient(135deg, lighten($accent-primary, 5%), $accent-primary);
-      border-color: transparent;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba($accent-primary, 0.3);
-
-      &::after { opacity: 1; }
+    &:hover, &:focus {
+      background: $accent-indigo-light;
+      border-color: $accent-indigo-light;
     }
   }
 
   &--default {
-    background: $bg-elevated;
-    border-color: $border-subtle;
+    background: $bg-surface;
+    border-color: $border-default;
     color: $text-secondary;
 
     &:hover {
       border-color: $border-medium;
       color: $text-primary;
-      background: rgba($accent-primary, 0.08);
+      background: $bg-elevated;
     }
   }
 }
 
 // 卡片
 .el-card {
-  background: rgba($bg-elevated, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid $border-subtle;
+  background: $bg-surface;
+  border: 1px solid $border-default;
   border-radius: $radius-lg;
   box-shadow: $shadow-sm;
-
-  &:hover {
-    box-shadow: $shadow-md, $glow-primary;
-    border-color: $border-glow;
-  }
+  color: $text-primary;
 }
 
 // 输入框
 .el-input {
   &__wrapper {
-    background: $bg-elevated;
-    border: 1px solid $border-subtle;
+    background: $bg-base;
+    border: 1px solid $border-default;
     box-shadow: none;
     transition: all $transition-fast;
 
@@ -475,40 +289,39 @@ html, body, #app {
     }
 
     &.is-focus {
-      border-color: $accent-primary;
-      box-shadow: 0 0 0 3px rgba($accent-primary, 0.1), 0 0 20px rgba($accent-primary, 0.05);
+      border-color: $border-focus;
+      box-shadow: $glow-focus;
     }
   }
 
   &__inner {
     color: $text-primary;
-    caret-color: $accent-primary;
+    caret-color: $accent-indigo;
+    &::placeholder {
+      color: $text-placeholder;
+    }
   }
 }
 
-// 表格
-.el-table {
-  background: transparent;
+// 文本域
+.el-textarea {
+  &__inner {
+    background: $bg-base;
+    border: 1px solid $border-default;
+    color: $text-primary;
+    border-radius: $radius-md;
 
-  th.el-table__cell {
-    background: $bg-elevated;
-    color: $text-secondary;
-    font-weight: 600;
-  }
-
-  td.el-table__cell {
-    border-bottom-color: $border-subtle;
-  }
-
-  &--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
-    background: rgba($accent-primary, 0.04);
+    &:focus {
+      border-color: $border-focus;
+      box-shadow: $glow-focus;
+    }
   }
 }
 
 // 标签页
 .el-tabs {
   &__nav-wrap::after {
-    background: $border-subtle;
+    background: $border-default;
   }
 
   &__item {
@@ -516,7 +329,7 @@ html, body, #app {
     font-weight: 500;
 
     &.is-active {
-      color: $accent-primary;
+      color: $accent-indigo;
       font-weight: 600;
     }
 
@@ -528,15 +341,14 @@ html, body, #app {
 
 // 消息提示
 .el-message {
-  background: rgba($bg-elevated, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid $border-subtle;
+  background: $bg-elevated;
+  border: 1px solid $border-default;
   box-shadow: $shadow-lg;
   min-width: 280px;
 
   &__content {
     color: $text-primary;
-    font-size: 14px;
+    font-size: $text-base;
   }
 
   &__close-btn {
@@ -548,77 +360,50 @@ html, body, #app {
   }
 
   &.el-message--success {
-    border-color: rgba($accent-emerald, 0.3);
-
-    .el-message__icon { color: $accent-emerald; }
+    border-color: rgba($color-success, 0.3);
+    .el-message__icon { color: $color-success; }
   }
 
   &.el-message--warning {
-    border-color: rgba($accent-amber, 0.3);
-
-    .el-message__icon { color: $accent-amber; }
+    border-color: rgba($color-warning, 0.3);
+    .el-message__icon { color: $color-warning; }
   }
 
   &.el-message--error {
-    border-color: rgba($accent-red, 0.3);
-
-    .el-message__icon { color: $accent-red; }
+    border-color: rgba($color-danger, 0.3);
+    .el-message__icon { color: $color-danger; }
   }
 
   &.el-message--info {
-    border-color: rgba($accent-blue, 0.3);
-
-    .el-message__icon { color: $accent-blue; }
+    border-color: rgba($color-info, 0.3);
+    .el-message__icon { color: $color-info; }
   }
 }
 
-// 确认对话框
-.el-message-box {
+// 对话框
+.el-dialog {
   background: $bg-elevated;
-  border: 1px solid $border-subtle;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  border: 1px solid $border-default;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
 
   &__title {
     color: $text-primary;
     font-weight: 600;
   }
 
-  &__content {
-    color: $text-secondary;
-  }
-
-  &__btns {
-    padding: 0 20px 16px;
-  }
-
-  .el-button--primary {
-    background: $accent-primary;
-    color: #1a1d24;
-    border: none;
-
-    &:hover {
-      box-shadow: 0 4px 16px rgba($accent-primary, 0.3);
-    }
-  }
-
-  .el-button--default {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: $border-subtle;
-    color: $text-secondary;
-
-    &:hover {
-      border-color: $border-medium;
-      color: $text-primary;
+  &__headerbtn {
+    .el-dialog__close {
+      color: $text-muted;
+      &:hover { color: $text-primary; }
     }
   }
 }
 
 // 通知弹窗
 .el-notification {
-  background: rgba($bg-elevated, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid $border-subtle;
+  background: $bg-elevated;
+  border: 1px solid $border-default;
   border-radius: $radius-md;
   box-shadow: $shadow-lg;
 
@@ -633,9 +418,6 @@ html, body, #app {
 
   &__closeBtn {
     color: $text-muted;
-
-    &:hover {
-      color: $text-primary;
-    }
+    &:hover { color: $text-primary; }
   }
 }

@@ -1,9 +1,7 @@
 package com.ai.learning.planner.service;
 
 import com.ai.learning.planner.entity.KnowledgeDocument;
-import com.ai.learning.planner.entity.KnowledgeNode;
 import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
-import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -25,13 +23,11 @@ import java.util.concurrent.TimeUnit;
 public class ConfigDataCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final KnowledgeNodeRepository knowledgeNodeRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
 
 
     private static final String PREFIX = "cache:config:";
     private static final String AGENT_CONFIG_KEY = PREFIX + "agent:configs";
-    private static final String KNOWLEDGE_NODES_KEY = PREFIX + "knowledge:nodes";
     private static final String KNOWLEDGE_DOCS_KEY = PREFIX + "knowledge:docs";
     private static final String SUBJECTS_KEY = PREFIX + "subjects:list";
     private static final long DEFAULT_TTL_HOURS = 24;
@@ -84,49 +80,6 @@ public class ConfigDataCacheService {
         } catch (Exception e) {
             redisAvailable = false;
             log.warn("[Cache] 获取Agent配置缓存失败，切换降级: {}", e.getMessage());
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * 缓存知识节点列表
-     */
-    public void cacheKnowledgeNodes(List<KnowledgeNode> nodes) {
-        if (!isRedisAvailable()) return;
-        try {
-            String key = KNOWLEDGE_NODES_KEY;
-            redisTemplate.opsForValue().set(key, nodes, Duration.ofHours(DEFAULT_TTL_HOURS));
-            log.debug("[Cache] 已缓存 {} 个知识节点", nodes.size());
-        } catch (Exception e) {
-            redisAvailable = false;
-            log.warn("[Cache] 缓存知识节点失败，切换降级: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * 获取缓存的知识节点
-     */
-    @SuppressWarnings("unchecked")
-    public Optional<List<KnowledgeNode>> getCachedKnowledgeNodes() {
-        if (!isRedisAvailable()) {
-            log.warn("[Cache] Redis不可用，降级到MySQL查询知识节点");
-            try {
-                List<KnowledgeNode> nodes = knowledgeNodeRepository.findAll();
-                return Optional.of(nodes);
-            } catch (Exception e) {
-                log.error("[Cache] MySQL降级查询知识节点失败: {}", e.getMessage());
-                return Optional.empty();
-            }
-        }
-        try {
-            Object cached = redisTemplate.opsForValue().get(KNOWLEDGE_NODES_KEY);
-            if (cached != null) {
-                log.debug("[Cache] 从缓存获取知识节点");
-                return Optional.of((List<KnowledgeNode>) cached);
-            }
-        } catch (Exception e) {
-            redisAvailable = false;
-            log.warn("[Cache] 获取知识节点缓存失败，切换降级: {}", e.getMessage());
         }
         return Optional.empty();
     }

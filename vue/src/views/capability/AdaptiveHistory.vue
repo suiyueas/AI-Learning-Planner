@@ -7,9 +7,9 @@
           <ArrowLeft :size="20" />
           <span>返回</span>
         </button>
-        <h1 class="header-title">
-          <History :size="24" class="header-icon" />
-          自适应调整历史
+        <h1 class="page-title">
+          <span class="title-glyph">🔄</span>
+          <span>自适应调整历史</span>
         </h1>
       </div>
       <div v-if="total > 0" class="header-total">
@@ -156,12 +156,13 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-@use '../styles/variables' as *;
+<style lang="scss" scoped>
+@use '../../styles/variables' as *;
 .history-page {
   min-height: 100vh;
-  background: $bg-primary;
   padding-bottom: 80px;
+  margin: -#{$space-6};
+  padding: #{$space-6} #{$space-6} 80px #{$space-6};
 }
 
 .history-header {
@@ -203,15 +204,7 @@ onMounted(() => {
   background: rgba($accent-primary, 0.04);
 }
 
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: $text-primary;
-  margin: 0;
-}
+.page-title { @include page-title-base; }
 
 .header-icon {
   color: $accent-primary;

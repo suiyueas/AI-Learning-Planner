@@ -1,7 +1,5 @@
 package com.ai.learning.planner.mcp.ai;
 
-import com.ai.learning.planner.entity.KnowledgeNode;
-import com.ai.learning.planner.service.KnowledgeService;
 import com.ai.learning.planner.service.ModelManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +12,7 @@ import java.util.Map;
 
 /**
  * 知识点提取工具（AI 赋能）
- * 由大模型从学习材料中提取结构化知识点（关键词+定义+分类+重要度），
- * 并自动关联知识图谱中的既有节点，生成知识卡片。
+ * 由大模型从学习材料中提取结构化知识点（关键词+定义+分类+重要度）。
  */
 @Component
 @Slf4j
@@ -23,12 +20,9 @@ public class KnowledgeExtractionTool extends AbstractAiTool {
 
     private static final int MAX_CONTENT_LENGTH = 8000;
 
-    private final KnowledgeService knowledgeService;
-
     public KnowledgeExtractionTool(ModelManager modelManager, ObjectMapper objectMapper,
-                                   KnowledgeService knowledgeService, McpAiProperties properties) {
+                                   McpAiProperties properties) {
         super(modelManager, objectMapper, properties);
-        this.knowledgeService = knowledgeService;
     }
 
     @Override
@@ -64,26 +58,11 @@ public class KnowledgeExtractionTool extends AbstractAiTool {
             knowledgePoints.addAll(fallbackExtract(text, count));
         }
 
-        // 3. 知识图谱关联：每个知识点尝试匹配既有节点
-        int linkedCount = 0;
-        for (Map<String, Object> point : knowledgePoints) {
-            String concept = String.valueOf(point.getOrDefault("keyword", ""));
-            if (concept.isBlank()) continue;
-            List<Map<String, Object>> related = findRelatedGraphNodes(concept);
-            if (!related.isEmpty()) {
-                point.put("relatedNodes", related);
-                linkedCount++;
-            } else {
-                point.put("relatedNodes", List.of());
-            }
-        }
-
         Map<String, Object> result = new HashMap<>();
         result.put("knowledgePoints", knowledgePoints);
         result.put("count", knowledgePoints.size());
         result.put("totalRequested", count);
         result.put("domain", domain.isBlank() ? null : domain);
-        result.put("graphLinkedCount", linkedCount);
         result.put("suggestedNextTools", List.of("generate_quiz", "summarize_document"));
         result.put("message", "知识点提取成功");
         if (fallback) {
@@ -110,25 +89,6 @@ public class KnowledgeExtractionTool extends AbstractAiTool {
                 学习材料：
                 %s
                 """.formatted(domainHint, count, truncate(text, MAX_CONTENT_LENGTH));
-    }
-
-    /** 在知识图谱中查找关联节点（名称包含匹配） */
-    private List<Map<String, Object>> findRelatedGraphNodes(String concept) {
-        List<Map<String, Object>> related = new ArrayList<>();
-        try {
-            List<KnowledgeNode> nodes = knowledgeService.searchByName(concept);
-            for (KnowledgeNode node : nodes) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("id", node.getId());
-                item.put("name", node.getName());
-                item.put("category", node.getCategory());
-                item.put("difficulty", node.getDifficulty());
-                related.add(item);
-            }
-        } catch (Exception e) {
-            log.warn("[extract_keywords] 知识图谱关联查询失败: {}", e.getMessage());
-        }
-        return related;
     }
 
     /** 降级方案：按标点切分短句提取知识点 */

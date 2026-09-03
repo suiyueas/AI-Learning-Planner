@@ -67,6 +67,7 @@ public class LearningProgressService {
     /**
      * 完成学习任务
      */
+    @org.springframework.transaction.annotation.Transactional
     public LearningRecord completeTask(String userId, String pathId, String taskId) {
         requireOwnedPath(pathId, userId);
         LearningRecord record = learningRecordRepository
@@ -99,6 +100,7 @@ public class LearningProgressService {
     /**
      * 更新任务进度（学习时长和掌握度）
      */
+    @org.springframework.transaction.annotation.Transactional
     public LearningRecord updateTaskProgress(String userId, String pathId, String taskId, Integer timeSpent, Float masteryLevel) {
         requireOwnedPath(pathId, userId);
         LearningRecord record = learningRecordRepository

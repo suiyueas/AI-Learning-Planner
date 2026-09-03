@@ -304,7 +304,10 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     try {
       const res = await askKnowledgeApi(question)
       const data = res.data || res
-      const answer = data.answer || data.content || data.response || JSON.stringify(data)
+      // 优先取结构化字段；纯字符串响应直接展示；兜底才序列化（避免原始 JSON 结构直接显示）
+      const answer = data.answer || data.content || data.response
+        || (typeof data === 'string' ? data : '')
+        || JSON.stringify(data)
       const sources = data.sources || data.references || []
 
       const idx = qaMessages.value.findIndex(m => m.id === aiMsgId)

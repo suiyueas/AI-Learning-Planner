@@ -125,7 +125,7 @@ export const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: () => import('@/views/Register.vue'),
+    component: () => import('@/views/Login.vue'),
     meta: {
       title: '注册',
       layout: 'auth',
@@ -168,6 +168,12 @@ export const routes = [
     component: () => import('@/views/capability/AdaptiveDetail.vue'),
     meta: { title: '自适应学习', requiresAuth: true },
   },
+  {
+    path: '/capability/diagnosis-report',
+    name: 'DiagnosisReport',
+    component: () => import('@/views/capability/DiagnosisReport.vue'),
+    meta: { title: 'AI 诊断报告', requiresAuth: true },
+  },
   // 404 路由
   {
     path: '/:pathMatch(.*)*',
@@ -193,7 +199,7 @@ router.beforeEach((to, _from, next) => {
   // 设置页面标题
   const title = to.meta.title
   if (title) {
-    document.title = `${title} - AI学习规划师`
+    document.title = `${title} - 知途 Zhitu`
   }
 
   const authStore = useAuthStore()

@@ -1,10 +1,5 @@
 ﻿<template>
   <div class="home-page">
-    <div class="bg-aurora">
-      <div class="aurora-layer aurora-1"></div>
-      <div class="aurora-layer aurora-2"></div>
-    </div>
-
     <!-- STATUS BAR -->
     <header class="status-bar glass-panel">
       <div class="status-left">
@@ -93,7 +88,7 @@
 
     <!-- AGENT FOCUS CARD -->
     <section class="agent-focus">
-      <div v-if="activePath" class="focus-card glass-card sweep-card">
+      <div v-if="activePath" class="focus-card glass-card">
         <div class="focus-header">
           <div class="focus-agent">
             <div class="agent-avatar"><Bot :size="20" /><span class="agent-pulse"></span></div>
@@ -227,22 +222,22 @@
         <div class="section-title-wrap"><Wand2 :size="18" class="section-icon" /><h2 class="section-title">让 Agent 帮你</h2></div>
       </div>
       <div class="scenario-grid">
-        <div class="scenario-card glass-card sweep-card" @click="router.push('/capability/diagnosis')">
+        <div class="scenario-card glass-card" @click="router.push('/capability/diagnosis')">
           <div class="scenario-icon" style="background: rgba(212,168,83,0.12)"><Stethoscope :size="22" class="scenario-ico" /></div>
           <div class="scenario-info"><h3 class="scenario-title">诊断我的水平</h3><p class="scenario-desc">AI 分析你的知识薄弱点</p></div>
           <ArrowRight :size="16" class="scenario-arrow" />
         </div>
-        <div class="scenario-card glass-card sweep-card" @click="router.push('/chat')">
+        <div class="scenario-card glass-card" @click="router.push('/chat')">
           <div class="scenario-icon" style="background: rgba(91,154,191,0.12)"><MessageCircle :size="22" class="scenario-ico" /></div>
           <div class="scenario-info"><h3 class="scenario-title">问 AI 一个问题</h3><p class="scenario-desc">苏格拉底式引导，不直接给答案</p></div>
           <ArrowRight :size="16" class="scenario-arrow" />
         </div>
-        <div class="scenario-card glass-card sweep-card" @click="router.push('/goal-setting')">
+        <div class="scenario-card glass-card" @click="router.push('/goal-setting')">
           <div class="scenario-icon" style="background: rgba(154,130,200,0.12)"><Route :size="22" class="scenario-ico" /></div>
           <div class="scenario-info"><h3 class="scenario-title">规划学习路径</h3><p class="scenario-desc">AI 根据目标生成专属路径</p></div>
           <ArrowRight :size="16" class="scenario-arrow" />
         </div>
-        <div class="scenario-card glass-card sweep-card" @click="router.push('/exercise')">
+        <div class="scenario-card glass-card" @click="router.push('/exercise')">
           <div class="scenario-icon" style="background: rgba(90,171,138,0.12)"><Dumbbell :size="22" class="scenario-ico" /></div>
           <div class="scenario-info"><h3 class="scenario-title">生成练习题</h3><p class="scenario-desc">针对薄弱点出题，即时反馈</p></div>
           <ArrowRight :size="16" class="scenario-arrow" />
@@ -367,147 +362,222 @@ onMounted(async () => {
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
 
-.home-page {
-  min-height: 100vh;
-  position: relative;
-  padding: 24px 32px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
+// ============================================
+// 知途 (Zhitu) · 仪表盘页面
+// 动态粒子背景 · 半透明面板 · 绿色渐变主题
+// ============================================
 
-// ---- Aurora background ----
-.bg-aurora {
+// ---- 动态背景 ----
+.bg-dynamic {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: -2;
+  z-index: 0;
+  overflow: hidden;
+}
+.bg-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: $accent-cyan;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba($accent-cyan, 0.5);
+  animation: particle-float 20s linear infinite;
+}
+.particle:nth-child(odd) {
+  background: $accent-indigo;
+  box-shadow: 0 0 10px rgba($accent-indigo, 0.5);
+}
+.particle:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 18s; }
+.particle:nth-child(2) { left: 15%; animation-delay: -3s; animation-duration: 22s; }
+.particle:nth-child(3) { left: 25%; animation-delay: -7s; animation-duration: 25s; }
+.particle:nth-child(4) { left: 35%; animation-delay: -1s; animation-duration: 20s; }
+.particle:nth-child(5) { left: 45%; animation-delay: -10s; animation-duration: 23s; }
+.particle:nth-child(6) { left: 55%; animation-delay: -5s; animation-duration: 19s; }
+.particle:nth-child(7) { left: 65%; animation-delay: -12s; animation-duration: 26s; }
+.particle:nth-child(8) { left: 75%; animation-delay: -8s; animation-duration: 21s; }
+.particle:nth-child(9) { left: 85%; animation-delay: -2s; animation-duration: 24s; }
+.particle:nth-child(10) { left: 92%; animation-delay: -15s; animation-duration: 17s; }
+
+@keyframes particle-float {
+  0% { transform: translateY(100vh); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100px); opacity: 0; }
 }
 
-.aurora-layer {
+.aurora-orb {
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  animation: aurora 20s ease-in-out infinite;
+  animation: aurora-float 25s ease-in-out infinite;
 }
-
-.aurora-1 {
-  width: 700px;
-  height: 700px;
-  top: -250px;
-  right: -150px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.07) 0%, transparent 70%);
+.orb-1 {
+  width: 600px; height: 600px;
+  top: -200px; right: -150px;
+  background: radial-gradient(circle, rgba($accent-indigo, 0.12) 0%, transparent 70%);
 }
-
-.aurora-2 {
-  width: 600px;
-  height: 600px;
-  bottom: -200px;
-  left: -150px;
-  background: radial-gradient(circle, rgba($accent-blue, 0.07) 0%, transparent 70%);
-  animation-delay: -7s;
+.orb-2 {
+  width: 500px; height: 500px;
+  bottom: -200px; left: -150px;
+  background: radial-gradient(circle, rgba($accent-cyan, 0.08) 0%, transparent 70%);
+  animation-delay: -8s;
 }
-
-@keyframes aurora {
+.orb-3 {
+  width: 400px; height: 400px;
+  top: 40%; left: 50%;
+  background: radial-gradient(circle, rgba($accent-violet, 0.06) 0%, transparent 70%);
+  animation-delay: -16s;
+}
+@keyframes aurora-float {
   0%, 100% { transform: translate(0, 0) scale(1); }
   25% { transform: translate(30px, -30px) scale(1.1); }
-  50% { transform: translate(-20px, 20px) scale(0.95); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
   75% { transform: translate(20px, 10px) scale(1.05); }
 }
 
-// ---- Glass utilities ----
-.glass-panel {
+// ---- Page ----
+.home-page {
+  min-height: 100vh;
+  position: relative;
+  padding: $space-6 $space-8;
+  max-width: 1000px;
+  margin: 0 auto;
+  color: $text-primary;
+  font-family: $font-sans;
+}
+
+.home-page > *:not(.bg-dynamic) {
+  position: relative;
+  z-index: 1;
+}
+
+// ---- Surface utilities (半透明毛玻璃面板) ----
+.glass-panel,
+.glass-card {
+  background: rgba($bg-surface, 0.65);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba($bg-elevated, 0.7);
-  border: 1px solid $border-subtle;
+  border: 1px solid rgba($accent-indigo, 0.12);
   border-radius: $radius-lg;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    box-shadow: $shadow-md, 0 0 20px rgba($accent-indigo, 0.06);
+  }
 }
 
-.glass-card {
-  @include card-base;
-}
-
-// ---- Status bar ----
+// ---- Status bar (半透明毛玻璃) ----
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: $space-4 $space-6;
+  background: rgba($bg-surface, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba($accent-indigo, 0.12);
+  border-radius: $radius-lg;
+  position: relative;
+  z-index: 10;
 }
 
 .status-left {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: $space-1;
 }
 
 .greeting-text {
-  font-size: 1rem;
+  font-size: $text-lg;
+  font-weight: 500;
   color: $text-primary;
 
   strong {
     font-weight: 700;
-    color: #fff;
+    background: linear-gradient(135deg, $accent-indigo 0%, #38BDF8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
 .agent-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-2;
 }
 
 .status-dot-alive {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: $accent-emerald;
-  animation: pulse-dot 2s ease-in-out infinite;
+  background: $accent-indigo;
   flex-shrink: 0;
+  box-shadow: 0 0 10px rgba($accent-indigo, 0.5);
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba($accent-emerald, 0.5); }
-  50% { box-shadow: 0 0 0 6px rgba($accent-emerald, 0); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .status-text {
-  font-size: 0.8rem;
+  font-size: $text-sm;
   color: $text-secondary;
 }
 
 .status-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $space-3;
 }
 
+// ---- Stat chips (半透明) ----
 .stat-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
+  gap: $space-1;
+  padding: $space-1 $space-3;
   border-radius: $radius-full;
-  background: rgba($accent-primary, 0.06);
-  font-size: 0.78rem;
-  color: $text-secondary;
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.15);
+  font-size: $text-xs;
+  color: $accent-indigo-light;
+  transition: all $transition-normal;
+
+  &:hover {
+    background: rgba($accent-indigo, 0.15);
+    border-color: rgba($accent-indigo, 0.25);
+  }
 }
 
+// ---- Avatar (绿色主题) ----
 .avatar-wrap {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, $accent-primary, $accent-blue);
+  background: linear-gradient(135deg, $accent-indigo, $accent-cyan);
   cursor: pointer;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform $transition-normal, box-shadow $transition-normal;
+  transition: all $transition-normal;
+  box-shadow: 0 0 15px rgba($accent-indigo, 0.3);
 
   &:hover {
     transform: scale(1.08);
-    box-shadow: 0 0 14px rgba($accent-primary, 0.35);
+    box-shadow: 0 0 20px rgba($accent-indigo, 0.5);
   }
 }
 
@@ -518,19 +588,19 @@ onMounted(async () => {
 }
 
 .avatar-fallback {
-  font-size: 0.9rem;
+  font-size: $text-sm;
   font-weight: 600;
-  color: #3d2e10;
+  color: $text-inverse;
 }
 
 // ---- Quick Access Section ----
 .quick-access-section {
-  margin-top: 20px;
+  margin-top: $space-5;
 }
 
 .quick-access-grid {
   display: flex;
-  gap: 12px;
+  gap: $space-3;
   flex-wrap: wrap;
 }
 
@@ -538,19 +608,22 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 20px;
-  background: rgba($bg-elevated, 0.6);
-  border: 1px solid $border-subtle;
+  gap: $space-2;
+  padding: $space-4 $space-5;
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: $radius-lg;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all 0.3s ease;
   min-width: 90px;
 
   &:hover {
-    background: rgba($accent-primary, 0.08);
-    border-color: rgba($accent-primary, 0.3);
-    transform: translateY(-2px);
+    border-color: rgba($accent-indigo, 0.3);
+    background: rgba($accent-indigo, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba($accent-indigo, 0.15);
   }
 
   .qa-icon {
@@ -558,33 +631,33 @@ onMounted(async () => {
   }
 
   .qa-label {
-    font-size: 0.8rem;
+    font-size: $text-sm;
     color: $text-secondary;
     font-weight: 500;
   }
 }
 
-// ---- Report Summary Section ----
+// ---- Report Summary Section (半透明毛玻璃) ----
 .report-summary-section {
-  margin-top: 20px;
+  margin-top: $space-5;
 }
 
 .report-summary-card {
-  padding: 20px 24px;
+  padding: $space-5 $space-6;
 }
 
 .rs-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: $space-3;
+  margin-bottom: $space-4;
 
   .rs-icon {
     font-size: 1.3rem;
   }
 
   .rs-title {
-    font-size: 1rem;
+    font-size: $text-lg;
     font-weight: 600;
     color: $text-primary;
     margin: 0;
@@ -593,50 +666,68 @@ onMounted(async () => {
 
 .rs-stats {
   display: flex;
-  gap: 24px;
+  gap: $space-6;
   flex-wrap: wrap;
 }
 
 .rs-stat-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 
   .rs-stat-value {
-    font-size: 1.4rem;
+    font-family: $font-data;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: $accent-primary;
+    background: linear-gradient(135deg, $accent-indigo 0%, #38BDF8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgba($accent-indigo, 0.3));
   }
 
   .rs-stat-label {
-    font-size: 0.75rem;
+    font-size: $text-xs;
     color: $text-muted;
   }
 }
 
 .rs-link-btn {
-  margin-top: 16px;
+  margin-top: $space-4;
   background: none;
   border: none;
-  color: $accent-primary;
-  font-size: 0.85rem;
+  color: $accent-indigo;
+  font-size: $text-sm;
   font-weight: 500;
   cursor: pointer;
   padding: 0;
-  transition: opacity $transition-fast;
+  transition: all 0.3s ease;
 
   &:hover {
-    opacity: 0.8;
+    color: $accent-indigo-light;
+    text-shadow: 0 0 10px rgba($accent-indigo, 0.5);
   }
 }
 
-// ---- Agent Focus Card ----
+// ---- Agent Focus Card (半透明毛玻璃) ----
 .agent-focus {
-  margin-top: 24px;
+  margin-top: $space-6;
 }
 
 .focus-card {
-  padding: 24px 28px;
+  padding: $space-6 $space-8;
+  background: rgba($bg-surface, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba($accent-indigo, 0.12);
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    box-shadow: $shadow-md, 0 0 20px rgba($accent-indigo, 0.06);
+  }
 }
 
 .focus-header {
@@ -646,21 +737,23 @@ onMounted(async () => {
 
 .focus-agent {
   display: flex;
-  gap: 14px;
+  gap: $space-3;
   align-items: flex-start;
 }
 
+// AI avatar (绿色渐变主题)
 .agent-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, $accent-primary, $accent-blue);
+  border-radius: $radius-md;
+  background: linear-gradient(135deg, $accent-indigo, $accent-cyan);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   position: relative;
-  color: #fff;
+  color: $text-inverse;
+  box-shadow: 0 0 15px rgba($accent-indigo, 0.3);
 }
 
 .agent-pulse {
@@ -670,8 +763,9 @@ onMounted(async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: $accent-emerald;
-  border: 2px solid $bg-elevated;
+  background: $accent-indigo;
+  border: 2px solid $bg-surface;
+  box-shadow: 0 0 8px rgba($accent-indigo, 0.6);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -681,16 +775,17 @@ onMounted(async () => {
 
 .speech-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: $text-xs;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: $accent-primary;
-  margin-bottom: 4px;
+  color: $accent-indigo;
+  margin-bottom: 3px;
+  text-shadow: 0 0 10px rgba($accent-indigo, 0.3);
 }
 
 .speech-text {
-  font-size: 0.92rem;
+  font-size: $text-sm;
   color: $text-secondary;
   line-height: 1.55;
   margin: 0;
@@ -700,17 +795,19 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 22px;
-  padding: 18px 22px;
+  margin-top: $space-5;
+  padding: $space-4 $space-5;
   border-radius: $radius-md;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid $border-subtle;
+  background: rgba($bg-elevated, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba($accent-indigo, 0.1);
   cursor: pointer;
-  transition: border-color $transition-normal, background $transition-normal;
+  transition: all 0.3s ease;
 
   &:hover {
-    border-color: $border-medium;
-    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba($accent-indigo, 0.25);
+    background: rgba($accent-indigo, 0.08);
   }
 }
 
@@ -719,31 +816,36 @@ onMounted(async () => {
 }
 
 .focus-title {
-  font-size: 1.4rem;
+  font-size: $text-2xl;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 8px;
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 $space-2;
 }
 
 .focus-next {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: $space-1;
+  font-size: $text-sm;
   color: $text-secondary;
 
   strong {
-    color: $accent-primary;
+    color: $accent-indigo-light;
+    text-shadow: 0 0 8px rgba($accent-indigo, 0.3);
   }
 }
 
 .next-icon {
-  color: $accent-primary;
+  color: $accent-indigo;
+  filter: drop-shadow(0 0 5px rgba($accent-indigo, 0.5));
 }
 
 .focus-progress {
   flex-shrink: 0;
-  margin-left: 24px;
+  margin-left: $space-6;
 }
 
 .progress-ring-wrap {
@@ -760,15 +862,16 @@ onMounted(async () => {
 
 .ring-bg {
   fill: none;
-  stroke: rgba($accent-primary, 0.1);
+  stroke: rgba($text-muted, 0.15);
   stroke-width: 4;
 }
 
 .ring-fill {
   fill: none;
-  stroke: $accent-primary;
+  stroke: $accent-indigo;
   stroke-width: 4;
   stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba($accent-indigo, 0.5));
   transition: stroke-dasharray 1s ease;
 }
 
@@ -778,30 +881,35 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-family: $font-data;
+  font-size: $text-xs;
   font-weight: 700;
-  color: $accent-primary;
+  color: $accent-indigo-light;
+  text-shadow: 0 0 8px rgba($accent-indigo, 0.5);
 }
 
 .focus-empty {
   text-align: center;
-  padding: 32px 16px 24px;
+  padding: $space-8 $space-4 $space-6;
 }
 
 .empty-icon {
   font-size: 2.8rem;
-  margin-bottom: 14px;
+  margin-bottom: $space-3;
 }
 
 .empty-title {
-  font-size: 1.35rem;
+  font-size: $text-2xl;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 8px;
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 $space-2;
 }
 
 .empty-desc {
-  font-size: 0.9rem;
+  font-size: $text-sm;
   color: $text-secondary;
   margin: 0;
   max-width: 340px;
@@ -812,120 +920,177 @@ onMounted(async () => {
 
 .focus-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 20px;
+  gap: $space-3;
+  margin-top: $space-5;
 }
 
-// ---- Buttons ----
+// ---- Buttons (半透明青绿色主题) ----
 .btn-primary {
-  @include button-primary;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-5;
+  background: rgba($accent-indigo, 0.1);
+  color: $accent-indigo;
+  border: 1px solid rgba($accent-indigo, 0.25);
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-weight: 500;
+  font-size: $text-sm;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
 }
 
 .btn-ghost {
-  @include button-ghost;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-5;
+  background: rgba($accent-indigo, 0.06);
+  color: $text-secondary;
+  border: 1px solid rgba($accent-indigo, 0.12);
+  border-radius: $radius-md;
+  font-family: $font-sans;
+  font-weight: 500;
+  font-size: $text-sm;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    color: $accent-indigo-light;
+    background: rgba($accent-indigo, 0.1);
+    transform: translateY(-1px);
+  }
 }
 
-// ---- Competency Section ----
+// ---- Competency Section (半透明毛玻璃) ----
 .competency-section {
-  margin-top: 32px;
+  margin-top: $space-8;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: $space-4;
 }
 
 .section-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-2;
 }
 
 .section-icon {
-  color: $accent-primary;
+  color: $accent-indigo;
+  filter: drop-shadow(0 0 5px rgba($accent-indigo, 0.5));
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: $text-lg;
   font-weight: 600;
-  color: #fff;
+  color: $text-primary;
   margin: 0;
 }
 
 .link-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $space-1;
   background: none;
   border: none;
-  color: $accent-primary;
+  color: $accent-indigo;
   font-family: $font-sans;
-  font-size: 0.85rem;
+  font-size: $text-sm;
   cursor: pointer;
-  transition: color $transition-normal;
+  transition: all 0.3s ease;
 
   &:hover {
-    color: #e4c476;
+    color: $accent-indigo-light;
+    text-shadow: 0 0 10px rgba($accent-indigo, 0.5);
   }
 }
 
 .competency-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
+  gap: $space-3;
 }
 
 .competency-card {
-  padding: 16px 18px;
+  padding: $space-4 $space-5;
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    background: rgba($accent-indigo, 0.06);
+    box-shadow: 0 8px 20px rgba($accent-indigo, 0.1);
+  }
 }
 
 .comp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: $space-3;
 }
 
 .comp-name {
-  font-size: 0.85rem;
+  font-size: $text-sm;
   font-weight: 600;
   color: $text-primary;
 }
 
 .comp-level {
-  font-size: 0.7rem;
+  font-size: $text-xs;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 2px $space-2;
   border-radius: $radius-full;
 
   &.advanced {
-    background: rgba($accent-emerald, 0.1);
-    color: $accent-emerald;
+    background: rgba($accent-indigo, 0.15);
+    color: $accent-indigo-light;
+    border: 1px solid rgba($accent-indigo, 0.25);
   }
 
   &.intermediate {
-    background: rgba($accent-amber, 0.1);
-    color: $accent-amber;
+    background: rgba($color-warning, 0.1);
+    color: $color-warning;
+    border: 1px solid rgba($color-warning, 0.2);
   }
 
   &.beginner {
-    background: rgba($accent-blue, 0.1);
-    color: $accent-blue;
+    background: rgba($accent-cyan, 0.1);
+    color: $accent-cyan;
+    border: 1px solid rgba($accent-cyan, 0.2);
   }
 }
 
 .comp-bar-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-2;
 }
 
 .comp-bar {
   flex: 1;
   height: 4px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba($bg-elevated, 0.6);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -936,54 +1101,62 @@ onMounted(async () => {
   transition: width 1s ease;
 
   &.advanced {
-    background: $accent-emerald;
+    background: linear-gradient(90deg, $accent-indigo, $accent-cyan);
+    box-shadow: 0 0 8px rgba($accent-indigo, 0.5);
   }
 
   &.intermediate {
-    background: $accent-amber;
+    background: $color-warning;
   }
 
   &.beginner {
-    background: $accent-blue;
+    background: $accent-cyan;
   }
 }
 
 .comp-percent {
-  font-size: 0.72rem;
+  font-family: $font-data;
+  font-size: $text-xs;
   font-weight: 600;
   color: $text-muted;
   min-width: 30px;
   text-align: right;
 }
 
-// ---- Tasks Section ----
+// ---- Tasks Section (半透明毛玻璃) ----
 .tasks-section {
-  margin-top: 32px;
+  margin-top: $space-8;
 }
 
 .task-count {
-  font-size: 0.85rem;
+  font-family: $font-data;
+  font-size: $text-sm;
   color: $text-muted;
 }
 
 .tasks-list {
   padding: 0;
   overflow: hidden;
+  background: rgba($bg-surface, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: $radius-lg;
 }
 
 .task-item {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid $border-subtle;
-  transition: background $transition-fast;
+  padding: $space-3 $space-5;
+  border-bottom: 1px solid rgba($accent-indigo, 0.06);
+  transition: all 0.3s ease;
 
   &:last-of-type {
     border-bottom: none;
   }
 
   &:hover {
-    background: rgba(#fff, 0.02);
+    background: rgba($accent-indigo, 0.05);
   }
 
   &.completed {
@@ -991,7 +1164,8 @@ onMounted(async () => {
   }
 
   &.current {
-    background: rgba($accent-primary, 0.03);
+    background: rgba($accent-indigo, 0.08);
+    border-left: 3px solid $accent-indigo;
   }
 }
 
@@ -1002,16 +1176,20 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-family: $font-data;
+  font-size: $text-xs;
   font-weight: 600;
   color: $text-muted;
-  background: rgba(255, 255, 255, 0.04);
-  margin-right: 14px;
+  background: rgba($bg-elevated, 0.5);
+  border: 1px solid rgba($accent-indigo, 0.1);
+  margin-right: $space-3;
   flex-shrink: 0;
 
   &.done {
-    background: transparent;
-    color: $accent-emerald;
+    background: rgba($accent-indigo, 0.15);
+    border-color: rgba($accent-indigo, 0.3);
+    color: $accent-indigo-light;
+    box-shadow: 0 0 10px rgba($accent-indigo, 0.2);
   }
 }
 
@@ -1022,15 +1200,15 @@ onMounted(async () => {
 }
 
 .task-name {
-  font-size: 0.9rem;
+  font-size: $text-sm;
   color: $text-primary;
 }
 
 .task-meta {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
-  font-size: 0.78rem;
+  gap: $space-2;
+  margin-top: 2px;
+  font-size: $text-xs;
   color: $text-muted;
 }
 
@@ -1041,36 +1219,39 @@ onMounted(async () => {
 }
 
 .task-priority {
-  padding: 2px 8px;
+  padding: 1px $space-2;
   border-radius: $radius-full;
+  font-size: 0.7rem;
 
   &.high {
-    background: rgba($accent-red, 0.1);
-    color: $accent-red;
+    background: rgba($color-danger, 0.1);
+    color: $color-danger;
   }
 
   &.medium {
-    background: rgba($accent-amber, 0.1);
-    color: $accent-amber;
+    background: rgba($color-warning, 0.1);
+    color: $color-warning;
   }
 
   &.low {
-    background: rgba($accent-blue, 0.1);
-    color: $accent-blue;
+    background: rgba($accent-indigo, 0.1);
+    color: $accent-indigo-light;
   }
 }
 
 .task-current-badge {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
+  gap: $space-1;
+  padding: 2px $space-2;
   border-radius: $radius-full;
-  background: rgba($accent-primary, 0.1);
-  color: $accent-primary;
-  font-size: 0.72rem;
+  background: rgba($accent-indigo, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.3);
+  color: $accent-indigo-light;
+  font-size: $text-xs;
   font-weight: 600;
   flex-shrink: 0;
+  box-shadow: 0 0 10px rgba($accent-indigo, 0.2);
 }
 
 .start-learning-btn {
@@ -1078,80 +1259,92 @@ onMounted(async () => {
   width: 100%;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px;
+  gap: $space-2;
+  padding: $space-4;
   border: none;
-  background: rgba($accent-primary, 0.08);
-  color: $accent-primary;
+  background: linear-gradient(135deg, rgba($accent-indigo, 0.15), rgba($accent-cyan, 0.1));
+  color: $accent-indigo-light;
   font-family: $font-sans;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: $text-sm;
   cursor: pointer;
-  transition: all $transition-normal;
+  transition: all 0.3s ease;
+  border-top: 1px solid rgba($accent-indigo, 0.1);
 
   &:hover {
-    background: rgba($accent-primary, 0.15);
+    background: linear-gradient(135deg, rgba($accent-indigo, 0.25), rgba($accent-cyan, 0.15));
+    text-shadow: 0 0 10px rgba($accent-indigo, 0.5);
   }
 }
 
-// ---- Agent Center ----
+// ---- Agent Center (半透明毛玻璃) ----
 .agent-center-section {
-  margin-top: 32px;
-  margin-bottom: 8px;
+  margin-top: $space-8;
+  margin-bottom: $space-2;
 }
 
 .agent-center-card {
-  padding: 24px 28px;
+  padding: $space-6 $space-8;
   cursor: pointer;
-  transition: all $transition-normal;
-  border: 1px solid rgba($accent-primary, 0.1);
+  background: rgba($bg-surface, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: $radius-lg;
+  transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba($accent-primary, 0.1);
+    border-color: rgba($accent-indigo, 0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba($accent-indigo, 0.12);
   }
 }
 
 .center-header {
-  margin-bottom: 20px;
+  margin-bottom: $space-5;
 }
 
 .center-desc {
-  font-size: 1.05rem;
+  font-size: $text-lg;
   font-weight: 600;
-  color: #fff;
-  margin: 0 0 6px;
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 $space-1;
 }
 
 .center-hint {
-  font-size: 0.82rem;
+  font-size: $text-sm;
   color: $text-muted;
   margin: 0;
 }
 
 .agent-icons-row {
   display: flex;
-  gap: 16px;
+  gap: $space-3;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: $space-5;
 }
 
 .agent-icon-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: rgba($bg-card, 0.5);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all $transition-normal;
+  gap: $space-1;
+  padding: $space-3 $space-4;
+  background: rgba($bg-elevated, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: $radius-md;
+  border: 1px solid rgba($accent-indigo, 0.08);
+  transition: all 0.3s ease;
 
   &:hover {
-    background: rgba($accent-primary, 0.1);
-    border-color: rgba($accent-primary, 0.3);
-    transform: translateY(-2px);
+    background: rgba($accent-indigo, 0.12);
+    border-color: rgba($accent-indigo, 0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba($accent-indigo, 0.15);
   }
 }
 
@@ -1161,41 +1354,54 @@ onMounted(async () => {
 }
 
 .agent-icon-label {
-  font-size: 0.72rem;
+  font-size: $text-xs;
   color: $text-secondary;
   font-weight: 500;
 }
 
 .center-footer {
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: $space-4;
+  border-top: 1px solid rgba($accent-indigo, 0.08);
 }
 
 .smart-input-hint {
-  font-size: 0.82rem;
+  font-size: $text-sm;
   color: $text-muted;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-1;
 }
 
-// ---- Agent Scenarios ----
+// ---- Agent Scenarios (半透明毛玻璃) ----
 .agent-scenarios {
-  margin-top: 32px;
-  margin-bottom: 32px;
+  margin-top: $space-8;
+  margin-bottom: $space-8;
 }
 
 .scenario-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: $space-3;
 }
 
 .scenario-card {
   display: flex;
   align-items: center;
-  padding: 18px 20px;
+  padding: $space-4 $space-5;
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: $radius-lg;
   cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    background: rgba($accent-indigo, 0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba($accent-indigo, 0.1);
+  }
 }
 
 .scenario-icon {
@@ -1204,13 +1410,19 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: $radius-md;
   flex-shrink: 0;
-  margin-right: 16px;
+  margin-right: $space-4;
+  transition: all 0.3s ease;
 }
 
 .scenario-ico {
-  color: $accent-primary;
+  color: $accent-indigo;
+  filter: drop-shadow(0 0 5px rgba($accent-indigo, 0.3));
+}
+
+.scenario-card:hover .scenario-ico {
+  filter: drop-shadow(0 0 8px rgba($accent-indigo, 0.5));
 }
 
 .scenario-info {
@@ -1218,14 +1430,22 @@ onMounted(async () => {
 }
 
 .scenario-title {
-  font-size: 0.92rem;
+  font-size: $text-sm;
   font-weight: 600;
-  color: #fff;
-  margin: 0 0 3px;
+  color: $text-primary;
+  margin: 0 0 2px;
+  transition: all 0.3s ease;
+}
+
+.scenario-card:hover .scenario-title {
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .scenario-desc {
-  font-size: 0.78rem;
+  font-size: $text-xs;
   color: $text-muted;
   margin: 0;
 }
@@ -1233,39 +1453,20 @@ onMounted(async () => {
 .scenario-arrow {
   color: $text-muted;
   flex-shrink: 0;
-  margin-left: 8px;
-  transition: color $transition-normal, transform $transition-normal;
+  margin-left: $space-2;
+  transition: all 0.3s ease;
 
   .scenario-card:hover & {
-    color: $accent-primary;
+    color: $accent-indigo;
     transform: translateX(3px);
-  }
-}
-
-// ---- Sweep animation (reused from existing) ----
-.sweep-card {
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -75%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
-    transform: skewX(-20deg);
-    transition: left 0.6s ease;
-    pointer-events: none;
-  }
-
-  &:hover::after {
-    left: 125%;
+    filter: drop-shadow(0 0 5px rgba($accent-indigo, 0.5));
   }
 }
 
 // ---- Responsive ----
-@media (max-width: 768px) {
+@media (max-width: $breakpoint-md) {
   .home-page {
-    padding: 16px;
+    padding: $space-4;
   }
 
   .stat-chip {
@@ -1281,13 +1482,13 @@ onMounted(async () => {
   }
 
   .focus-title {
-    font-size: 1.2rem;
+    font-size: $text-xl;
   }
 
   .focus-content {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: $space-4;
   }
 
   .focus-progress {
@@ -1299,11 +1500,11 @@ onMounted(async () => {
 @media (max-width: 480px) {
   .status-bar {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: $space-3;
   }
 
   .focus-card {
-    padding: 20px;
+    padding: $space-5;
   }
 
   .focus-actions {

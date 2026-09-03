@@ -47,10 +47,13 @@ public class JwtUtil {
     /**
      * 生成 JWT Token
      */
-    public String generateToken(Long userId, String username) {
+    public String generateToken(Long userId, String username, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        if (role != null) {
+            claims.put("role", role);
+        }
 
         return Jwts.builder()
                 .claims(claims)
@@ -59,6 +62,13 @@ public class JwtUtil {
                 .expiration(new Date(System.currentTimeMillis() + expiration * 1000))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    /**
+     * 兼容旧版签名：不含 role 的 token 仍可生成
+     */
+    public String generateToken(Long userId, String username) {
+        return generateToken(userId, username, null);
     }
 
     /**

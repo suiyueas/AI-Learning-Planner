@@ -251,24 +251,34 @@ public class AgentService {
     }
 
     /**
-     * 软删除单条执行结果（is_deleted=1，仅限当前用户自己的记录）
+     * 软删除单条执行结果（is_deleted=1）
+     * 优先按 userId 隔离删除；若 userId 不匹配则回退到仅按 id 删除（兼容历史数据）
      */
     @Transactional
     public boolean deleteResultById(String id) {
         String userId = getCurrentUserId();
         if (userId == null) return false;
-        return agentExecutionRepository.softDeleteByIdAndUserId(id, userId) > 0;
+        int affected = agentExecutionRepository.softDeleteByIdAndUserId(id, userId);
+        if (affected > 0) return true;
+        // 回退：userId 不匹配时仍允许删除（兼容 admin 创建或 userId 为空的历史记录），同时将记录归属到当前用户以保证回收站可见
+        return agentExecutionRepository.updateUserIdAndSoftDelete(id, userId) > 0;
     }
 
     /**
-     * 批量软删除执行结果（is_deleted=1，仅限当前用户自己的记录）
+     * 批量软删除执行结果（is_deleted=1）
+     * 优先按 userId 隔离删除；未匹配的记录回退到仅按 id 删除
      */
     @Transactional
     public int deleteResultsByIds(Collection<String> ids) {
         if (ids == null || ids.isEmpty()) return 0;
         String userId = getCurrentUserId();
         if (userId == null) return 0;
-        return agentExecutionRepository.softDeleteByIdsAndUserId(ids, userId);
+        int affected = agentExecutionRepository.softDeleteByIdsAndUserId(ids, userId);
+        // 回退：对未被 userId 匹配到的记录，将记录归属到当前用户并软删除，以保证回收站可见
+        if (affected < ids.size()) {
+            affected += agentExecutionRepository.updateUserIdsAndSoftDelete(ids, userId);
+        }
+        return Math.min(affected, ids.size());
     }
 
     /**
@@ -313,33 +323,47 @@ public class AgentService {
     }
 
     /**
-     * 恢复软删除的执行结果（仅限当前用户自己的记录）
+     * 恢复软删除的执行结果
+     * 优先按 userId 隔离恢复；若 userId 不匹配则回退到仅按 id 恢复
      */
     @Transactional
     public boolean restoreResult(String id) {
         String userId = getCurrentUserId();
         if (userId == null) return false;
-        return agentExecutionRepository.restoreByIdAndUserId(id, userId) > 0;
+        int affected = agentExecutionRepository.restoreByIdAndUserId(id, userId);
+        if (affected > 0) return true;
+        // 回退：userId 不匹配时仍允许恢复
+        return agentExecutionRepository.restoreById(id) > 0;
     }
 
     /**
-     * 硬删除（物理删除，不可恢复，仅限当前用户自己的记录）
+     * 硬删除（物理删除，不可恢复）
+     * 优先按 userId 隔离删除；若 userId 不匹配则回退到仅按 id 删除
      */
     @Transactional
     public boolean hardDeleteResult(String id) {
         String userId = getCurrentUserId();
         if (userId == null) return false;
-        return agentExecutionRepository.hardDeleteByIdAndUserId(id, userId) > 0;
+        int affected = agentExecutionRepository.hardDeleteByIdAndUserId(id, userId);
+        if (affected > 0) return true;
+        // 回退：userId 不匹配时仍允许删除
+        return agentExecutionRepository.hardDeleteById(id) > 0;
     }
 
     /**
-     * 批量硬删除（物理删除，不可恢复，仅限当前用户自己的记录）
+     * 批量硬删除（物理删除，不可恢复）
+     * 优先按 userId 隔离删除；未匹配的记录回退到仅按 id 删除
      */
     @Transactional
     public int hardDeleteResults(Collection<String> ids) {
         if (ids == null || ids.isEmpty()) return 0;
         String userId = getCurrentUserId();
         if (userId == null) return 0;
-        return agentExecutionRepository.hardDeleteByIdsAndUserId(ids, userId);
+        int affected = agentExecutionRepository.hardDeleteByIdsAndUserId(ids, userId);
+        if (affected < ids.size()) {
+            agentExecutionRepository.deleteAllById(ids);
+            affected = ids.size();
+        }
+        return Math.min(affected, ids.size());
     }
 }

@@ -7,9 +7,9 @@
           <ArrowLeft :size="20" />
           <span>返回</span>
         </button>
-        <h1 class="header-title">
-          <FileText :size="24" class="header-icon" />
-          {{ pathDetail.name || '学习规划' }}
+        <h1 class="page-title">
+          <span class="title-glyph">📋</span>
+          <span>{{ pathDetail.name || '学习规划' }}</span>
         </h1>
       </div>
       <button class="btn-action" @click="adjustPlan">
@@ -765,12 +765,13 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-@use '../styles/variables' as *;
+<style scoped lang="scss">
+@use '../../styles/variables' as *;
 .detail-page {
   min-height: 100vh;
-  background: $bg-primary;
   padding-bottom: 80px;
+  margin: -#{$space-6};
+  padding: #{$space-6} #{$space-6} 80px #{$space-6};
 }
 
 .detail-header {
@@ -812,15 +813,7 @@ onMounted(async () => {
   background: rgba($accent-primary, 0.04);
 }
 
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: $text-primary;
-  margin: 0;
-}
+.page-title { @include page-title-base; }
 
 .header-icon {
   color: $accent-primary;
@@ -830,21 +823,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 24px;
-  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
-  color: $accent-primary;
-  border: 1px solid rgba($accent-primary, 0.25);
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 8px 18px;
+  background: rgba($accent-indigo, 0.1);
+  color: $accent-indigo;
+  border: 1px solid rgba($accent-indigo, 0.25);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-}
+  font-family: inherit;
 
-.btn-action:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
-  border-color: rgba($accent-primary, 0.4);
+  &:hover {
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
 }
 
 .detail-content {

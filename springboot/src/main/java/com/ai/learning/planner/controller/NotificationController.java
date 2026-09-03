@@ -105,4 +105,32 @@ public class NotificationController {
         log.info("手动触发干预扫描：进度={}，知识点={}，未登录={}", progress, knowledge, inactive);
         return Map.of("progress", progress, "knowledge", knowledge, "inactive", inactive);
     }
+
+    /**
+     * 为新用户初始化示例通知（首次打开通知中心时调用）
+     * 生成 3 条示例通知帮助用户了解通知中心功能
+     */
+    @PostMapping("/seed")
+    public List<UserNotification> seedSampleNotifications(Authentication authentication) {
+        Long userId = SecurityUtils.requireLongUserId(authentication);
+        // 已有通知则不重复生成
+        List<UserNotification> existing = notificationService.getUserNotifications(userId);
+        if (!existing.isEmpty()) {
+            return existing;
+        }
+        notificationService.createNotification(userId,
+                "欢迎使用知途学习平台 🎉",
+                "这里是通知中心，你可以在这里查看学习提醒、系统消息和AI学习建议。开始你的学习之旅吧！",
+                "INFO", "SYSTEM", "VIEW_DETAIL", null);
+        notificationService.createNotification(userId,
+                "AI 学习建议：开启今日学习",
+                "根据你的学习计划，建议今天完成「Python基础」的练习任务，保持学习连续性。",
+                "INFO", "PROGRESS", "VIEW_DETAIL", null);
+        notificationService.createNotification(userId,
+                "提示：你可以自定义学习提醒",
+                "前往「个人中心」-「通知设置」可以调整学习提醒阈值和通知偏好，让AI更好地为你服务。",
+                "INFO", "SYSTEM", "VIEW_DETAIL", null);
+        log.info("为用户 {} 初始化示例通知", userId);
+        return notificationService.getUserNotifications(userId);
+    }
 }

@@ -1,0 +1,31 @@
+# ============================================================
+# 开发环境配置
+# 使用方式: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# 或 java -jar xxx.jar --spring.profiles.active=dev
+#
+# 本地开发不启用 ES，使用内存向量存储 + 关键词搜索降级方案
+# ============================================================
+
+spring:
+  # 禁用 Elasticsearch 向量存储，使用内存降级
+  ai:
+    vectorstore:
+      elasticsearch:
+        enabled: false
+
+  # 开发环境使用 H2 内存数据库（可选，也可连接本地 MySQL）
+  # 如使用 MySQL，参考 application.yml 中的配置通过环境变量覆盖
+  # datasource:
+  #   url: jdbc:mysql://localhost:3306/ai_learning_planner?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+  #   username: root
+  #   password: ${MYSQL_PASSWORD:}
+
+  # 开发环境关闭 Redis 缓存（可选）
+  # cache:
+  #   type: simple
+
+# 应用配置
+app:
+  init:
+    # 开发环境开启默认管理员初始化，方便测试
+    default-admin-enabled: true

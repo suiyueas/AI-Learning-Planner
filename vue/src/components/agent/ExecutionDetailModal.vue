@@ -90,7 +90,7 @@ import DiagnosisResult from './result-renderers/DiagnosisResult.vue'
 import PlanResult from './result-renderers/PlanResult.vue'
 import MarkdownResult from './result-renderers/MarkdownResult.vue'
 import ReportResult from './result-renderers/ReportResult.vue'
-import QuizResult from './result-renderers/QuizResult.vue'
+import QuizResult from './result-renderers/QuizResultRenderer.vue'
 import SearchResult from './result-renderers/SearchResult.vue'
 import KnowledgeResult from './result-renderers/KnowledgeResult.vue'
 

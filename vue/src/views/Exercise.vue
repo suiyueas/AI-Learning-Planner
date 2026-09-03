@@ -1,27 +1,21 @@
 ﻿<template>
   <div class="exercise-page">
-    <div class="bg-layer">
-      <div class="bg-aurora">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="bg-grid"></div>
-    </div>
-
     <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        <span>返回</span>
-      </button>
-      <h1 class="page-title">
-        <span class="title-icon">📝</span>
-        <span class="title-text">习题生成</span>
-      </h1>
-      <button class="generate-btn" :disabled="generating" @click="generateExercises">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg>
-        <span>{{ generating ? '生成中...' : '生成习题' }}</span>
-      </button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">📝</span>
+            <span>习题生成</span>
+            <span class="title-sub">智能出题，巩固知识</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="generate-btn" :disabled="generating" @click="generateExercises">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg>
+            <span>{{ generating ? '生成中...' : '生成习题' }}</span>
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="stats-row">
@@ -228,10 +222,13 @@ function formatDate(ts) {
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-function goBack() {
-  if (window.history.length > 1) router.back()
-  else router.push('/modules')
-}
+// 粒子样式生成
+const particleStyle = (i) => ({
+  left: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 20}s`,
+  animationDuration: `${15 + Math.random() * 25}s`,
+  opacity: 0.2 + Math.random() * 0.4
+})
 
 onMounted(loadData)
 </script>
@@ -240,19 +237,100 @@ onMounted(loadData)
 @use '../styles/variables' as *;
 .exercise-page {
   min-height: calc(100vh - 68px);
-  background: $bg-primary;
   position: relative;
   overflow: hidden;
   padding: 0;
 }
-.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.bg-aurora { position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
-  animation: auroraDrift 20s ease-in-out infinite;
+/* ===== 粒子背景 ===== */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -3;
+  overflow: hidden;
 }
-@keyframes auroraDrift { 0%,100% { transform: scale(1) rotate(0deg); } 33% { transform: scale(1.08) rotate(0.8deg); } 66% { transform: scale(0.95) rotate(-0.6deg); } }
-.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
-@keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: $accent-cyan;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba($accent-cyan, 0.5);
+  animation: particle-float 20s linear infinite;
+
+  &:nth-child(odd) {
+    background: $accent-primary;
+    box-shadow: 0 0 10px rgba($accent-primary, 0.5);
+  }
+}
+
+@keyframes particle-float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+/* ===== 极光背景 ===== */
+.bg-aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.aurora-layer {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(150px);
+  animation: aurora 25s ease-in-out infinite;
+}
+
+.aurora-1 {
+  width: 800px;
+  height: 800px;
+  top: -300px;
+  right: -200px;
+  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
+}
+
+.aurora-2 {
+  width: 700px;
+  height: 700px;
+  bottom: -250px;
+  left: -200px;
+  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
+  animation-delay: -8s;
+}
+
+.aurora-3 {
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 50%;
+  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
+  animation-delay: -15s;
+}
+
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(40px, -40px) scale(1.15); }
+  50% { transform: translate(-30px, 30px) scale(0.9); }
+  75% { transform: translate(25px, 15px) scale(1.1); }
+}
+
+/* ===== 网格纹理 ===== */
+.bg-grid-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
 
 .page-header {
   position: sticky; top: 0; z-index: 10;
@@ -260,6 +338,7 @@ onMounted(loadData)
   padding: 16px 32px;
   background: rgba($bg-primary,0.85); backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba($accent-secondary,0.08);
+  animation: slideUp 0.6s ease both;
 }
 .back-btn {
   display: flex; align-items: center; gap: 6px;
@@ -269,13 +348,12 @@ onMounted(loadData)
   transition: all 0.25s ease;
   &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; }
 }
-.page-title { flex: 1; display: flex; align-items: center; gap: 10px; }
-.title-icon { font-size: 1.3rem; }
-.title-text {
-  font-size: 1.05rem; font-weight: 700;
-  background: linear-gradient(135deg, $accent-primary, #3a86ff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
+
+.header-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.header-left { flex: 1; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
 .generate-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 9px 18px;

@@ -253,12 +253,13 @@ public class LearningPathService {
                 .version(1)
                 .isActive(true)
                 .completionPercentage(0f)
+                .source(request.getSource() != null ? request.getSource() : "manual")
                 .nodes(PathOutlineGenerator.generateOutline(request.getGoal(), request.getTargetField(), totalWeeks, objectMapper))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
-        log.info("为用户生成新学习路径: userId={}, goal={}, field={}, duration={}",
-                userId, request.getGoal(), request.getTargetField(), request.getDuration());
+        log.info("为用户生成新学习路径: userId={}, goal={}, field={}, duration={}, source={}",
+                userId, request.getGoal(), request.getTargetField(), request.getDuration(), request.getSource());
         return learningPathRepository.save(path);
     }
 

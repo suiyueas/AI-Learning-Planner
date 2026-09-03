@@ -3,13 +3,11 @@ package com.ai.learning.planner.service;
 import com.ai.learning.planner.entity.AssessmentRecord;
 import com.ai.learning.planner.entity.CheckinRecord;
 import com.ai.learning.planner.entity.DailyTask;
-import com.ai.learning.planner.entity.KnowledgeNode;
 import com.ai.learning.planner.entity.LearningPath;
 import com.ai.learning.planner.entity.LearningRecord;
 import com.ai.learning.planner.repository.AssessmentRecordRepository;
 import com.ai.learning.planner.repository.CheckinRecordRepository;
 import com.ai.learning.planner.repository.DailyTaskRepository;
-import com.ai.learning.planner.repository.KnowledgeNodeRepository;
 import com.ai.learning.planner.repository.LearningPathRepository;
 import com.ai.learning.planner.repository.LearningRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +34,6 @@ public class ProgressStatsService {
     private final DailyTaskRepository dailyTaskRepository;
     private final AssessmentRecordRepository assessmentRecordRepository;
     private final CheckinRecordRepository checkinRecordRepository;
-    private final KnowledgeNodeRepository knowledgeNodeRepository;
     private final LearningPathRepository learningPathRepository;
 
     private static final String COMPLETED = "completed";
@@ -281,19 +278,9 @@ public class ProgressStatsService {
         } catch (NumberFormatException ignored) {
         }
 
-        // 数据源2：学习记录 → 知识节点 category（掌握度取 mastery 均值）
-        List<LearningRecord> records = learningRecordRepository
-                .findByUserIdAndStatusAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, COMPLETED);
-        Map<String, KnowledgeNode> nodeCache = new HashMap<>();
-        records.forEach(rec -> {
-            String category = resolveNodeCategory(rec.getNodeId(), nodeCache);
-            if (category == null || category.isBlank()) return;
-            DomainStat stat = domainMap.computeIfAbsent(category, DomainStat::new);
-            stat.addRecord(rec.getPathId());
-            if (rec.getMasteryLevel() != null) {
-                stat.addMastery(normalizeMastery(rec.getMasteryLevel()), false);
-            }
-        });
+        // 数据源2：学习记录 → 节点 category（掌握度取 mastery 均值）
+        // Note: KnowledgeNode removed, category resolution skipped
+        // Learning records without category info are not added to domain map
 
         List<Map<String, Object>> result = domainMap.values().stream()
                 .filter(stat -> stat.masterySum > 0 || stat.recordCount > 0)
@@ -311,16 +298,6 @@ public class ProgressStatsService {
 
         // 学习过但既无测评又无掌握度数据的知识域（如 pending 记录）不计入；无任何数据时返回空列表
         return result;
-    }
-
-    private String resolveNodeCategory(String nodeId, Map<String, KnowledgeNode> cache) {
-        if (nodeId == null || nodeId.isBlank()) return null;
-        try {
-            KnowledgeNode node = cache.computeIfAbsent(nodeId, id -> knowledgeNodeRepository.findById(id).orElse(null));
-            return node == null ? null : node.getCategory();
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private String levelLabel(double mastery) {
@@ -395,22 +372,15 @@ public class ProgressStatsService {
             log.warn("[ProgressStats] 每日任务加载失败: {}", e.getMessage());
         }
 
-        // 数据源2：学习记录（learning_records 已完成项，标题取知识节点名称）
+        // 数据源2：学习记录（learning_records 已完成项）
         try {
             List<LearningRecord> records = learningRecordRepository
                     .findByUserIdAndStatusAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, COMPLETED);
-            Map<String, KnowledgeNode> nodeCache = new HashMap<>();
             records.forEach(r -> {
-                String nodeName = null;
-                if (r.getNodeId() != null) {
-                    KnowledgeNode node = nodeCache.computeIfAbsent(r.getNodeId(),
-                            id -> knowledgeNodeRepository.findById(id).orElse(null));
-                    if (node != null) nodeName = node.getName();
-                }
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", "record_" + r.getId());
                 m.put("date", r.getCompletedAt() != null ? r.getCompletedAt().toLocalDate().toString() : "");
-                m.put("title", nodeName != null ? "完成「" + nodeName + "」" : "完成学习任务");
+                m.put("title", "完成学习任务");
                 m.put("duration", r.getTimeSpent() != null ? r.getTimeSpent() : 0);
                 m.put("status", "completed");
                 m.put("type", r.getNodeType() != null ? r.getNodeType() : "learn");
@@ -568,6 +538,99 @@ public class ProgressStatsService {
             return !records.isEmpty();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // ==================== 示例数据初始化（新用户体验）====================
+
+    /**
+     * 为新用户生成示例学习数据（首次打开统计页时调用）
+     * 创建：近2周打卡记录、学习记录、测评记录，方便体验统计功能
+     */
+    public Map<String, Object> seedSampleData(String userId) {
+        try {
+            Long userIdLong = Long.valueOf(userId);
+
+            // 已有数据则直接返回，不重复生成
+            List<LearningRecord> existing = learningRecordRepository
+                    .findByUserIdAndStatusAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, COMPLETED);
+            if (!existing.isEmpty()) {
+                return Map.of("alreadyExists", true, "message", "已有学习数据");
+            }
+
+            LocalDate today = LocalDate.now();
+            LocalDateTime baseTime = LocalDate.now().atStartOfDay();
+
+            // 生成近14天打卡（模拟连续学习，但中途跳过两天）
+            for (int i = 13; i >= 0; i--) {
+                // 跳过第 4 天和第 8 天模拟中断
+                if (i == 4 || i == 8) continue;
+
+                LocalDate checkinDate = today.minusDays(i);
+                CheckinRecord record = new CheckinRecord();
+                record.setUserId(userIdLong);
+                record.setCheckinDate(checkinDate);
+                checkinRecordRepository.save(record);
+            }
+
+            // 生成10条学习记录（过去两周）
+            String[] topics = {"Python基础语法", "数据结构", "面向对象编程", "函数与模块",
+                    "文件操作", "异常处理", "正则表达式", "虚拟环境", "包管理", "调试技巧"};
+            int[] minutes = {45, 60, 90, 35, 50, 40, 25, 30, 45, 55};
+            for (int i = 0; i < 10; i++) {
+                int daysAgo = 1 + (i * 1) % 14;
+                LearningRecord lr = new LearningRecord();
+                lr.setUserId(userId);
+                lr.setPathId("1");
+                lr.setNodeId(String.valueOf(i + 1));
+                lr.setNodeType("lesson");
+                lr.setStatus(COMPLETED);
+                lr.setTimeSpent(minutes[i]);
+                lr.setMasteryLevel(40 + i * 5f);
+                lr.setCompletedAt(baseTime.minusDays(daysAgo).plusMinutes(i * 30));
+                learningRecordRepository.save(lr);
+            }
+
+            // 生成4条测评记录（四个知识域不同得分）
+            String[] subjects = {"Python基础", "数据结构", "算法入门", "面向对象"};
+            int[] scores = {75, 62, 88, 55};
+            int[] totals = {100, 100, 100, 100};
+            for (int i = 0; i < 4; i++) {
+                AssessmentRecord ar = new AssessmentRecord();
+                ar.setUserId(userIdLong);
+                ar.setSubject(subjects[i]);
+                ar.setScore(scores[i]);
+                ar.setTotal(totals[i]);
+                ar.setCreatedAt(baseTime.minusDays(2 + i * 2));
+                assessmentRecordRepository.save(ar);
+            }
+
+            // 生成几条每日任务
+            for (int i = 3; i >= 0; i--) {
+                DailyTask task = new DailyTask();
+                task.setUserId(userId);
+                task.setTaskDate(today.minusDays(i));
+                task.setTitle(i == 0 ? "今日复习Python基础" : "完成" + topics[i]);
+                task.setEstimatedMinutes(45);
+                task.setStatus(i == 0 ? "in_progress" : "completed");
+                task.setType("learning");
+                task.setPathId("1");
+                dailyTaskRepository.save(task);
+            }
+
+            int totalRecords = 10 + 4 + 4;
+            log.info("[seedSampleData] 为用户 {} 生成 {} 条示例数据", userId, totalRecords);
+            return Map.of(
+                    "success", true,
+                    "alreadyExists", false,
+                    "checkinCount", 12,
+                    "learningRecords", 10,
+                    "assessments", 4,
+                    "tasks", 4
+            );
+        } catch (Exception e) {
+            log.error("[seedSampleData] 生成示例数据失败: {}", e.getMessage(), e);
+            return Map.of("success", false, "message", e.getMessage());
         }
     }
 }

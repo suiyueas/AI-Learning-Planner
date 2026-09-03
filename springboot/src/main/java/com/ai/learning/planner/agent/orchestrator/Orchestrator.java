@@ -3,9 +3,13 @@ package com.ai.learning.planner.agent.orchestrator;
 import com.ai.learning.planner.agent.app.*;
 import com.ai.learning.planner.agent.base.BaseAgent;
 import com.ai.learning.planner.agent.dto.AgentInfo;
+import com.ai.learning.planner.agent.dto.ReasoningLevel;
 import com.ai.learning.planner.agent.dto.TaskResult;
+import com.ai.learning.planner.agent.dto.ThinkingProcess;
+import com.ai.learning.planner.interceptor.PointsInterceptor;
 import com.ai.learning.planner.service.AgentService;
 import com.ai.learning.planner.service.ModelManager;
+import com.ai.learning.planner.service.ReasoningTraceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -13,12 +17,17 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * 编排器
  * 统一管理所有子Agent，根据用户意图分配任务
  * 支持同步执行和流式执行
+ * 支持思考深度模式：快速/标准/深度
  */
 @Slf4j
 @Service
@@ -26,8 +35,11 @@ public class Orchestrator {
 
     private final ModelManager modelManager;
     private final AgentService agentService;
+    private final PointsInterceptor pointsInterceptor;
+    private final ReasoningTraceService reasoningTraceService;
     private final Map<String, BaseAgent> agentMap = new ConcurrentHashMap<>();
     private final List<BaseAgent> agentList = new ArrayList<>();
+    private final ExecutorService orchestrationExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     /** 主控Agent自身信息 */
     private final BaseAgent selfAgent;
@@ -35,6 +47,8 @@ public class Orchestrator {
     public Orchestrator(
             ModelManager modelManager,
             AgentService agentService,
+            PointsInterceptor pointsInterceptor,
+            ReasoningTraceService reasoningTraceService,
             DiagnosisAgent diagnosisAgent,
             AdvancedPlanningAgent advancedPlanningAgent,
             QAAgent qaAgent,
@@ -45,6 +59,8 @@ public class Orchestrator {
 
         this.modelManager = modelManager;
         this.agentService = agentService;
+        this.pointsInterceptor = pointsInterceptor;
+        this.reasoningTraceService = reasoningTraceService;
 
         // 注册所有子Agent（高级规划Agent替代原PlanningAgent，启用完整推理闭环）
         List<BaseAgent> agentsToRegister = List.of(
@@ -58,6 +74,7 @@ public class Orchestrator {
         );
 
         for (BaseAgent agent : agentsToRegister) {
+            agent.setReasoningTraceService(reasoningTraceService);
             agentMap.put(agent.getId(), agent);
             agentList.add(agent);
         }
@@ -138,8 +155,12 @@ public class Orchestrator {
 
     /**
      * 执行任务（同步）
+     * @param agentId 目标Agent ID
+     * @param input 用户输入
+     * @param reasoningLevel 思考深度模式
+     * @return 任务执行结果
      */
-    public TaskResult executeTask(String agentId, String input) {
+    public TaskResult executeTask(String agentId, String input, ReasoningLevel reasoningLevel) {
         BaseAgent agent = resolveAgent(agentId);
         if (agent == null) {
             return TaskResult.builder()
@@ -149,7 +170,7 @@ public class Orchestrator {
                     .build();
         }
 
-        log.info("[Orchestrator] 分配任务给 {}: {}", agent.getName(), input);
+        log.info("[Orchestrator] 分配任务给 {} (思考模式: {}): {}", agent.getName(), reasoningLevel.getDescription(), input);
 
         // 如果agentId是orchestrator，走意图识别流程
         if ("orchestrator".equals(agentId)) {
@@ -157,9 +178,12 @@ public class Orchestrator {
             BaseAgent targetAgent = agentMap.get(intent);
             if (targetAgent != null) {
                 log.info("[Orchestrator] 意图识别结果: {}，转发给 {}", intent, targetAgent.getName());
-                return executeTask(intent, input);
+                return executeTask(intent, input, reasoningLevel);
             }
         }
+
+        // 设置思考深度模式
+        agent.setReasoningLevel(reasoningLevel);
 
         long startTime = System.currentTimeMillis();
         String output = agent.run(input);
@@ -187,6 +211,9 @@ public class Orchestrator {
             log.warn("[Orchestrator] 保存执行日志/结果失败: {}", e.getMessage());
         }
 
+        // 构建思考过程列表
+        List<ThinkingProcess> thinkingProcess = agent.getThinkingProcessList();
+
         return TaskResult.builder()
                 .agentId(agent.getId())
                 .agentName(agent.getName())
@@ -195,13 +222,27 @@ public class Orchestrator {
                 .steps(new ArrayList<>(agent.getMessageList()))
                 .duration(duration)
                 .totalSteps(agent.getCurrentStep().get())
+                .reasoningLevel(reasoningLevel.getValue())
+                .thinkingProcess(thinkingProcess)
+                .traceId(agent.getCurrentTraceId())
                 .build();
     }
 
     /**
-     * 执行任务（流式）
+     * 执行任务（同步）- 默认标准模式
      */
-    public void executeTaskStream(String agentId, String input, SseEmitter emitter) {
+    public TaskResult executeTask(String agentId, String input) {
+        return executeTask(agentId, input, ReasoningLevel.STANDARD);
+    }
+
+    /**
+     * 执行任务（流式）
+     * @param agentId 目标Agent ID
+     * @param input 用户输入
+     * @param emitter SSE发射器
+     * @param reasoningLevel 思考深度模式
+     */
+    public void executeTaskStream(String agentId, String input, SseEmitter emitter, ReasoningLevel reasoningLevel) {
         BaseAgent agent = resolveAgent(agentId);
         if (agent == null) {
             try {
@@ -215,7 +256,24 @@ public class Orchestrator {
             return;
         }
 
-        log.info("[Orchestrator] 流式分配任务给 {}: {}", agent.getName(), input);
+        log.info("[Orchestrator] 流式分配任务给 {} (思考模式: {}): {}", agent.getName(), reasoningLevel.getDescription(), input);
+
+        // 设置思考深度模式
+        agent.setReasoningLevel(reasoningLevel);
+
+        // 发送思考模式信息
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("reasoning_mode")
+                    .data(Map.of(
+                            "level", reasoningLevel.getValue(),
+                            "description", reasoningLevel.getDescription(),
+                            "agentId", agent.getId(),
+                            "agentName", agent.getName()
+                    )));
+        } catch (Exception e) {
+            log.error("SSE发送思考模式信息失败", e);
+        }
 
         // 如果agentId是orchestrator，走意图识别并转发
         if ("orchestrator".equals(agentId)) {
@@ -225,13 +283,13 @@ public class Orchestrator {
                 log.info("[Orchestrator] 意图识别结果: {}，转发给 {}", intent, targetAgent.getName());
                 try {
                     emitter.send(SseEmitter.event()
-                            .name("think")
-                            .data(Map.of("content", "分析意图: " + input + " -> 分配给" + targetAgent.getName(),
+                            .name("intent_detected")
+                            .data(Map.of("content", "分析意图: " + input + " -> 分配给 " + targetAgent.getName(),
                                     "step", 0)));
                 } catch (Exception e) {
                     log.error("SSE发送失败", e);
                 }
-                executeTaskStream(intent, input, emitter);
+                executeTaskStream(intent, input, emitter, reasoningLevel);
                 return;
             }
         }
@@ -259,6 +317,119 @@ public class Orchestrator {
             log.warn("[Orchestrator] 保存流式执行日志失败: {}", e.getMessage());
         }
     }
+
+    /**
+     * 执行任务（流式）- 默认标准模式
+     */
+    public void executeTaskStream(String agentId, String input, SseEmitter emitter) {
+        executeTaskStream(agentId, input, emitter, ReasoningLevel.STANDARD);
+    }
+
+    // ==================== 🆕 多Agent编排核心 ====================
+
+    public record SubTask(String agentId, String agentName, String description, String input) {}
+    public record SubTaskResult(String agentId, String agentName, String description, String output, String status, String error) {}
+
+    /**
+     * 多Agent编排执行 - 流式
+     * 1. 任务拆解 → 2. 并行派发 → 3. 结果聚合
+     */
+    public void executeMultiAgentStream(String input, SseEmitter emitter) {
+        log.info("[Orchestrator] 多Agent编排启动: {}", input);
+        try {
+            // 1. 任务拆解
+            emitter.send(SseEmitter.event().name("orchestration_start")
+                    .data(Map.of("content", "🧠 开始编排任务: " + input)));
+            List<SubTask> subTasks = decomposeTask(input);
+            emitter.send(SseEmitter.event().name("decomposition")
+                    .data(Map.of("content", "📋 拆解为 " + subTasks.size() + " 个子任务",
+                            "subTasks", subTasks.stream().map(st -> Map.of("agentId", st.agentId(), "agentName", st.agentName(), "description", st.description())).collect(Collectors.toList()))));
+
+            // 2. 并行派发
+            List<CompletableFuture<SubTaskResult>> futures = new ArrayList<>();
+            for (SubTask subTask : subTasks) {
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    try {
+                        emitter.send(SseEmitter.event().name("subtask_start")
+                                .data(Map.of("agentId", subTask.agentId(), "agentName", subTask.agentName(), "description", subTask.description())));
+                        BaseAgent agent = agentMap.get(subTask.agentId());
+                        if (agent == null) return new SubTaskResult(subTask.agentId(), subTask.agentName(), subTask.description(), "", "ERROR", "Agent不存在");
+                        agent.setReasoningLevel(ReasoningLevel.STANDARD);
+                        String output = agent.run(subTask.input());
+                        emitter.send(SseEmitter.event().name("subtask_done")
+                                .data(Map.of("agentId", subTask.agentId(), "agentName", subTask.agentName(), "description", subTask.description(), "outputPreview", output.length() > 200 ? output.substring(0, 200) + "..." : output)));
+                        return new SubTaskResult(subTask.agentId(), subTask.agentName(), subTask.description(), output, "SUCCESS", null);
+                    } catch (Exception e) {
+                        log.error("子任务失败: {}", subTask.agentId(), e);
+                        try { emitter.send(SseEmitter.event().name("subtask_error").data(Map.of("agentId", subTask.agentId(), "agentName", subTask.agentName(), "error", e.getMessage()))); } catch (Exception ignored) {}
+                        return new SubTaskResult(subTask.agentId(), subTask.agentName(), subTask.description(), "", "ERROR", e.getMessage());
+                    }
+                }, orchestrationExecutor));
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            List<SubTaskResult> results = futures.stream().map(f -> { try { return f.get(); } catch (Exception e) { return new SubTaskResult("unknown", "未知", "", "", "ERROR", e.getMessage()); } }).collect(Collectors.toList());
+
+            // 3. 结果聚合
+            emitter.send(SseEmitter.event().name("aggregating").data(Map.of("content", "🔄 正在聚合 " + results.size() + " 个子任务结果...")));
+            String aggregated = aggregateResults(input, results);
+            emitter.send(SseEmitter.event().name("orchestration_done").data(Map.of("content", aggregated, "subTaskCount", subTasks.size(), "successCount", results.stream().filter(r -> "SUCCESS".equals(r.status())).count(), "errorCount", results.stream().filter(r -> "ERROR".equals(r.status())).count())));
+            log.info("[Orchestrator] 编排完成: {} 个子任务", subTasks.size());
+        } catch (Exception e) {
+            log.error("编排执行失败", e);
+            try { emitter.send(SseEmitter.event().name("error").data(Map.of("message", "编排失败: " + e.getMessage()))); } catch (Exception ex) { log.warn("错误发送失败", ex); }
+        }
+    }
+
+    /** 任务拆解：LLM将复杂任务拆解为子任务 */
+    private List<SubTask> decomposeTask(String input) {
+        String agentListStr = agentList.stream().map(a -> "- " + a.getId() + ": " + a.getName() + " - " + a.getDescription()).collect(Collectors.joining("\n"));
+        String prompt = """
+            你是一个任务拆解器。请将用户的学习任务拆解为1-5个子任务。
+            可用Agent：%s
+            用户输入：%s
+            只返回JSON数组：[{"agentId":"xxx","description":"xxx","input":"xxx"}]
+            """.formatted(agentListStr, input);
+        try {
+            String response = modelManager.createChatClient().prompt().system(prompt).user(input).call().content();
+            String json = extractJsonArray(response);
+            if (json == null) return List.of(new SubTask("planner", "规划Agent", "制定学习计划", input));
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<Map<String, String>> taskList = mapper.readValue(json, List.class);
+            List<SubTask> subTasks = new ArrayList<>();
+            for (Map<String, String> task : taskList) {
+                BaseAgent agent = agentMap.get(task.get("agentId"));
+                if (agent == null) continue;
+                subTasks.add(new SubTask(task.get("agentId"), agent.getName(), task.get("description"), task.get("input") != null ? task.get("input") : input));
+            }
+            return subTasks.isEmpty() ? List.of(new SubTask("planner", "规划Agent", "制定学习计划", input)) : subTasks;
+        } catch (Exception e) {
+            log.error("任务拆解失败", e);
+            return List.of(new SubTask("planner", "规划Agent", "制定学习计划", input));
+        }
+    }
+
+    /** 结果聚合：LLM整合所有子任务结果 */
+    private String aggregateResults(String originalInput, List<SubTaskResult> results) {
+        String resultsStr = results.stream().map(r -> "【" + r.agentName() + "】\n状态: " + r.status() + "\n输出: " + (r.output() != null ? r.output() : "(无)")).collect(Collectors.joining("\n---\n"));
+        String prompt = """
+            请将以下Agent执行结果整合为一份综合报告。
+            用户需求：%s
+            执行结果：%s
+            格式：Markdown，包含概述、详细内容、总结建议。
+            """.formatted(originalInput, resultsStr);
+        try {
+            String aggregated = modelManager.createChatClient().prompt().system(prompt).user(originalInput).call().content();
+            return aggregated != null ? aggregated : "聚合失败";
+        } catch (Exception e) { return "聚合失败: " + e.getMessage() + "\n\n原始输出:\n" + resultsStr; }
+    }
+
+    private String extractJsonArray(String text) {
+        if (text == null) return null;
+        int start = text.indexOf('['); int end = text.lastIndexOf(']');
+        return (start >= 0 && end > start) ? text.substring(start, end + 1) : null;
+    }
+
+    // ==================== 原有方法 ====================
 
     /**
      * 获取指定Agent状态

@@ -147,11 +147,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 积分不足异常（HTTP 402 Payment Required）
+     */
+    @ExceptionHandler(InsufficientPointsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientPoints(InsufficientPointsException e) {
+        log.warn("积分不足: userId={}, current={}, required={}, feature={}",
+                e.getMessage(), e.getCurrentPoints(), e.getRequiredPoints(), e.getFeature());
+        String message = String.format("积分不足，当前积分: %d，需要积分: %d，功能: %s",
+                e.getCurrentPoints(), e.getRequiredPoints(), e.getFeature());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(ApiResponse.error(HttpStatus.PAYMENT_REQUIRED.value(), message));
+    }
+
+    /**
      * 权限不足
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e) {
-        // 透传业务侧写死的提示（如“仅管理员可…”），不包含敏感信息
+        // 透传业务侧写死的提示（如"仅管理员可…"），不包含敏感信息
         log.warn("权限不足: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.forbidden(e.getMessage()));

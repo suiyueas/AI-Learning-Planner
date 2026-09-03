@@ -24,4 +24,8 @@ public class TaskRequest {
 
     /** 会话ID */
     private String sessionId;
+
+    /** 思考深度模式：fast(快速) / standard(标准) / deep(深度) */
+    @Builder.Default
+    private String reasoningLevel = "standard";
 }

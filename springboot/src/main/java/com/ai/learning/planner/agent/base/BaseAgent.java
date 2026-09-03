@@ -1,14 +1,16 @@
 package com.ai.learning.planner.agent.base;
 
+import com.ai.learning.planner.agent.dto.ReasoningLevel;
+import com.ai.learning.planner.agent.dto.ThinkingProcess;
+import com.ai.learning.planner.agent.dto.ThinkingType;
 import com.ai.learning.planner.service.ModelManager;
+import com.ai.learning.planner.service.ReasoningTraceService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 基础智能体抽象基类
  * 定义智能体的核心生命周期：run() → step() 循环 → FINISHED/ERROR
  * 支持同步执行和流式执行（SseEmitter）
+ * 支持三种思考深度模式：快速/标准/深度
  */
 @Slf4j
 @Getter
@@ -54,6 +57,18 @@ public abstract class BaseAgent {
     /** 子Agent列表（用于Orchestrator） */
     protected final List<BaseAgent> subAgents = new ArrayList<>();
 
+    /** 思考深度模式 */
+    protected ReasoningLevel reasoningLevel = ReasoningLevel.STANDARD;
+
+    /** 思考轨迹服务（可选） */
+    protected ReasoningTraceService reasoningTraceService;
+
+    /** 当前思考轨迹ID */
+    protected String currentTraceId;
+
+    /** 结构化思考过程列表 */
+    protected final List<ThinkingProcess> thinkingProcessList = new CopyOnWriteArrayList<>();
+
     protected BaseAgent(String id, String name, String systemPrompt, ModelManager modelManager) {
         this(id, name, systemPrompt, modelManager, 30);
     }
@@ -64,6 +79,21 @@ public abstract class BaseAgent {
         this.systemPrompt = systemPrompt;
         this.modelManager = modelManager;
         this.maxSteps = maxSteps;
+    }
+
+    /**
+     * 设置思考深度模式
+     */
+    public void setReasoningLevel(ReasoningLevel level) {
+        this.reasoningLevel = level;
+        log.info("[{}] 设置思考深度模式: {}", name, level.getDescription());
+    }
+
+    /**
+     * 设置思考轨迹服务
+     */
+    public void setReasoningTraceService(ReasoningTraceService service) {
+        this.reasoningTraceService = service;
     }
 
     /**
@@ -203,7 +233,25 @@ public abstract class BaseAgent {
      * 推送思考步骤事件
      */
     protected void pushThink(String content) {
-        pushEvent("think", Map.of("content", content, "step", currentStep.get()));
+        if (reasoningLevel == ReasoningLevel.FAST) {
+            return;
+        }
+
+        Map<String, Object> data = Map.of("content", content, "step", currentStep.get());
+
+        if (reasoningLevel == ReasoningLevel.DEEP) {
+            ThinkingProcess process = ThinkingProcess.thinking(content, currentStep.get());
+            thinkingProcessList.add(process);
+
+            if (reasoningTraceService != null && currentTraceId != null) {
+                reasoningTraceService.addThinking(currentTraceId, content, currentStep.get());
+            }
+
+            pushStructuredEvent("thinking", process);
+        } else {
+            pushEvent("think", data);
+        }
+
         addMessage("assistant", "[思考] " + content);
     }
 
@@ -211,12 +259,32 @@ public abstract class BaseAgent {
      * 推进行动步骤事件
      */
     protected void pushAction(String toolName, Object args, Object result) {
-        pushEvent("act", Map.of(
+        if (reasoningLevel == ReasoningLevel.FAST) {
+            return;
+        }
+
+        Map<String, Object> data = Map.of(
                 "tool", toolName,
                 "args", args,
                 "result", result,
                 "step", currentStep.get()
-        ));
+        );
+
+        if (reasoningLevel == ReasoningLevel.DEEP) {
+            ThinkingProcess process = ThinkingProcess.action(toolName, args,
+                    result instanceof String ? (String) result : result.toString(), currentStep.get());
+            thinkingProcessList.add(process);
+
+            if (reasoningTraceService != null && currentTraceId != null) {
+                reasoningTraceService.addAction(currentTraceId, toolName, args,
+                        result instanceof String ? (String) result : result.toString(), currentStep.get());
+            }
+
+            pushStructuredEvent("action", process);
+        } else {
+            pushEvent("act", data);
+        }
+
         addMessage("assistant", "[行动] 调用工具: " + toolName);
     }
 
@@ -224,8 +292,186 @@ public abstract class BaseAgent {
      * 推送观察步骤事件
      */
     protected void pushObserve(String observation) {
-        pushEvent("observe", Map.of("content", observation, "step", currentStep.get()));
+        if (reasoningLevel == ReasoningLevel.FAST) {
+            return;
+        }
+
+        Map<String, Object> data = Map.of("content", observation, "step", currentStep.get());
+
+        if (reasoningLevel == ReasoningLevel.DEEP) {
+            ThinkingProcess process = ThinkingProcess.observation(observation, currentStep.get());
+            thinkingProcessList.add(process);
+
+            if (reasoningTraceService != null && currentTraceId != null) {
+                reasoningTraceService.addObservation(currentTraceId, observation, currentStep.get());
+            }
+
+            pushStructuredEvent("observation", process);
+        } else {
+            pushEvent("observe", data);
+        }
+
         addMessage("assistant", "[观察] " + observation);
+    }
+
+    /**
+     * 推送结构化事件（深度思考模式）
+     */
+    protected void pushStructuredEvent(String eventType, ThinkingProcess process) {
+        Map<String, Object> data = Map.of(
+                "type", process.getType(),
+                "content", process.getContent(),
+                "label", process.getLabel(),
+                "step", process.getStep(),
+                "timestamp", process.getTimestamp(),
+                "metadata", process.getMetadata() != null ? process.getMetadata() : Collections.emptyMap()
+        );
+        pushEvent(eventType, data);
+    }
+
+    /**
+     * 推送任务理解阶段（深度思考模式）
+     */
+    protected void pushUnderstanding(String content) {
+        if (reasoningLevel != ReasoningLevel.DEEP) {
+            return;
+        }
+
+        ThinkingProcess process = ThinkingProcess.understanding(content, currentStep.get());
+        thinkingProcessList.add(process);
+
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.addUnderstanding(currentTraceId, content, currentStep.get());
+        }
+
+        pushStructuredEvent("understanding", process);
+    }
+
+    /**
+     * 推送执行计划阶段（深度思考模式）
+     */
+    protected void pushPlanning(String content) {
+        if (reasoningLevel != ReasoningLevel.DEEP) {
+            return;
+        }
+
+        ThinkingProcess process = ThinkingProcess.planning(content, currentStep.get());
+        thinkingProcessList.add(process);
+
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.addPlanning(currentTraceId, content, currentStep.get());
+        }
+
+        pushStructuredEvent("planning", process);
+    }
+
+    /**
+     * 推送反思阶段（深度思考模式）
+     */
+    protected void pushReflection(String content, Map<String, Object> metadata) {
+        if (reasoningLevel != ReasoningLevel.DEEP) {
+            return;
+        }
+
+        ThinkingProcess process = ThinkingProcess.reflection(content, currentStep.get(), metadata);
+        thinkingProcessList.add(process);
+
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.addReflection(currentTraceId, content, currentStep.get(), metadata);
+        }
+
+        pushStructuredEvent("reflection", process);
+    }
+
+    /**
+     * 推送备选方案阶段（深度思考模式）
+     */
+    protected void pushAlternative(String content) {
+        if (reasoningLevel != ReasoningLevel.DEEP) {
+            return;
+        }
+
+        ThinkingProcess process = ThinkingProcess.alternative(content, currentStep.get());
+        thinkingProcessList.add(process);
+
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.addAlternative(currentTraceId, content, currentStep.get());
+        }
+
+        pushStructuredEvent("alternative", process);
+    }
+
+    /**
+     * 推送执行步骤（深度思考模式）
+     */
+    protected void pushStep(int stepNumber, String description) {
+        if (reasoningLevel == ReasoningLevel.FAST) {
+            return;
+        }
+
+        if (reasoningLevel == ReasoningLevel.DEEP) {
+            ThinkingProcess process = ThinkingProcess.step(stepNumber, description, currentStep.get());
+            thinkingProcessList.add(process);
+
+            if (reasoningTraceService != null && currentTraceId != null) {
+                reasoningTraceService.addStep(currentTraceId, stepNumber, description, currentStep.get());
+            }
+
+            pushStructuredEvent("step", process);
+        }
+    }
+
+    /**
+     * 推送最终结论（深度思考模式）
+     */
+    protected void pushResult(String content) {
+        ThinkingProcess process = ThinkingProcess.result(content, currentStep.get());
+        thinkingProcessList.add(process);
+
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.addResult(currentTraceId, content, currentStep.get());
+        }
+
+        if (reasoningLevel == ReasoningLevel.DEEP) {
+            pushStructuredEvent("result", process);
+        } else {
+            pushEvent("result", Map.of("content", content, "step", currentStep.get()));
+        }
+    }
+
+    /**
+     * 开始思考轨迹
+     */
+    public void startThinkingTrace(String sessionId, String userInput) {
+        if (reasoningTraceService != null && reasoningLevel == ReasoningLevel.DEEP) {
+            currentTraceId = reasoningTraceService.startTrace(sessionId, userInput, id, reasoningLevel);
+
+            pushUnderstanding("正在理解你的需求: " + userInput);
+        }
+    }
+
+    /**
+     * 保存思考轨迹
+     */
+    public void saveThinkingTrace(String executionId, String userInput, String output, Long duration, String status) {
+        if (reasoningTraceService != null && currentTraceId != null) {
+            reasoningTraceService.saveTrace(currentTraceId, executionId, id, userInput, output, duration, status);
+        }
+    }
+
+    /**
+     * 清除思考过程列表
+     */
+    public void clearThinkingProcess() {
+        thinkingProcessList.clear();
+        currentTraceId = null;
+    }
+
+    /**
+     * 获取思考过程列表
+     */
+    public List<ThinkingProcess> getThinkingProcessList() {
+        return List.copyOf(thinkingProcessList);
     }
 
     /**

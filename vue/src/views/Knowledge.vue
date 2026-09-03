@@ -1,5 +1,5 @@
 ﻿<template>
-  <div ref="pageRef" class="knowledge-page" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
+  <div ref="pageRef" class="knowledge-page">
     <!-- 背景层 -->
     <div class="bg-layer">
       <div class="aurora-bg">
@@ -8,7 +8,6 @@
         <div class="aurora-layer a3"></div>
       </div>
       <div class="grid-bg"></div>
-      <div class="mouse-glow" :class="{ visible: isMouseInside }" :style="glowStyle"></div>
       <div class="floating-glow fg-cyan"></div>
       <div class="floating-glow fg-purple"></div>
       <div class="bg-particles">
@@ -18,13 +17,22 @@
 
     <!-- 页面标题 -->
     <header class="page-header">
-      <h1 class="page-title">📚 智能知识库</h1>
-      <p class="page-subtitle">
-        <span class="stat-hl">{{ displayStats.chunks }}</span> 个知识块 ·
-        <span class="stat-ok">{{ displayStats.ready }} 个就绪</span>
-        <span v-if="displayStats.processing > 0" class="stat-proc"> · {{ displayStats.processing }} 个处理中</span>
-      </p>
-      <button v-if="authStore.isAdmin" class="btn-generate-all" @click="handleGenerateAllChunks">🔄 全量生成知识块</button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">📚</span>
+            <span>智能知识库</span>
+            <span class="title-sub">
+              <span class="stat-hl">{{ displayStats.chunks }}</span> 个知识块 ·
+              <span class="stat-ok">{{ displayStats.ready }} 个就绪</span>
+              <span v-if="displayStats.processing > 0" class="stat-proc"> · {{ displayStats.processing }} 个处理中</span>
+            </span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button v-if="authStore.isAdmin" class="btn-generate-all" @click="handleGenerateAllChunks">🔄 全量生成知识块</button>
+        </div>
+      </div>
     </header>
 
     <!-- 对话历史抽屉 -->
@@ -219,6 +227,32 @@ v-for="chunk in displayChunks" :key="chunk.id" class="chunk-card clickable"
                 <div class="tooltip-hint">点击查看完整内容</div>
               </div>
             </transition>
+          </div>
+        </div>
+
+        <!-- 相关知识图谱 -->
+        <div v-if="selectedDocId && relatedDocs.length > 0" class="related-knowledge-graph">
+          <div class="graph-header">
+            <span class="graph-icon">🔗</span>
+            <span class="graph-title">相关知识图谱</span>
+          </div>
+          <div class="graph-content">
+            <div class="graph-center">
+              <div class="center-node">
+                <span class="center-icon">📄</span>
+                <span class="center-text">{{ currentDocName }}</span>
+              </div>
+            </div>
+            <div class="graph-connections">
+              <div class="connection-line"></div>
+              <div v-for="(doc, i) in relatedDocs.slice(0, 4)" :key="i" class="related-node" :style="{ '--delay': i * 0.1 + 's' }" @click="selectDocument(doc)">
+                <div class="node-card">
+                  <span class="node-icon">{{ getDocIcon(doc.type) }}</span>
+                  <span class="node-title">{{ doc.title }}</span>
+                  <span class="node-meta">{{ doc.chunks || 0 }} 个知识块</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -504,6 +538,7 @@ const chunks = ref([])
 const chunkLoading = ref(false)
 const currentDocName = ref('')
 const selectedDocId = ref(null)
+const relatedDocs = ref([])
 
 // ===== 详情弹窗 =====
 const showDetail = ref(false)
@@ -517,29 +552,6 @@ const allChunks = ref([])
 // ===== 知识块详情弹窗 =====
 const showChunkDetail = ref(false)
 const selectedChunk = ref(null)
-
-// ===== 鼠标光晕 =====
-const glowPosition = reactive({ x: -300, y: -300 })
-const isMouseInside = ref(false)
-let rafId = null
-
-const handleMouseMove = (e) => {
-  if (rafId) return
-  rafId = requestAnimationFrame(() => {
-    const rect = pageRef.value?.getBoundingClientRect()
-    if (rect) {
-      glowPosition.x = e.clientX - rect.left
-      glowPosition.y = e.clientY - rect.top
-    }
-    rafId = null
-  })
-}
-const handleMouseLeave = () => { isMouseInside.value = false }
-const handleMouseEnter = () => { isMouseInside.value = true }
-const glowStyle = computed(() => ({
-  left: glowPosition.x + 'px',
-  top: glowPosition.y + 'px'
-}))
 
 // ===== 粒子效果 =====
 const particleStyle = () => {
@@ -669,6 +681,9 @@ const selectDocument = async (doc) => {
   selectedDocId.value = doc.id
   currentDocName.value = doc.title
   knowledgeStore.selectDocument(doc)
+
+  // 获取相关文档（排除当前文档）
+  relatedDocs.value = documents.value.filter(d => d.id !== doc.id && d.status === 'ready').slice(0, 4)
 
   chunkLoading.value = true
   try {
@@ -1116,22 +1131,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* ===== 鼠标光晕 ===== */
-.mouse-glow {
-  position: absolute;
-  width: 320px; height: 320px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, rgba($accent-primary,0.12) 0%, rgba(123,97,255,0.06) 40%, transparent 70%);
-  filter: blur(24px);
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  will-change: left, top;
-}
-.mouse-glow.visible { opacity: 1; }
-@media (pointer: coarse) { .mouse-glow { display: none; } }
-
 /* ===== 浮动光晕 ===== */
 .floating-glow { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; animation: floatGlow 16s ease-in-out infinite alternate; }
 .fg-cyan { width: 500px; height: 500px; top: -120px; right: -120px; background: radial-gradient(circle, rgba($accent-primary,0.06) 0%, transparent 70%); animation-duration: 18s; }
@@ -1176,9 +1175,12 @@ onUnmounted(() => {
 }
 
 /* ===== 页面标题 ===== */
-.page-header { position: relative; z-index: 1; margin-bottom: 20px; animation: fadeSlideIn 0.5s ease; display: flex; flex-direction: column; gap: 8px; }
-.page-title { font-size: 24px; font-weight: 600; margin-bottom: 6px; color: #ffffff; text-shadow: 0 0 40px rgba(124,107,245,0.1); }
-.page-subtitle { font-size: 0.9rem; color: #d8d6e8; }
+.page-header { position: relative; z-index: 1; margin-bottom: 24px; animation: slideUp 0.6s ease both; }
+.header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+.header-left { flex: 1; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; }
 .stat-hl { color: $accent-primary; font-weight: 600; }
 .btn-generate-all {
   align-self: flex-start;
@@ -1420,7 +1422,7 @@ onUnmounted(() => {
 .chunk-preview-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: rgba(0,0,0,0.12); border-radius: 6px; .chunk-index-tag { font-size: 0.7rem; font-weight: 700; color: $accent-primary; background: rgba($accent-primary,0.08); padding: 1px 6px; border-radius: 4px; flex-shrink: 0; } .chunk-preview-text { font-size: 0.78rem; color: $text-secondary; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } }
 .more-hint { font-size: 0.75rem; color: $text-muted; text-align: center; padding: 6px; font-style: italic; }
 .detail-footer { display: flex; gap: 10px; justify-content: center; padding: 14px 20px; border-top: 1px solid rgba($accent-secondary,0.08); }
-.btn-primary { padding: 8px 20px; background: var(--btn-gradient); border: none; border-radius: 8px; color: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; &:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } }
+.btn-primary { padding: 8px 20px; background: rgba($accent-indigo, 0.1); border: 1px solid rgba($accent-indigo, 0.25); border-radius: 8px; color: $accent-indigo; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; font-family: inherit; &:hover { background: rgba($accent-indigo, 0.18); border-color: rgba($accent-indigo, 0.4); transform: translateY(-1px); box-shadow: 0 4px 12px rgba($accent-indigo, 0.15); } }
 .btn-secondary { padding: 8px 20px; background: rgba($accent-secondary,0.06); border: 1px solid rgba($accent-secondary,0.12); border-radius: 8px; color: $text-secondary; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; &:hover { background: rgba($accent-secondary,0.1); color: $text-primary; } }
 .qa-section { position: relative; z-index: 1; background: rgba($bg-primary,0.6); backdrop-filter: blur(12px); border: 1px solid rgba($accent-secondary,0.1); border-radius: 14px; overflow: hidden; }
 .qa-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid rgba($accent-secondary,0.08); flex-wrap: wrap; gap: 6px; }
@@ -1431,7 +1433,7 @@ onUnmounted(() => {
 .qa-messages { max-height: 280px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: rgba($accent-primary,0.12) transparent; &::-webkit-scrollbar { width: 3px; } &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 2px; } }
 .qa-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; .welcome-icon { font-size: 2rem; margin-bottom: 10px; } h3 { font-size: 1.1rem; color: $text-primary; margin-bottom: 4px; } p { font-size: 0.85rem; color: $text-muted; margin-bottom: 14px; } }
 .welcome-tips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.tip-chip { padding: 6px 14px; background: rgba($accent-primary,0.05); border: 1px solid rgba($accent-primary,0.1); border-radius: 16px; font-size: 0.78rem; color: $accent-primary; cursor: pointer; transition: all 0.2s; &:hover { background: rgba($accent-primary,0.1); border-color: rgba($accent-primary,0.2); } }
+.tip-chip { padding: 6px 14px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); border-radius: 16px; font-size: 0.78rem; color: #10b981; cursor: pointer; transition: all 0.2s; &:hover { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); } }
 
 /* ===== 消息布局 ===== */
 .user-message-wrapper { display: flex; justify-content: flex-end; width: 100%; }
@@ -1442,13 +1444,13 @@ onUnmounted(() => {
 .ai-av { background: rgba($accent-primary,0.1); }
 .msg-content { display: flex; flex-direction: column; max-width: 85%; min-width: 0; }
 .msg-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.ai-label { font-size: 12px; font-weight: 700; color: $accent-primary; }
+.ai-label { font-size: 12px; font-weight: 700; color: #10b981; }
 .msg-time { font-size: 11px; color: $text-muted; opacity: 0.7; }
 .msg-actions { display: flex; gap: 4px; margin-top: 8px; opacity: 0; transition: opacity 0.2s; .message:hover & { opacity: 1; } }
-.act-btn { width: 26px; height: 26px; border: 1px solid rgba($accent-secondary,0.1); border-radius: 6px; background: rgba($accent-secondary,0.03); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: all 0.2s; &:hover { border-color: $accent-primary; background: rgba($accent-primary,0.08); transform: translateY(-1px); } &.liked { border-color: $accent-primary; background: rgba($accent-primary,0.08); } }
+.act-btn { width: 26px; height: 26px; border: 1px solid rgba(16,185,129,0.12); border-radius: 6px; background: rgba(16,185,129,0.03); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: all 0.2s; &:hover { border-color: #10b981; background: rgba(16,185,129,0.1); transform: translateY(-1px); } &.liked { border-color: #10b981; background: rgba(16,185,129,0.1); } }
 .msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; max-width: 88%; }
-.user-bubble { background: rgba($accent-primary,0.08); border: 1px solid rgba($accent-primary,0.12); color: $text-primary; margin-left: auto; border-bottom-right-radius: 4px; }
-.ai-bubble { background: rgba($bg-primary,0.6); border: 1px solid rgba($accent-secondary,0.08); border-left: 2px solid rgba($accent-primary,0.3); color: $text-primary; border-bottom-left-radius: 4px; }
+.user-bubble { background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.08)); border: 1px solid rgba(16,185,129,0.2); color: $text-primary; margin-left: auto; border-bottom-right-radius: 4px; }
+.ai-bubble { background: rgba(15,23,42,0.7); border: 1px solid rgba(16,185,129,0.12); border-left: 3px solid rgba(16,185,129,0.5); color: $text-primary; border-bottom-left-radius: 4px; }
 .sources-box { margin-top: 8px; padding: 8px 10px; background: rgba($accent-primary,0.03); border: 1px solid rgba($accent-primary,0.06); border-radius: 8px; }
 .sources-hdr { font-size: 0.75rem; color: $accent-primary; font-weight: 500; margin-bottom: 4px; }
 .source-card { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: $text-secondary; padding: 2px 0; .src-tree { color: $text-muted; font-family: monospace; } .src-title { font-weight: 500; } .src-page { color: $text-muted; font-size: 0.7rem; } .src-rel { color: $accent-emerald; font-weight: 600; margin-left: auto; } }
@@ -1456,8 +1458,8 @@ onUnmounted(() => {
 .typing-dots { display: flex; gap: 4px; span { width: 5px; height: 5px; border-radius: 50%; background: $accent-primary; animation: typingDot 1.4s infinite; &:nth-child(2) { animation-delay: 0.2s; } &:nth-child(3) { animation-delay: 0.4s; } } }
 @keyframes typingDot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
 .qa-input-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid rgba($accent-secondary,0.08); }
-.qa-input { flex: 1; padding: 9px 14px; background: var(--bg-ctrl); border: 1px solid var(--border-ctrl); border-radius: 10px; color: var(--text-input); font-size: 0.85rem; outline: none; caret-color: var(--title-status); transition: border-color 0.2s, box-shadow 0.2s; &:focus { border-color: var(--border-ctrl-hover); box-shadow: 0 0 0 3px rgba(124,107,245,0.1); } &:disabled { opacity: 0.5; } &::placeholder { color: var(--text-placeholder); } }
-.qa-send { padding: 9px 20px; background: var(--btn-gradient); color: #fff; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; min-width: 64px; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(124,107,245,0.4); } &:disabled { opacity: 0.6; cursor: not-allowed; } }
+.qa-input { flex: 1; padding: 9px 14px; background: rgba(15,23,42,0.6); border: 1px solid rgba(16,185,129,0.15); border-radius: 10px; color: $text-primary; font-size: 0.85rem; outline: none; caret-color: #10b981; transition: border-color 0.2s, box-shadow 0.2s; &:focus { border-color: rgba(16,185,129,0.4); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); } &:disabled { opacity: 0.5; } &::placeholder { color: $text-muted; } }
+.qa-send { padding: 9px 20px; background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; min-width: 64px; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(16,185,129,0.4); } &:disabled { opacity: 0.6; cursor: not-allowed; } }
 .send-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
 
 /* ===== Markdown 渲染样式 ===== */
@@ -1924,6 +1926,147 @@ onUnmounted(() => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ===== 相关知识图谱 ===== */
+.related-knowledge-graph {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.graph-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.graph-icon {
+  font-size: 1rem;
+}
+
+.graph-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.graph-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.graph-center {
+  flex-shrink: 0;
+}
+
+.center-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  max-width: 140px;
+}
+
+.center-icon {
+  font-size: 1.2rem;
+}
+
+.center-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #10b981;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-connections {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.connection-line {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.1));
+  transform: translateY(-50%);
+}
+
+.related-node {
+  flex: 1;
+  min-width: 0;
+  animation: nodeSlideIn 0.3s ease forwards;
+  animation-delay: var(--delay);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.node-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+.node-icon {
+  font-size: 1.2rem;
+}
+
+.node-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $text-primary;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.node-meta {
+  font-size: 0.65rem;
+  color: #10b981;
+}
+
+@keyframes nodeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 </style>

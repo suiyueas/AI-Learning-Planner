@@ -1,5 +1,5 @@
 // 统计数据API
-import { get } from './request'
+import { get, post } from './request'
 
 /**
  * 获取首页仪表板统计数据
@@ -51,11 +51,20 @@ export const getProgressRecords = (params = {}) => {
   return get('/stats/progress/records', params)
 }
 
+/**
+ * 为新用户生成示例学习数据（首次打开统计页时调用）
+ * @returns {Promise}
+ */
+export const seedSampleData = () => {
+  return post('/stats/seed')
+}
+
 export default {
   getDashboardStats,
   getProgressOverview,
   getProgressCurve,
   getProgressCompetency,
   getAISuggestion,
-  getProgressRecords
+  getProgressRecords,
+  seedSampleData
 }

@@ -196,6 +196,19 @@ public class StatsController {
     }
 
     /**
+     * 为新用户生成示例学习数据（首次打开统计页时调用）
+     * 创建：近2周打卡记录、学习记录、测评记录
+     */
+    @PostMapping("/seed")
+    public Map<String, Object> seedSampleData() {
+        String userId = securityContextHolder.getCurrentUserId();
+        if (userId == null) {
+            return Map.of("success", false, "message", "用户未登录");
+        }
+        return progressStatsService.seedSampleData(userId);
+    }
+
+    /**
      * 计算连续学习天数（简化实现，基于 learning_paths 创建时间）
      */
     private int calculateContinuousDays() {

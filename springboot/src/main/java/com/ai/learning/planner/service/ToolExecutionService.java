@@ -1,8 +1,6 @@
 package com.ai.learning.planner.service;
 
 import com.ai.learning.planner.entity.KnowledgeDocument;
-import com.ai.learning.planner.entity.KnowledgeNode;
-import com.ai.learning.planner.entity.Resource;
 import com.ai.learning.planner.entity.ToolExecutionRecord;
 import com.ai.learning.planner.mcp.ai.AiToolContext;
 import com.ai.learning.planner.mcp.ai.DocumentSummaryTool;
@@ -14,8 +12,6 @@ import com.ai.learning.planner.mcp.ai.ToolDefinition;
 import com.ai.learning.planner.mcp.ai.ToolDefinitionRegistry;
 import com.ai.learning.planner.mcp.ai.TranslationTool;
 import com.ai.learning.planner.repository.KnowledgeDocumentRepository;
-import com.ai.learning.planner.repository.KnowledgeNodeRepository;
-import com.ai.learning.planner.repository.ResourceRepository;
 import com.ai.learning.planner.repository.ToolExecutionRecordRepository;
 import com.ai.learning.planner.repository.UserRepository;
 import com.ai.learning.planner.security.SecurityContextHolder;
@@ -41,8 +37,6 @@ import java.util.stream.Collectors;
 public class ToolExecutionService {
 
     private final ToolExecutionRecordRepository recordRepository;
-    private final ResourceRepository resourceRepository;
-    private final KnowledgeNodeRepository knowledgeNodeRepository;
     private final KnowledgeDocumentRepository knowledgeDocumentRepository;
     private final KnowledgeService knowledgeService;
     private final TavilySearchService tavilySearchService;
@@ -70,8 +64,6 @@ public class ToolExecutionService {
         // 依赖注入检查（降级为 DEBUG，避免日常日志冗余）
         log.debug("===== ToolExecutionService 初始化检查 =====");
         log.debug("recordRepository: {}", recordRepository != null ? "✓" : "✗");
-        log.debug("resourceRepository: {}", resourceRepository != null ? "✓" : "✗");
-        log.debug("knowledgeNodeRepository: {}", knowledgeNodeRepository != null ? "✓" : "✗");
         log.debug("knowledgeDocumentRepository: {}", knowledgeDocumentRepository != null ? "✓" : "✗");
         log.debug("knowledgeService: {}", knowledgeService != null ? "✓" : "✗");
         log.debug("tavilySearchService: {}", tavilySearchService != null ? "✓" : "✗");
@@ -148,6 +140,13 @@ public class ToolExecutionService {
                     "message", "该工具仅管理员可用");
         }
 
+        // ===== P0: 被禁用工具拦截（管理员通过 /tools/{id}/toggle 禁用后，禁止任何执行） =====
+        if (toolDef != null && !ToolDefinitionRegistry.isEnabled(toolId)) {
+            log.warn("[ToolExecutionService] 工具已被管理员禁用: toolId={}, userId={}", toolId, userId);
+            return Map.of("success", false, "errorCode", "DISABLED",
+                    "message", "该工具已被管理员禁用");
+        }
+
         // ===== P0: 工具调用二次确认检查 =====
         if (toolCallConfirmationService.requiresConfirmation(toolId, userId)) {
             String confirmationToken = params != null ? params.get("_confirmationToken") != null ?
@@ -178,9 +177,7 @@ public class ToolExecutionService {
                 case "tool_debug_panel" -> executeToolDebugPanel(params);
 
                 // ===== 旧工具名称（兼容模式，已标记 isHidden 但仍可通过旧名调用）=====
-                case "search_resources" -> executeSearchResources(params);
                 case "web_search" -> executeWebSearch(params);
-                case "query_knowledge_graph" -> executeQueryKnowledgeGraph(params);
                 case "web_fetch" -> executeWebFetch(params);
                 // AI 赋能工具（委托 mcp.ai 包，统一走降级兜底）
                 case "summarize_document" -> documentSummaryTool.execute(params, ctx);
@@ -228,126 +225,12 @@ public class ToolExecutionService {
 
         // 记录工具调用统计
         try {
-            toolStatsService.recordCall(toolId);
+            toolStatsService.recordall(toolId);
         } catch (Exception e) {
             log.warn("记录工具调用统计失败: toolId={}, error={}", toolId, e.getMessage());
         }
 
         return result;
-    }
-
-    /**
-     * search_resources - 从数据库的 resources 表和 knowledge_documents 表联合搜索
-     */
-    private Map<String, Object> executeSearchResources(Map<String, Object> params) {
-        // 使用 null-safe 方式提取参数，避免 NPE
-        Object keywordObj = params.get("keyword");
-        String keyword = keywordObj != null ? keywordObj.toString().trim() : "";
-        Object typeObj = params.get("type");
-        String type = typeObj != null ? typeObj.toString().trim() : "all";
-        int limit = params.get("limit") instanceof Number n ? n.intValue() : 10;
-        log.info("executeSearchResources: keyword={}, type={}, limit={}", keyword, type, limit);
-
-        List<Map<String, Object>> results = new ArrayList<>();
-        String finalKeyword = keyword;
-
-        try {
-            // 1. 从 resources 表搜索
-            List<Resource> resources;
-            if (keyword.isEmpty()) {
-                resources = resourceRepository.findAll();
-            } else {
-                // 模糊搜索标题或描述中含有关键词的资源
-                resources = resourceRepository.findAll().stream()
-                        .filter(r -> r.getTitle().toLowerCase().contains(finalKeyword.toLowerCase())
-                                || (r.getDescription() != null && r.getDescription().toLowerCase().contains(finalKeyword.toLowerCase())))
-                        .collect(Collectors.toList());
-            }
-
-            // 按类型筛选
-            if (!"all".equals(type)) {
-                resources = resources.stream()
-                        .filter(r -> type.equals(r.getType()))
-                        .collect(Collectors.toList());
-            }
-
-            for (Resource r : resources) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("title", r.getTitle());
-                item.put("description", r.getDescription() != null ? r.getDescription() : "");
-                item.put("type", r.getType() != null ? r.getType() : "unknown");
-                item.put("url", r.getUrl());
-                item.put("rating", r.getAvgRating() != null ? r.getAvgRating() : 0);
-                // 计算相关性分数
-                double relevance = 0.5;
-                if (!keyword.isEmpty()) {
-                    if (r.getTitle().toLowerCase().contains(keyword.toLowerCase())) relevance = 0.95;
-                    else if (r.getDescription() != null && r.getDescription().toLowerCase().contains(keyword.toLowerCase())) relevance = 0.8;
-                }
-                item.put("relevance", relevance);
-                item.put("source", "resource_library");
-                results.add(item);
-            }
-
-            // 2. 从 knowledge_documents 表搜索
-            if (keyword.isEmpty()) {
-                List<KnowledgeDocument> docs = knowledgeDocumentRepository.findAllByOrderByUploadedAtDesc();
-                for (KnowledgeDocument doc : docs) {
-                    Map<String, Object> item = new HashMap<>();
-                    item.put("title", doc.getTitle());
-                    item.put("description", doc.getDescription() != null ? doc.getDescription() : "");
-                    item.put("type", doc.getType() != null ? doc.getType() : "document");
-                    item.put("url", "");
-                    item.put("rating", 0);
-                    item.put("relevance", 0.5);
-                    item.put("source", "knowledge_base");
-                    item.put("status", doc.getStatus());
-                    item.put("chunks", doc.getChunks());
-                    results.add(item);
-                }
-            } else {
-                List<KnowledgeDocument> docs = knowledgeDocumentRepository.findAllByOrderByUploadedAtDesc().stream()
-                        .filter(d -> d.getTitle().toLowerCase().contains(keyword.toLowerCase())
-                                || (d.getDescription() != null && d.getDescription().toLowerCase().contains(keyword.toLowerCase())))
-                        .collect(Collectors.toList());
-                for (KnowledgeDocument doc : docs) {
-                    Map<String, Object> item = new HashMap<>();
-                    item.put("title", doc.getTitle());
-                    item.put("description", doc.getDescription() != null ? doc.getDescription() : "");
-                    item.put("type", doc.getType() != null ? doc.getType() : "document");
-                    item.put("url", "");
-                    item.put("rating", 0);
-                    item.put("relevance", 0.85);
-                    item.put("source", "knowledge_base");
-                    item.put("status", doc.getStatus());
-                    item.put("chunks", doc.getChunks());
-                    results.add(item);
-                }
-            }
-
-            // 按相关性排序（安全转换避免ClassCastException）
-            results.sort((a, b) -> {
-                double ra = a.get("relevance") instanceof Number n ? n.doubleValue() : 0.0;
-                double rb = b.get("relevance") instanceof Number n ? n.doubleValue() : 0.0;
-                return Double.compare(rb, ra);
-            });
-
-            // 限制数量
-            if (results.size() > limit) {
-                results = results.subList(0, limit);
-            }
-
-            log.info("executeSearchResources 完成: total={}", results.size());
-            return Map.of(
-                    "total", results.size(),
-                    "resources", results,
-                    "keyword", keyword,
-                    "type", type
-            );
-        } catch (Exception e) {
-            log.error("资源检索失败: keyword={}, error={}", keyword, e.getMessage(), e);
-            return Map.of("success", false, "message", "资源检索失败: " + e.getMessage());
-        }
     }
 
     /**
@@ -370,124 +253,6 @@ public class ToolExecutionService {
                 "rawResults", rawResults,
                 "message", "联网搜索完成"
         );
-    }
-
-    /**
-     * query_knowledge_graph - 从 knowledge_nodes 表查询知识图谱
-     */
-    private Map<String, Object> executeQueryKnowledgeGraph(Map<String, Object> params) {
-        String nodeId = params.getOrDefault("nodeId", "").toString().trim();
-        int depth = params.get("depth") instanceof Number n ? n.intValue() : 2;
-        log.info("executeQueryKnowledgeGraph: nodeId={}, depth={}", nodeId, depth);
-
-        try {
-            if (nodeId.isEmpty()) {
-                // 返回所有节点概览
-                List<KnowledgeNode> allNodes = knowledgeNodeRepository.findAll();
-                List<Map<String, Object>> nodeSummaries = allNodes.stream().map(n -> {
-                    Map<String, Object> summary = new HashMap<>();
-                    summary.put("id", n.getId());
-                    summary.put("name", n.getName());
-                    summary.put("difficulty", n.getDifficulty());
-                    summary.put("category", n.getCategory());
-                    return summary;
-                }).collect(Collectors.toList());
-
-                log.info("executeQueryKnowledgeGraph: 返回所有节点, total={}", allNodes.size());
-                return Map.of(
-                        "totalNodes", allNodes.size(),
-                        "nodes", nodeSummaries,
-                        "message", "未指定节点ID，返回所有节点概览"
-                );
-            }
-
-            // 查询指定节点
-            Optional<KnowledgeNode> nodeOpt = knowledgeService.getNode(nodeId);
-            if (nodeOpt.isEmpty()) {
-                // 尝试按名称搜索
-                List<KnowledgeNode> similar = knowledgeService.searchByName(nodeId);
-                List<Map<String, Object>> suggestions = similar.stream().map(n -> {
-                    Map<String, Object> s = new HashMap<>();
-                    s.put("id", n.getId());
-                    s.put("name", n.getName());
-                    return s;
-                }).collect(Collectors.toList());
-
-                log.warn("executeQueryKnowledgeGraph: 节点不存在, nodeId={}", nodeId);
-                return Map.of(
-                        "found", false,
-                        "message", "节点不存在: " + nodeId,
-                        "suggestions", suggestions
-                );
-            }
-
-            KnowledgeNode node = nodeOpt.get();
-
-            // 获取前置依赖节点
-            List<KnowledgeNode> prerequisites = knowledgeService.getPrerequisites(nodeId);
-            List<Map<String, Object>> prereqList = prerequisites.stream().map(n -> {
-                Map<String, Object> p = new HashMap<>();
-                p.put("id", n.getId());
-                p.put("name", n.getName());
-                p.put("difficulty", n.getDifficulty());
-                p.put("description", truncate(n.getDescription(), 100));
-                return p;
-            }).collect(Collectors.toList());
-
-            // 获取后置关联节点（依赖于该节点的节点）
-            List<KnowledgeNode> allNodes = knowledgeNodeRepository.findAll();
-            List<Map<String, Object>> dependents = new ArrayList<>();
-            String nodeIdStr = nodeId;
-            for (KnowledgeNode n : allNodes) {
-                String prereqs = n.getPrerequisites();
-                if (prereqs != null && prereqs.contains(nodeIdStr)) {
-                    Map<String, Object> dep = new HashMap<>();
-                    dep.put("id", n.getId());
-                    dep.put("name", n.getName());
-                    dep.put("difficulty", n.getDifficulty());
-                    dep.put("description", truncate(n.getDescription(), 100));
-                    dependents.add(dep);
-                }
-            }
-
-            // 获取同分类下相关节点
-            List<Map<String, Object>> relatedTopics = new ArrayList<>();
-            if (node.getCategory() != null) {
-                List<KnowledgeNode> sameCategory = knowledgeService.getNodesByCategory(node.getCategory());
-                String nodeIdStr2 = nodeId;
-                for (KnowledgeNode n : sameCategory) {
-                    if (!n.getId().equals(nodeIdStr2)) {
-                        Map<String, Object> rel = new HashMap<>();
-                        rel.put("id", n.getId());
-                        rel.put("name", n.getName());
-                        rel.put("difficulty", n.getDifficulty());
-                        relatedTopics.add(rel);
-                    }
-                }
-            }
-
-            Map<String, Object> nodeDetail = new HashMap<>();
-            nodeDetail.put("id", node.getId());
-            nodeDetail.put("name", node.getName());
-            nodeDetail.put("description", node.getDescription());
-            nodeDetail.put("difficulty", node.getDifficulty());
-            nodeDetail.put("estimatedHours", node.getEstimatedHours());
-            nodeDetail.put("category", node.getCategory());
-
-            log.info("executeQueryKnowledgeGraph 完成: nodeId={}, prereqCount={}, dependentCount={}",
-                    nodeId, prereqList.size(), dependents.size());
-            return Map.of(
-                    "found", true,
-                    "node", nodeDetail,
-                    "prerequisites", prereqList,
-                    "nextNodes", dependents,
-                    "relatedTopics", relatedTopics,
-                    "depth", depth
-            );
-        } catch (Exception e) {
-            log.error("知识图谱查询失败: nodeId={}, error={}", nodeId, e.getMessage(), e);
-            return Map.of("success", false, "message", "知识图谱查询失败: " + e.getMessage());
-        }
     }
 
     /**
@@ -518,33 +283,40 @@ public class ToolExecutionService {
 
     /**
      * unified_academic_search - 全域学术检索（合并版）
-     * 同时搜索内部知识库、外部联网资源、知识图谱概念
+     * 同时搜索内部知识库、外部联网资源
      */
     private Map<String, Object> executeUnifiedAcademicSearch(Map<String, Object> params) {
         String query = params.getOrDefault("query", "").toString().trim();
         boolean searchInternal = params.getOrDefault("searchInternal", "true").toString().equals("true");
         boolean searchWeb = params.getOrDefault("searchWeb", "true").toString().equals("true");
-        boolean searchGraph = params.getOrDefault("searchGraph", "false").toString().equals("true");
         int limit = params.get("limit") instanceof Number n ? n.intValue() : 5;
 
-        log.info("executeUnifiedAcademicSearch: query={}, internal={}, web={}, graph={}, limit={}",
-                query, searchInternal, searchWeb, searchGraph, limit);
+        log.info("executeUnifiedAcademicSearch: query={}, internal={}, web={}, limit={}",
+                query, searchInternal, searchWeb, limit);
 
         Map<String, Object> result = new LinkedHashMap<>();
         List<Map<String, Object>> allResults = new ArrayList<>();
 
-        // 1. 内部知识库检索
+        // 1. 内部知识库检索（knowledge_documents 表）
         if (searchInternal) {
             try {
-                Map<String, Object> internalResult = executeSearchResources(
-                        Map.of("keyword", query, "limit", limit));
-                if (internalResult.containsKey("results")) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> internalResults = (List<Map<String, Object>>) internalResult.get("results");
-                    internalResults.forEach(r -> r.put("source", "internal_knowledge"));
-                    allResults.addAll(internalResults);
-                    result.put("internalResults", internalResults);
+                List<KnowledgeDocument> docs = knowledgeDocumentRepository.findAllByOrderByUploadedAtDesc().stream()
+                        .filter(d -> d.getTitle() != null && d.getTitle().toLowerCase().contains(query.toLowerCase()))
+                        .limit(limit)
+                        .collect(Collectors.toList());
+                List<Map<String, Object>> internalResults = new ArrayList<>();
+                for (KnowledgeDocument doc : docs) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("title", doc.getTitle());
+                    item.put("description", doc.getDescription() != null ? doc.getDescription() : "");
+                    item.put("type", doc.getType() != null ? doc.getType() : "document");
+                    item.put("source", "internal_knowledge");
+                    item.put("status", doc.getStatus());
+                    item.put("chunks", doc.getChunks());
+                    internalResults.add(item);
                 }
+                allResults.addAll(internalResults);
+                result.put("internalResults", internalResults);
             } catch (Exception e) {
                 log.warn("内部知识库检索失败: {}", e.getMessage());
             }
@@ -567,32 +339,14 @@ public class ToolExecutionService {
             }
         }
 
-        // 3. 知识图谱查询
-        if (searchGraph) {
-            try {
-                Map<String, Object> graphResult = executeQueryKnowledgeGraph(
-                        Map.of("nodeId", query, "depth", 2));
-                if (graphResult.containsKey("nodes")) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> graphNodes = (List<Map<String, Object>>) graphResult.get("nodes");
-                    graphNodes.forEach(n -> n.put("source", "knowledge_graph"));
-                    allResults.addAll(graphNodes);
-                    result.put("graphResults", graphNodes);
-                }
-            } catch (Exception e) {
-                log.warn("知识图谱查询失败: {}", e.getMessage());
-            }
-        }
-
         result.put("success", true);
         result.put("query", query);
         result.put("totalResults", allResults.size());
         result.put("results", allResults);
-        result.put("message", String.format("全域检索完成，共找到 %d 条结果（内部:%d, 联网:%d, 图谱:%d）",
+        result.put("message", String.format("全域检索完成，共找到 %d 条结果（内部:%d, 联网:%d）",
                 allResults.size(),
                 ((List<?>) result.getOrDefault("internalResults", List.of())).size(),
-                ((List<?>) result.getOrDefault("webResults", List.of())).size(),
-                ((List<?>) result.getOrDefault("graphResults", List.of())).size()));
+                ((List<?>) result.getOrDefault("webResults", List.of())).size()));
 
         return result;
     }
@@ -868,10 +622,8 @@ public class ToolExecutionService {
 
     private String getToolName(String toolId) {
         return switch (toolId) {
-            case "search_resources" -> "资源检索";
             case "web_search" -> "联网搜索";
             case "web_fetch" -> "网页抓取";
-            case "query_knowledge_graph" -> "知识图谱查询";
             case "summarize_document" -> "文档摘要";
             case "extract_keywords" -> "知识点提取";
             case "generate_quiz" -> "生成测验题";

@@ -211,7 +211,7 @@ export const clearAllResults = (mode = 'soft') => {
  * @returns {Promise}
  */
 export const deleteResultById = (id, mode = 'soft') => {
-  return del(`/agent/results/${id}`, { mode })
+  return del(`/agent/results/${id}?mode=${mode}`)
 }
 
 /**
@@ -221,7 +221,6 @@ export const deleteResultById = (id, mode = 'soft') => {
  * @returns {Promise}
  */
 export const deleteResultsBatch = (ids, mode = 'soft') => {
-  // 手动构造 query 参数，避免 axios 将数组序列化为 ids[]=x 导致后端无法解析
   const query = (ids || []).map(id => `ids=${encodeURIComponent(id)}`).join('&')
   return del(`/agent/results/batch?${query}&mode=${mode}`)
 }
@@ -461,12 +460,121 @@ function handleNamedEvent(eventType, data, callbacks) {
   }
 }
 
+/**
+ * 多Agent编排执行（SSE流式）
+ * 将复杂任务拆解后并行分配给多个Agent，聚合结果
+ * @param {string} message 用户输入的复杂任务
+ * @param {object} callbacks 回调函数
+ * @param {function} callbacks.onOrchestrationStart 编排开始
+ * @param {function} callbacks.onDecomposition 任务拆解结果
+ * @param {function} callbacks.onSubtaskStart 子任务开始
+ * @param {function} callbacks.onSubtaskDone 子任务完成
+ * @param {function} callbacks.onSubtaskError 子任务失败
+ * @param {function} callbacks.onAggregating 结果聚合中
+ * @param {function} callbacks.onOrchestrationDone 编排完成
+ * @param {function} callbacks.onError 错误
+ * @param {AbortSignal} signal 中断信号
+ * @returns {Promise}
+ */
+export const postOrchestrateExecution = async (message, callbacks = {}, signal = null) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream'
+  }
+  const token = localStorage.getItem('token')
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const response = await fetch('/api/agent/orchestrate', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ message }),
+    signal
+  })
+
+  if (!response.ok) {
+    let errorMsg = `服务器响应错误 (${response.status})`
+    if (response.status === 401) errorMsg = '未授权，请重新登录'
+    else if (response.status >= 500) errorMsg = '后端服务异常'
+    throw new Error(errorMsg)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    let currentEvent = null
+    let currentData = ''
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) {
+        if (currentEvent && currentData) {
+          handleOrchestrateEvent(currentEvent, currentData, callbacks)
+        }
+        currentEvent = null
+        currentData = ''
+        continue
+      }
+      if (trimmed.startsWith('event:')) currentEvent = trimmed.slice(6).trim()
+      else if (trimmed.startsWith('data:')) currentData = trimmed.slice(5).trim()
+    }
+  }
+}
+
+/**
+ * 处理编排事件
+ */
+function handleOrchestrateEvent(eventType, dataStr, callbacks) {
+  try {
+    const data = JSON.parse(dataStr)
+    switch (eventType) {
+      case 'orchestration_start':
+        if (callbacks.onOrchestrationStart) callbacks.onOrchestrationStart(data)
+        break
+      case 'decomposition':
+        if (callbacks.onDecomposition) callbacks.onDecomposition(data)
+        break
+      case 'subtask_start':
+        if (callbacks.onSubtaskStart) callbacks.onSubtaskStart(data)
+        break
+      case 'subtask_done':
+        if (callbacks.onSubtaskDone) callbacks.onSubtaskDone(data)
+        break
+      case 'subtask_error':
+        if (callbacks.onSubtaskError) callbacks.onSubtaskError(data)
+        break
+      case 'aggregating':
+        if (callbacks.onAggregating) callbacks.onAggregating(data)
+        break
+      case 'orchestration_done':
+        if (callbacks.onOrchestrationDone) callbacks.onOrchestrationDone(data)
+        break
+      case 'error':
+        if (callbacks.onError) callbacks.onError(data)
+        break
+      default:
+        console.warn('未知编排事件:', eventType, data)
+    }
+  } catch (e) {
+    console.warn('编排事件解析失败:', eventType, dataStr)
+  }
+}
+
 export default {
   getAgents,
   getAgentDetail,
   executeAgentTask,
   stopAgentExecution,
   streamAgentExecution,
+  postOrchestrateExecution,
   // 数据持久化接口
   executePlanTask,
   getAgentLogs,

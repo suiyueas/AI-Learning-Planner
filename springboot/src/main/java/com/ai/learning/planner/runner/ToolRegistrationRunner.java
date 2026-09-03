@@ -31,17 +31,19 @@ public class ToolRegistrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         registerSearchTools();
-        registerKnowledgeTools();
         log.info("[ToolRegistration] 工具注册完成，已注册 {} 个工具",
                 agentToolManager.getRegisteredTools().size());
     }
 
     private void registerSearchTools() {
-        // 知识库语义检索（向量 + MySQL 降级）
+        // 知识库语义检索（向量 + MySQL 降级，带用户隔离）
         agentToolManager.registerTool("search_knowledge", params -> {
             String query = (String) params.getOrDefault("query", "");
             int topK = params.containsKey("topK") ? Integer.parseInt(params.get("topK").toString()) : 5;
-            List<Document> results = knowledgeService.searchSimilar(query, topK);
+            String userId = AgentToolManager.getCurrentUserId();
+            List<Document> results = userId != null && !userId.isBlank()
+                    ? knowledgeService.searchSimilar(query, topK, userId)
+                    : knowledgeService.searchSimilar(query, topK);
             if (results.isEmpty()) return "未找到相关知识";
             return results.stream()
                     .map(d -> {
@@ -58,20 +60,5 @@ public class ToolRegistrationRunner implements ApplicationRunner {
             String result = tavilySearchService.search(query);
             return result != null ? result : "搜索无结果";
         }, "联网搜索，获取互联网实时信息");
-    }
-
-    private void registerKnowledgeTools() {
-        // 知识图谱查询
-        agentToolManager.registerTool("query_knowledge_graph", params -> {
-            String nodeId = (String) params.getOrDefault("nodeId", "");
-            if (nodeId.isBlank()) {
-                return "请提供 nodeId 参数";
-            }
-            return knowledgeService.getNode(nodeId)
-                    .map(node -> String.format("节点: %s, 分类: %s, 前置: %s",
-                            node.getName(), node.getCategory(),
-                            node.getPrerequisites() != null ? node.getPrerequisites() : "无"))
-                    .orElse("未找到节点: " + nodeId);
-        }, "查询知识图谱节点信息");
     }
 }

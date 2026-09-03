@@ -1,27 +1,21 @@
 ﻿<template>
   <div class="achievements-page">
-    <div class="bg-layer">
-      <div class="bg-aurora">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="bg-grid"></div>
-    </div>
-
     <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        <span>返回</span>
-      </button>
-      <h1 class="page-title">
-        <span class="title-icon">🏆</span>
-        <span class="title-text">成就打卡</span>
-      </h1>
-      <button class="checkin-btn" :disabled="isChecking || checkedInToday" @click="doCheckin">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-        <span>{{ isChecking ? '打卡中...' : checkedInToday ? '今日已打卡' : '每日打卡' }}</span>
-      </button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">🏆</span>
+            <span>成就打卡</span>
+            <span class="title-sub">记录成长，激励前行</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="checkin-btn" :disabled="isChecking || checkedInToday" @click="doCheckin">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+            <span>{{ isChecking ? '打卡中...' : checkedInToday ? '今日已打卡' : '每日打卡' }}</span>
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="achievements-content">
@@ -258,10 +252,13 @@ async function copyShareText() {
   }
 }
 
-function goBack() {
-  if (window.history.length > 1) router.back()
-  else router.push('/modules')
-}
+// 粒子样式生成
+const particleStyle = (i) => ({
+  left: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 20}s`,
+  animationDuration: `${15 + Math.random() * 25}s`,
+  opacity: 0.2 + Math.random() * 0.4
+})
 
 onMounted(loadData)
 </script>
@@ -269,48 +266,124 @@ onMounted(loadData)
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
 .achievements-page {
-  min-height: calc(100vh - 68px); background: $bg-primary; position: relative;
+  min-height: calc(100vh - 68px); position: relative;
 }
-.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.bg-aurora { position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba($accent-primary,0.06) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(123,97,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(0,85,255,0.04) 0%, transparent 50%);
-  animation: auroraDrift 20s ease-in-out infinite;
+/* ===== 粒子背景 ===== */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -3;
+  overflow: hidden;
 }
-@keyframes auroraDrift { 0%,100% { transform: scale(1) rotate(0deg); } 33% { transform: scale(1.08) rotate(0.8deg); } 66% { transform: scale(0.95) rotate(-0.6deg); } }
-.bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba($accent-primary,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(123,97,255,0.03) 1px, transparent 1px); background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite alternate; }
-@keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
-.page-header {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 32px;
-  background: rgba($bg-primary,0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba($accent-secondary,0.08);
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: $accent-cyan;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba($accent-cyan, 0.5);
+  animation: particle-float 20s linear infinite;
+
+  &:nth-child(odd) {
+    background: $accent-primary;
+    box-shadow: 0 0 10px rgba($accent-primary, 0.5);
+  }
 }
+
+@keyframes particle-float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+/* ===== 极光背景 ===== */
+.bg-aurora {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.aurora-layer {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(150px);
+  animation: aurora 25s ease-in-out infinite;
+}
+
+.aurora-1 {
+  width: 800px;
+  height: 800px;
+  top: -300px;
+  right: -200px;
+  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
+}
+
+.aurora-2 {
+  width: 700px;
+  height: 700px;
+  bottom: -250px;
+  left: -200px;
+  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
+  animation-delay: -8s;
+}
+
+.aurora-3 {
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 50%;
+  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
+  animation-delay: -15s;
+}
+
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(40px, -40px) scale(1.15); }
+  50% { transform: translate(-30px, 30px) scale(0.9); }
+  75% { transform: translate(25px, 15px) scale(1.1); }
+}
+
+/* ===== 网格纹理 ===== */
+.bg-grid-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ===== 页面头部（统一规范） ===== */
+.page-header { @include page-header-base; position: sticky; top: 0; z-index: 10; background: rgba($bg-primary, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba($accent-primary, 0.08); }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
+
 .back-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; background: rgba($accent-secondary,0.06);
-  border: 1px solid rgba($accent-secondary,0.1); border-radius: 8px;
-  color: $text-secondary; font-size: 0.82rem; cursor: pointer;
-  transition: all 0.25s ease;
-  &:hover { border-color: rgba($accent-primary,0.2); color: $accent-primary; }
+  @include page-header-btn-ghost;
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.2);
+  color: $accent-indigo;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.15);
+    border-color: rgba($accent-indigo, 0.35);
+    color: $accent-indigo-light;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
 }
-.page-title { flex: 1; display: flex; align-items: center; gap: 10px; }
-.title-icon { font-size: 1.3rem; }
-.title-text {
-  font-size: 1.05rem; font-weight: 700;
-  background: linear-gradient(135deg, $accent-amber, $accent-red);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
+
 .checkin-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 9px 18px;
-  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1));
-  border: 1px solid rgba(245,158,11,0.2); border-radius: 10px;
-  color: $accent-amber; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  transition: all 0.25s ease;
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 20px rgba(245,158,11,0.15); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  @include page-header-btn-primary;
+  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
+  border: 1px solid rgba($accent-primary, 0.2);
+  color: $accent-primary;
 }
 
 .achievements-content {
@@ -326,14 +399,14 @@ onMounted(loadData)
   border: 1px solid rgba($accent-secondary,0.1); border-radius: 16px;
 }
 .streak-main { display: flex; align-items: baseline; gap: 4px; }
-.streak-number { font-size: 3rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: $accent-amber; text-shadow: 0 0 20px rgba(245,158,11,0.3); }
+.streak-number { font-size: 3rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: $accent-primary; text-shadow: 0 0 20px rgba($accent-primary,0.3); }
 .streak-unit { font-size: 1rem; font-weight: 600; color: $text-secondary; }
 .streak-label { font-size: 0.82rem; color: $text-muted; }
 .streak-dots { display: flex; gap: 6px; }
 .streak-dot {
   width: 10px; height: 10px; border-radius: 50%;
   background: rgba($accent-secondary,0.15);
-  &.active { background: $accent-amber; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+  &.active { background: $accent-primary; box-shadow: 0 0 6px rgba($accent-primary,0.4); }
 }
 
 .monthly-card {
@@ -343,7 +416,7 @@ onMounted(loadData)
 }
 .monthly-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
 .monthly-title { font-size: 0.85rem; font-weight: 700; color: $text-primary; }
-.monthly-count { font-size: 0.8rem; color: $accent-amber; font-family: 'JetBrains Mono', monospace; }
+.monthly-count { font-size: 0.8rem; color: $accent-primary; font-family: 'JetBrains Mono', monospace; }
 .monthly-grid {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
 }
@@ -351,8 +424,8 @@ onMounted(loadData)
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
   font-size: 0.72rem; color: $text-secondary; border-radius: 6px;
   background: rgba($accent-secondary,0.03);
-  &.today { border: 1px solid rgba(245,158,11,0.3); color: $accent-amber; font-weight: 700; }
-  &.checked { background: rgba(245,158,11,0.12); color: $accent-amber; font-weight: 600; }
+  &.today { border: 1px solid rgba($accent-primary,0.3); color: $accent-primary; font-weight: 700; }
+  &.checked { background: rgba($accent-primary,0.12); color: $accent-primary; font-weight: 600; }
   &.future { opacity: 0.2; }
 }
 
@@ -365,7 +438,7 @@ onMounted(loadData)
   background: rgba($bg-primary,0.5); backdrop-filter: blur(12px);
   border: 1px solid rgba($accent-secondary,0.08);
   transition: all 0.3s ease;
-  &.unlocked { border-color: rgba(245,158,11,0.15); &:hover { border-color: rgba(245,158,11,0.3); transform: translateY(-2px); } }
+  &.unlocked { border-color: rgba($accent-primary,0.15); &:hover { border-color: rgba($accent-primary,0.3); transform: translateY(-2px); } }
   &.locked { opacity: 0.5; }
 }
 .badge-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba($accent-secondary,0.06); flex-shrink: 0; }
@@ -388,17 +461,17 @@ onMounted(loadData)
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 8px;
-  color: $accent-amber;
+  color: $accent-primary;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba($accent-primary, 0.15);
+    border-color: rgba($accent-primary, 0.35);
   }
 }
 
@@ -418,7 +491,7 @@ onMounted(loadData)
   width: 420px;
   max-width: calc(100vw - 32px);
   background: rgba($bg-primary, 0.97);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba($accent-primary, 0.2);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -451,8 +524,8 @@ onMounted(loadData)
   align-items: center;
   gap: 12px;
   padding: 14px;
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px solid rgba(245, 158, 11, 0.15);
+  background: rgba($accent-primary, 0.06);
+  border: 1px solid rgba($accent-primary, 0.15);
   border-radius: 12px;
   margin-bottom: 12px;
 }
@@ -470,7 +543,7 @@ onMounted(loadData)
 .share-badge-name {
   font-size: 0.95rem;
   font-weight: 700;
-  color: $accent-amber;
+  color: $accent-primary;
 }
 
 .share-badge-date {
@@ -518,16 +591,16 @@ onMounted(loadData)
 
 .btn-copy {
   padding: 9px 16px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba($accent-primary, 0.12);
+  border: 1px solid rgba($accent-primary, 0.25);
   border-radius: 8px;
-  color: $accent-amber;
+  color: $accent-primary;
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
-    background: rgba(245, 158, 11, 0.2);
+    background: rgba($accent-primary, 0.2);
   }
 }
 

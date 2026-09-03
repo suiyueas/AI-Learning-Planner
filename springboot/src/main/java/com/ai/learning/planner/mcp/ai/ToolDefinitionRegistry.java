@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * 统一工具描述注册表
@@ -238,6 +240,9 @@ public final class ToolDefinitionRegistry {
     private static final Map<String, ToolDefinition> BY_ID = new LinkedHashMap<>();
     private static final Map<String, ToolDefinition> BY_ALIAS = new LinkedHashMap<>();
 
+    /** 被管理员禁用的工具 ID 集合（内存态，重启恢复；禁用后从 LLM 工具清单与前端列表移除） */
+    private static final Set<String> DISABLED_TOOLS = new HashSet<>();
+
     static {
         for (ToolDefinition def : TOOLS) {
             BY_ID.put(def.id(), def);
@@ -253,14 +258,42 @@ public final class ToolDefinitionRegistry {
 
     /** 全部工具定义 */
     public static List<ToolDefinition> all() {
-        return TOOLS;
+        return TOOLS.stream()
+                .filter(def -> !DISABLED_TOOLS.contains(def.id()))
+                .toList();
     }
 
-    /** 前端可见工具列表（排除隐藏的调试工具） */
+    /** 前端可见工具列表（排除隐藏的调试工具与已禁用的工具） */
     public static List<ToolDefinition> visibleTools() {
         return TOOLS.stream()
                 .filter(def -> !def.isHidden())
+                .filter(def -> !DISABLED_TOOLS.contains(def.id()))
                 .toList();
+    }
+
+    /** 工具是否处于启用状态（不存在于禁用集合即视为启用） */
+    public static boolean isEnabled(String toolId) {
+        return !DISABLED_TOOLS.contains(toolId);
+    }
+
+    /**
+     * 切换工具启用/禁用状态
+     * @return 切换后的启用状态
+     */
+    public static synchronized boolean toggleTool(String toolId) {
+        if (BY_ID.containsKey(toolId)) {
+            if (DISABLED_TOOLS.contains(toolId)) {
+                DISABLED_TOOLS.remove(toolId);
+            } else {
+                DISABLED_TOOLS.add(toolId);
+            }
+        }
+        return isEnabled(toolId);
+    }
+
+    /** 当前被禁用的工具 ID 列表 */
+    public static List<String> disabledToolIds() {
+        return List.copyOf(DISABLED_TOOLS);
     }
 
     /** 按工具ID查找 */
@@ -304,7 +337,8 @@ public final class ToolDefinitionRegistry {
         map.put("description", def.description());
         map.put("icon", defaultIcon(def.category()));
         map.put("category", def.category());
-        map.put("status", "available");
+        map.put("status", isEnabled(def.id()) ? "available" : "disabled");
+        map.put("enabled", isEnabled(def.id()));
         map.put("usageCount", usageCount);
         map.put("aliases", def.aliases());
         map.put("aiEnabled", isAiTool(def.id()));

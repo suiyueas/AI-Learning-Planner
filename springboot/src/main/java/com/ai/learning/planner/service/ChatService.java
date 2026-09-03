@@ -4,7 +4,9 @@ import com.ai.learning.planner.dto.ChatRequest;
 import com.ai.learning.planner.dto.ChatResponse;
 import com.ai.learning.planner.dto.CodeAnalysisRequest;
 import com.ai.learning.planner.dto.CodeAnalysisResponse;
+import com.ai.learning.planner.dto.ConversationSummary;
 import com.ai.learning.planner.entity.ChatHistory;
+import com.ai.learning.planner.interceptor.PointsInterceptor;
 import com.ai.learning.planner.mcp.ai.ToolDefinition;
 import com.ai.learning.planner.mcp.ai.ToolDefinitionRegistry;
 import com.ai.learning.planner.repository.ChatHistoryRepository;
@@ -47,11 +49,17 @@ public class ChatService {
     private final PromptBoundaryMarker promptBoundaryMarker;
     private final RagSecurityService ragSecurityService;
     private final SessionRiskTracker sessionRiskTracker;
+    private final PointsInterceptor pointsInterceptor;
 
     /**
      * 处理用户聊天请求
      */
     public ChatResponse chat(ChatRequest request) {
+        // 积分检查：普通用户每次对话消耗积分
+        if (request.getUserId() != null) {
+            pointsInterceptor.checkAndConsumeByFeature(request.getUserId(), "CHAT");
+        }
+
         String sessionId = request.getSessionId();
         if (sessionId == null) {
             sessionId = UUID.randomUUID().toString();
@@ -60,8 +68,9 @@ public class ChatService {
         String chatContext = chatMemoryService.getChatContext(sessionId);
         ChatClient chatClient = buildChatClient(request.getModel());
 
+        String userIdStr = request.getUserId() != null ? String.valueOf(request.getUserId()) : null;
         String systemPrompt = buildSystemPrompt(request.getRole(), chatContext, false, null,
-                request.isUseKnowledge(), request.getMessage(), request.isUseTools());
+                request.isUseKnowledge(), request.getMessage(), request.isUseTools(), userIdStr);
         String response = chatClient.prompt()
                 .system(systemPrompt)
                 .user(request.getMessage())
@@ -104,6 +113,11 @@ public class ChatService {
     }
 
     public Flux<String> streamChat(ChatRequest request) {
+        // 积分检查：普通用户每次对话消耗积分
+        if (request.getUserId() != null) {
+            pointsInterceptor.checkAndConsumeByFeature(request.getUserId(), "CHAT");
+        }
+
         final String sessionId = request.getSessionId() != null ? request.getSessionId() : UUID.randomUUID().toString();
         final Long userId = request.getUserId();
 
@@ -115,11 +129,13 @@ public class ChatService {
             String chatContext = chatMemoryService.getChatContext(sessionId);
             ChatClient chatClient = buildChatClient(request.getModel());
 
-            // ===== 1. 知识库检索（RAG） =====
+            // ===== 1. 知识库检索（RAG，带用户隔离） =====
             List<Map<String, Object>> knowledgeSources = new ArrayList<>();
             if (request.isUseKnowledge()) {
                 try {
-                    List<Document> similarDocs = knowledgeService.searchSimilar(request.getMessage(), 5);
+                    String searchUserId = userId != null ? String.valueOf(userId) : null;
+                    List<Document> similarDocs = knowledgeService.searchSimilar(
+                            request.getMessage(), 5, request.getSelectedDocIds(), searchUserId);
                     for (int i = 0; i < similarDocs.size(); i++) {
                         Document doc = similarDocs.get(i);
                         Map<String, Object> source = new HashMap<>();
@@ -143,9 +159,10 @@ public class ChatService {
                 }
             }
 
-            // 构建 system prompt（含 RAG 上下文和工具列表）
+            // 构建 system prompt（含 RAG 上下文和工具列表，带用户隔离）
+            String searchUserId = userId != null ? String.valueOf(userId) : null;
             String systemPrompt = buildSystemPrompt(request.getRole(), chatContext, request.isWebSearch(),
-                    request.getMessage(), request.isUseKnowledge(), request.getMessage(), request.isUseTools());
+                    request.getMessage(), request.isUseKnowledge(), request.getMessage(), request.isUseTools(), searchUserId);
 
             // 先保存用户消息
             saveChatHistory(sessionId, userId, request.getMessage(), "user", null);
@@ -286,9 +303,19 @@ public class ChatService {
                         sink.next("data: " + toJson(event) + "\n\n");
                     }
                 }
-                // 发送完成事件
+                // 发送完成事件（含 Token 用量估算）
                 Map<String, Object> doneEvent = new HashMap<>();
                 doneEvent.put("type", "done");
+                // 估算 Token 用量：中文约 1.5 字符/Token，英文约 4 字符/Token，取保守估算；
+                // promptTokens 计入对话上下文（chatContext）与当前输入，避免低估实际输入量
+                int responseLen = fullResponse.length();
+                int contextLen = chatContext != null ? chatContext.length() : 0;
+                int inputLen = request.getMessage().length() + contextLen;
+                doneEvent.put("usage", Map.of(
+                    "promptTokens", Math.max(1, inputLen / 2),
+                    "completionTokens", Math.max(1, responseLen / 2),
+                    "totalTokens", Math.max(1, (inputLen + responseLen) / 2)
+                ));
                 sink.next("data: " + toJson(doneEvent) + "\n\n");
                 sink.complete();
             });
@@ -321,7 +348,7 @@ public class ChatService {
      * 构建系统提示词，整合角色定义、对话上下文、联网搜索、RAG 知识库和工具列表
      */
     private String buildSystemPrompt(String role, String chatContext, boolean webSearch, String webSearchQuery,
-                                     boolean useKnowledge, String userMessage, boolean useTools) {
+                                     boolean useKnowledge, String userMessage, boolean useTools, String userId) {
         String roleDefinition = switch (role != null ? role : "planner") {
             case "expert" -> "你是一位专业的学习答疑专家，擅长深入浅出地讲解各学科知识概念。";
             case "partner" -> "你是一位友善的学习伙伴，用轻松鼓励的语气陪伴用户学习，善于提问引导思考。";
@@ -349,7 +376,7 @@ public class ChatService {
         // RAG 知识库上下文（使用 RAG 安全检测）
         if (useKnowledge && userMessage != null && !userMessage.isBlank()) {
             try {
-                List<Document> similarDocs = knowledgeService.searchSimilar(userMessage, 5);
+                List<Document> similarDocs = knowledgeService.searchSimilar(userMessage, 5, userId);
                 if (!similarDocs.isEmpty()) {
                     // 对检索结果进行安全检测
                     List<Document> safeDocs = ragSecurityService.sanitizeRetrievedDocuments(similarDocs);
@@ -491,7 +518,51 @@ public class ChatService {
         return chatHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    private void saveChatHistory(String sessionId, Long userId, String content, String role, String agentType) {
+    /**
+     * 获取用户的会话摘要列表（轻量级，不加载消息内容）
+     */
+    public List<ConversationSummary> getConversationSummaries(String userId) {
+        List<Object[]> summaries = chatHistoryRepository.findConversationSummaries(userId);
+        List<ConversationSummary> result = new ArrayList<>();
+
+        for (Object[] row : summaries) {
+            String sessionId = (String) row[0];
+            long messageCount = (Long) row[1];
+            java.time.LocalDateTime createdAt = (java.time.LocalDateTime) row[2];
+            java.time.LocalDateTime updatedAt = (java.time.LocalDateTime) row[3];
+
+            // 获取标题（第一条用户消息）
+            String title = chatHistoryRepository.findFirstUserMessage(sessionId);
+            if (title != null && title.length() > 30) {
+                title = title.substring(0, 30) + "...";
+            }
+            if (title == null || title.isBlank()) {
+                title = "对话记录";
+            }
+
+            // 获取最后一条消息预览
+            String lastMessage = chatHistoryRepository.findLastMessage(sessionId);
+            if (lastMessage != null && lastMessage.length() > 50) {
+                lastMessage = lastMessage.substring(0, 50) + "...";
+            }
+
+            result.add(ConversationSummary.builder()
+                    .sessionId(sessionId)
+                    .title(title)
+                    .messageCount((int) messageCount)
+                    .lastMessage(lastMessage)
+                    .createdAt(createdAt)
+                    .updatedAt(updatedAt)
+                    .build());
+        }
+
+        return result;
+    }
+
+    /**
+     * 保存聊天历史（公开：供 KnowledgeController 等复用落库逻辑）
+     */
+    public void saveChatHistory(String sessionId, Long userId, String content, String role, String agentType) {
         try {
             ChatHistory history = ChatHistory.builder()
                     .id(UUID.randomUUID().toString())
@@ -673,6 +744,7 @@ public class ChatService {
     /**
      * 删除指定会话的聊天历史
      */
+    @org.springframework.transaction.annotation.Transactional
     public void deleteChatHistory(String sessionId, String userId) {
         List<ChatHistory> histories = chatHistoryRepository.findBySessionIdAndUserId(sessionId, userId);
         chatHistoryRepository.deleteAll(histories);

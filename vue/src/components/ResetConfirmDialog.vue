@@ -1,100 +1,81 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title=""
-    width="480px"
-    :close-on-click-modal="false"
-    class="reset-confirm-dialog"
-    align-center
-  >
-    <div class="dialog-header">
-      <div class="warning-icon">⚠️</div>
-      <h3 class="dialog-title">确认重置学习计划</h3>
-    </div>
+  <Teleport to="body">
+    <Transition name="reset-modal">
+      <div v-if="visible" class="reset-confirm-overlay" @click.self="handleCancel">
+        <div class="reset-confirm-modal">
+          <!-- 头部图标 -->
+          <div class="modal-icon-wrap">
+            <div class="modal-icon danger">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+          </div>
 
-    <div class="dialog-content">
-      <div class="plan-summary-card">
-        <div class="summary-header">
-          <span class="summary-label">即将重置的计划</span>
-        </div>
-        <div class="summary-row">
-          <span class="row-label">计划名称</span>
-          <span class="row-value">{{ planData.name || '未命名学习计划' }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="row-label">当前进度</span>
-          <span class="row-value highlight">{{ planData.progress || 0 }}%</span>
-        </div>
-        <div class="summary-row">
-          <span class="row-label">已用时间</span>
-          <span class="row-value">{{ planData.usedDays || 0 }} 天</span>
-        </div>
-        <div class="summary-row">
-          <span class="row-label">当前阶段</span>
-          <span class="row-value stage">{{ planData.currentStage || '未知' }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="row-label">已完成模块</span>
-          <span class="row-value">{{ planData.completedModules || 0 }} / {{ planData.totalModules || 0 }} 个</span>
+          <!-- 标题 -->
+          <h3 class="modal-title">确认重置计划</h3>
+
+          <!-- 描述信息 -->
+          <div class="modal-desc">
+            <p class="desc-main">确定要重置学习计划「{{ planData.name || '未命名计划' }}」吗？</p>
+            <div class="desc-details">
+              <div class="detail-item">
+                <span class="detail-icon">📊</span>
+                <span class="detail-text">当前进度：{{ Math.round(planData.completionPercentage || 0) }}%</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">📝</span>
+                <span class="detail-text">已完模块：{{ planData.completedModules || 0 }} 个</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-icon">⏱️</span>
+                <span class="detail-text">已用时间：{{ planData.usedDays || 0 }} 天</span>
+              </div>
+            </div>
+            <p class="desc-warning">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              此操作将清空所有学习进度，AI 将根据你的目标重新生成学习路径，不可撤销！
+            </p>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="modal-actions">
+            <button class="action-btn cancel" @click="handleCancel">
+              取消
+            </button>
+            <button class="action-btn danger" @click="handleConfirm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              确认重置
+            </button>
+          </div>
         </div>
       </div>
-
-      <div class="warning-box">
-        <div class="warning-icon-small">🚨</div>
-        <p class="warning-text">此操作将删除所有学习进度和记录，不可恢复！</p>
-      </div>
-
-      <div class="confirm-input-group">
-        <label class="confirm-label">请输入计划名称确认重置</label>
-        <el-input
-          v-model="confirmName"
-          :placeholder="planData.name || '请输入计划名称'"
-          class="confirm-input"
-          clearable
-        />
-        <p v-if="confirmName && confirmName !== planData.name" class="confirm-hint">
-          输入名称不匹配，请重新输入
-        </p>
-      </div>
-    </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button class="btn-cancel" @click="handleCancel">取消</el-button>
-        <el-button
-          class="btn-danger"
-          type="primary"
-          :disabled="!isConfirmValid"
-          :class="{ 'btn-danger-active': isConfirmValid }"
-          @click="handleConfirm"
-        >
-          确认重置
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
+  modelValue: { type: Boolean, default: false },
   planData: {
     type: Object,
     default: () => ({
       id: '',
       name: '',
-      progress: 0,
-      currentStage: '',
-      usedDays: 0,
-      totalDays: 0,
+      completionPercentage: 0,
       completedModules: 0,
-      totalModules: 0
+      usedDays: 0
     })
   }
 })
@@ -106,266 +87,214 @@ const visible = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-const confirmName = ref('')
-
-const isConfirmValid = computed(() => {
-  return confirmName.value.trim() === (props.planData.name || '').trim()
-})
-
-watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    confirmName.value = ''
-  }
-})
-
 const handleCancel = () => {
   visible.value = false
 }
 
 const handleConfirm = () => {
-  if (!isConfirmValid.value) {
-    ElMessage.warning('请输入正确的计划名称以确认重置')
-    return
+  if (props.planData.id) {
+    emit('confirm', props.planData.id)
   }
-  emit('confirm', props.planData.id)
   visible.value = false
 }
+
+const handleKeydown = (e) => {
+  if (!props.modelValue) return
+  if (e.key === 'Escape') {
+    handleCancel()
+  } else if (e.key === 'Enter') {
+    handleConfirm()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
-<style scoped>
-.dialog-header {
-  text-align: center;
-  padding: 8px 0 20px;
-}
-
-.dialog-header .warning-icon {
-  font-size: 3rem;
-  margin-bottom: 12px;
-}
-
-.dialog-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #F1F5F9;
-  margin: 0;
-}
-
-.dialog-content {
-  padding: 0 4px;
-}
-
-.plan-summary-card {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(100, 100, 180, 0.12);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-}
-
-.summary-header {
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
-}
-
-.summary-label {
-  font-size: 0.8rem;
-  color: #00E5FF;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.summary-row {
+<style lang="scss" scoped>
+.reset-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
+  justify-content: center;
+  z-index: 9999;
 }
 
-.summary-row:not(:last-child) {
-  border-bottom: 1px solid rgba(100, 100, 180, 0.06);
+.reset-confirm-modal {
+  background: linear-gradient(145deg, rgba(25, 28, 50, 0.98), rgba(18, 20, 40, 0.98));
+  border: 1px solid rgba(100, 100, 180, 0.15);
+  border-radius: 20px;
+  padding: 32px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(124, 97, 245, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.row-label {
-  font-size: 0.85rem;
-  color: #94A3B8;
-  flex-shrink: 0;
-}
-
-.row-value {
-  font-size: 0.9rem;
-  color: #F1F5F9;
-  font-weight: 500;
-  text-align: right;
-}
-
-.row-value.highlight {
-  color: #10B981;
-  font-weight: 600;
-}
-
-.row-value.stage {
-  color: #00E5FF;
-  font-size: 0.85rem;
-}
-
-.warning-box {
+.modal-icon-wrap {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    color: #ef4444;
+    border: 2px solid rgba(239, 68, 68, 0.2);
+  }
+}
+
+.modal-title {
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f0f0ff;
+  margin: 0 0 12px;
+}
+
+.modal-desc {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.desc-main {
+  font-size: 0.95rem;
+  color: #a0a0c0;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.desc-details {
+  background: rgba(100, 100, 180, 0.06);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: left;
   margin-bottom: 16px;
 }
 
-.warning-icon-small {
-  font-size: 1.2rem;
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  }
+}
+
+.detail-icon {
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
-.warning-text {
+.detail-text {
   font-size: 0.85rem;
-  color: #FCA5A5;
-  margin: 0;
+  color: #c0c0e0;
   line-height: 1.5;
 }
 
-.confirm-input-group {
+.desc-warning {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
-}
-
-.confirm-label {
-  font-size: 0.85rem;
-  color: #94A3B8;
-  font-weight: 500;
-}
-
-.confirm-input {
-  --el-input-bg-color: rgba(255, 255, 255, 0.04);
-  --el-input-border-color: rgba(100, 100, 180, 0.15);
-  --el-input-hover-border-color: rgba(0, 229, 255, 0.3);
-  --el-input-focus-border-color: #00E5FF;
-  --el-input-text-color: #F1F5F9;
-  --el-input-placeholder-color: #94A3B8;
-}
-
-.confirm-input .el-input__wrapper {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(100, 100, 180, 0.15);
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-.confirm-input .el-input__wrapper:hover {
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.confirm-input .el-input__wrapper.is-focus {
-  border-color: #EF4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
-}
-
-.confirm-input .el-input__inner {
-  color: #F1F5F9;
-  font-size: 0.9rem;
-}
-
-.confirm-hint {
-  font-size: 0.75rem;
-  color: #EF4444;
+  font-size: 0.8rem;
+  color: #fbbf24;
+  line-height: 1.5;
   margin: 0;
+  padding: 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  text-align: left;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
 }
 
-.dialog-footer {
+.modal-actions {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
-.btn-cancel {
-  padding: 10px 24px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.2);
-  color: #94A3B8;
-  border-radius: 8px;
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-size: 0.9rem;
-  transition: all 0.25s ease;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+
+  &.cancel {
+    background: rgba(100, 100, 180, 0.1);
+    color: #a0a0c0;
+    border: 1px solid rgba(100, 100, 180, 0.15);
+
+    &:hover {
+      background: rgba(100, 100, 180, 0.18);
+      color: #d0d0e0;
+    }
+  }
+
+  &.danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.15));
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.25));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    }
+  }
 }
 
-.btn-cancel:hover {
-  color: #F1F5F9;
-  border-color: rgba(100, 100, 180, 0.3);
-  background: rgba(100, 100, 180, 0.12);
+/* 动画 */
+.reset-modal-enter-active,
+.reset-modal-leave-active {
+  transition: opacity 0.2s ease;
+
+  .reset-confirm-modal {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
 }
 
-.btn-danger {
-  padding: 10px 24px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #FCA5A5;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: all 0.25s ease;
-}
+.reset-modal-enter-from,
+.reset-modal-leave-to {
+  opacity: 0;
 
-.btn-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-danger-active {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.2));
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #FCA5A5;
-}
-
-.btn-danger-active:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.6);
-}
-</style>
-
-<style>
-.reset-confirm-dialog.el-dialog {
-  background: rgba(17, 17, 39, 0.98);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(100, 100, 180, 0.15);
-  border-radius: 16px;
-}
-
-.reset-confirm-dialog .el-dialog__header {
-  padding: 20px 24px 0;
-  margin-right: 0;
-}
-
-.reset-confirm-dialog .el-dialog__title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #F1F5F9;
-}
-
-.reset-confirm-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: #94A3B8;
-  font-size: 1.2rem;
-}
-
-.reset-confirm-dialog .el-dialog__headerbtn:hover .el-dialog__close {
-  color: #EF4444;
-}
-
-.reset-confirm-dialog .el-dialog__body {
-  padding: 0 24px 8px;
-}
-
-.reset-confirm-dialog .el-dialog__footer {
-  padding: 16px 24px 20px;
+  .reset-confirm-modal {
+    transform: scale(0.95) translateY(10px);
+    opacity: 0;
+  }
 }
 </style>

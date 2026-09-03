@@ -1,45 +1,25 @@
 ﻿<template>
-  <div ref="pageRef" class="study-notes" @mousemove="handleMouseMove" @mouseleave="isMouseInside = false" @mouseenter="isMouseInside = true">
-    <!-- ===== 深空背景层 ===== -->
-    <div class="bg-layer">
-      <div class="aurora-bg">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="grid-bg"></div>
-      <div class="mouse-glow" :class="{ visible: isMouseInside }" :style="glowStyle"></div>
-      <div class="floating-glow fg-cyan"></div>
-      <div class="floating-glow fg-purple"></div>
-      <div class="bg-particles">
-        <div v-for="i in 20" :key="i" class="particle" :style="particleStyle(i)"></div>
-      </div>
-    </div>
-
+  <div ref="pageRef" class="study-notes">
     <!-- ===== 顶部导航 ===== -->
     <header class="page-header">
-      <div class="header-left">
-        <button class="btn-back" @click="goBack">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-          <span>返回</span>
-        </button>
-      </div>
-      <div class="header-center">
-        <h1 class="page-title">
-          <span class="title-icon">✏️</span>
-          <span class="title-text">学习笔记</span>
-          <span class="title-badge">{{ notes.length }}</span>
-        </h1>
-      </div>
-      <div class="header-right">
-        <button class="btn-export" :disabled="exporting || notes.length === 0" title="导出全部笔记为 Markdown" @click="handleExport">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-          <span>{{ exporting ? '导出中...' : '导出笔记' }}</span>
-        </button>
-        <button class="btn-create" @click="openCreateModal">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          <span>新建笔记</span>
-        </button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">✏️</span>
+            <span>学习笔记</span>
+            <span class="title-sub">记录、整理与回顾知识</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="btn-export" :disabled="exporting || notes.length === 0" title="导出全部笔记为 Markdown" @click="handleExport">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            <span>{{ exporting ? '导出中...' : '导出笔记' }}</span>
+          </button>
+          <button class="btn-create" @click="openCreateModal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            <span>新建笔记</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -229,67 +209,26 @@
     </transition>
 
     <!-- ===== 删除确认对话框 ===== -->
-    <transition name="modal-fade">
-      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
-        <div class="delete-dialog" @click.stop>
-          <div class="delete-icon">🗑️</div>
-          <h3 class="delete-title">确认删除</h3>
-          <p class="delete-desc">确定要删除笔记「{{ deletingNote?.title }}」吗？此操作不可撤销。</p>
-          <div class="delete-actions">
-            <button class="btn-cancel" @click="showDeleteConfirm = false">取消</button>
-            <button class="btn-delete" @click="executeDelete">删除</button>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <DeleteConfirmDialog
+      :visible="showDeleteConfirm"
+      :title="deleteDialogConfig.title"
+      :message="deleteDialogConfig.message"
+      :type="deleteDialogConfig.type"
+      :show-soft-delete="deleteDialogConfig.showSoftDelete"
+      :details="deleteDialogConfig.details"
+      @cancel="handleDeleteCancel"
+      @hard-delete="handleDeleteHard"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getNotes, createNote, updateNote, deleteNote, exportNotes } from '@/api/notesApi'
+import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog.vue'
 
 const router = useRouter()
-
-// ===== 鼠标跟踪 =====
-const pageRef = ref(null)
-const isMouseInside = ref(false)
-const mouseX = ref(0)
-const mouseY = ref(0)
-
-const glowStyle = computed(() => ({
-  left: mouseX.value + 'px',
-  top: mouseY.value + 'px'
-}))
-
-const handleMouseMove = (e) => {
-  if (pageRef.value) {
-    const rect = pageRef.value.getBoundingClientRect()
-    mouseX.value = e.clientX - rect.left
-    mouseY.value = e.clientY - rect.top
-  }
-}
-
-// ===== 粒子背景 =====
-const particleStyle = (i) => {
-  const size = Math.random() * 3 + 1.5
-  return {
-    width: size + 'px',
-    height: size + 'px',
-    left: Math.random() * 100 + '%',
-    bottom: '-10px',
-    opacity: Math.random() * 0.3 + 0.1,
-    animationDuration: (Math.random() * 15 + 15) + 's',
-    animationDelay: (Math.random() * 10) + 's',
-    background: i % 3 === 0 ? '#00f5d4' : (i % 3 === 1 ? '#7b61ff' : 'rgba(0,229,255,0.4)')
-  }
-}
-
-// ===== 导航 =====
-const goBack = () => {
-  router.back()
-}
 
 // ===== 笔记数据类型 =====
 
@@ -302,6 +241,13 @@ const isEditing = ref(false)
 const editingId = ref(null)
 const showDeleteConfirm = ref(false)
 const deletingNote = ref(null)
+const deleteDialogConfig = ref({
+  title: '删除笔记',
+  message: '',
+  type: 'warning',
+  showSoftDelete: false,
+  details: []
+})
 const tagInput = ref('')
 const titleInputRef = ref(null)
 
@@ -414,6 +360,16 @@ const saveNote = async () => {
 
 const confirmDelete = (note) => {
   deletingNote.value = note
+  deleteDialogConfig.value = {
+    title: '删除笔记',
+    message: `确定要删除笔记「${note.title}」吗？此操作不可撤销。`,
+    type: 'warning',
+    showSoftDelete: false,
+    details: [
+      { icon: '📝', text: `标题：${note.title}` },
+      { icon: '📅', text: `创建时间：${note.createdAt || '未知'}` }
+    ]
+  }
   showDeleteConfirm.value = true
 }
 
@@ -431,6 +387,15 @@ const executeDelete = async () => {
   }
   showDeleteConfirm.value = false
   deletingNote.value = null
+}
+
+const handleDeleteCancel = () => {
+  showDeleteConfirm.value = false
+  deletingNote.value = null
+}
+
+const handleDeleteHard = () => {
+  executeDelete()
 }
 
 // ===== 导出笔记（markdown → 前端 Blob 下载，规避 URL 参数长度限制） =====
@@ -514,6 +479,8 @@ const formatDate = (timestamp) => {
   return `${y}-${m}-${d}`
 }
 
+
+
 // ===== 生命周期 =====
 onMounted(() => {
   loadNotes()
@@ -535,177 +502,24 @@ onMounted(() => {
   animation: pageEnter 0.6s ease;
 }
 
-/* ===== 背景层 ===== */
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -2;
-}
+/* ===== 页面头部（统一规范） ===== */
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
+.page-subtitle { @include page-subtitle-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
 
-.aurora-bg {
-  position: absolute;
-  inset: 0;
-}
-
-.aurora-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  animation: aurora 20s ease-in-out infinite;
-}
-
-.a1 {
-  width: 600px; height: 600px;
-  top: -200px; right: -100px;
-  background: radial-gradient(circle, rgba($accent-primary,0.08) 0%, transparent 70%);
-}
-
-.a2 {
-  width: 500px; height: 500px;
-  bottom: -150px; left: -100px;
-  background: radial-gradient(circle, rgba(0,85,255,0.07) 0%, transparent 70%);
-  animation-delay: -7s;
-}
-
-.a3 {
-  width: 400px; height: 400px;
-  top: 40%; left: 40%;
-  background: radial-gradient(circle, rgba(123,97,255,0.05) 0%, transparent 70%);
-  animation-delay: -14s;
-}
-
-@keyframes aurora {
-  0%,100% { transform: translate(0,0) scale(1); }
-  25% { transform: translate(30px,-30px) scale(1.1); }
-  50% { transform: translate(-20px,20px) scale(0.95); }
-  75% { transform: translate(20px,10px) scale(1.05); }
-}
-
-.grid-bg {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba($accent-primary,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(123,97,255,0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  animation: gridPulse 8s ease-in-out infinite alternate;
-}
-
-@keyframes gridPulse {
-  0% { opacity: 0.3; transform: scale(1); }
-  100% { opacity: 0.6; transform: scale(1.02); }
-}
-
-.mouse-glow {
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba($accent-primary,0.04) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.4s ease, left 0.15s ease-out, top 0.15s ease-out;
-  will-change: left, top;
-
-  &.visible { opacity: 1; }
-}
-
-.floating-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  animation: floatGlow 15s ease-in-out infinite;
-  opacity: 0.3;
-
-  &.fg-cyan {
-    width: 400px; height: 400px;
-    top: 30%; right: 10%;
-    background: radial-gradient(circle, rgba($accent-primary,0.06) 0%, transparent 70%);
-  }
-
-  &.fg-purple {
-    width: 350px; height: 350px;
-    bottom: 20%; left: 5%;
-    background: radial-gradient(circle, rgba(123,97,255,0.05) 0%, transparent 70%);
-    animation-delay: -7s;
-  }
-}
-
-@keyframes floatGlow {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33% { transform: translate(20px,-30px) scale(1.05); }
-  66% { transform: translate(-15px,20px) scale(0.95); }
-}
-
-.bg-particles {
-  position: absolute;
-  inset: 0;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  animation: particleFloat linear infinite;
-}
-
-@keyframes particleFloat {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.2; }
-  100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
-}
-
-/* ===== 页面头部 ===== */
-.page-header {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0 20px;
-  animation: slideDown 0.5s ease;
-}
-
-.header-left,
-.header-right {
-  flex: 1;
-}
-
-.header-left {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.header-right {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.header-center {
-  flex: 0 0 auto;
-}
+.header-actions { display: flex; align-items: center; gap: 10px; }
 
 .btn-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: rgba($accent-secondary,0.04);
-  border: 1px solid rgba($accent-secondary,0.1);
-  border-radius: 10px;
+  @include page-header-btn;
+  background: rgba($accent-secondary, 0.04);
+  border: 1px solid rgba($accent-secondary, 0.1);
   color: $text-secondary;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
 
   &:hover {
-    border-color: rgba($accent-primary,0.2);
+    border-color: rgba($accent-primary, 0.2);
     color: $accent-primary;
-    background: rgba($accent-primary,0.04);
+    background: rgba($accent-primary, 0.04);
     transform: translateX(-2px);
   }
 
@@ -713,103 +527,46 @@ onMounted(() => {
   &:hover svg { transform: translateX(-3px); }
 }
 
-.page-title {
-  display: flex;
+.title-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 800;
-
-  .title-icon { font-size: 1.6rem; }
-
-  .title-text {
-    background: linear-gradient(135deg, $accent-primary 0%, #0055FF 50%, $accent-purple 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .title-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 8px;
-    background: rgba($accent-primary,0.1);
-    border: 1px solid rgba($accent-primary,0.15);
-    border-radius: 14px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: $accent-primary;
-    -webkit-text-fill-color: $accent-primary;
-  }
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  background: rgba($accent-primary, 0.1);
+  border: 1px solid rgba($accent-primary, 0.15);
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: $accent-primary;
+  -webkit-text-fill-color: $accent-primary;
 }
 
 .btn-export {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: rgba(123, 97, 255, 0.12);
-  border: 1px solid rgba(123, 97, 255, 0.25);
-  border-radius: 10px;
-  color: #a78bfa;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  @include page-header-btn-ghost;
+  color: $accent-cyan;
+  border-color: rgba($accent-cyan, 0.2);
+  background: rgba($accent-cyan, 0.08);
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 0 20px rgba(123, 97, 255, 0.15);
-    border-color: rgba(123, 97, 255, 0.4);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+    color: $accent-cyan;
+    border-color: rgba($accent-cyan, 0.35);
+    background: rgba($accent-cyan, 0.15);
   }
 }
 
 .btn-create {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, rgba($accent-primary,0.15), rgba(0,85,255,0.1));
-  border: 1px solid rgba($accent-primary,0.2);
-  border-radius: 10px;
-  color: $accent-primary;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  @include page-header-btn-ghost;
+  color: $accent-cyan;
+  border-color: rgba($accent-cyan, 0.2);
+  background: rgba($accent-cyan, 0.08);
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, $accent-primary, #0055FF);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    filter: blur(8px);
+  &:hover:not(:disabled) {
+    color: $accent-cyan;
+    border-color: rgba($accent-cyan, 0.35);
+    background: rgba($accent-cyan, 0.15);
   }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba($accent-primary,0.15);
-    border-color: rgba($accent-primary,0.35);
-
-    &::before { opacity: 0.25; }
-  }
-
-  &:active { transform: scale(0.98) translateY(-1px); }
 }
 
 /* ===== 搜索栏 ===== */
@@ -1483,62 +1240,6 @@ onMounted(() => {
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-}
-
-/* ===== 删除确认对话框 ===== */
-.delete-dialog {
-  width: 380px;
-  max-width: 88vw;
-  padding: 32px 28px 24px;
-  background: rgba(12,14,30,0.97);
-  border: 1px solid rgba($accent-secondary,0.12);
-  border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  text-align: center;
-  animation: modalEnter 0.3s ease;
-}
-
-.delete-icon {
-  font-size: 2.5rem;
-  margin-bottom: 12px;
-}
-
-.delete-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: $text-primary;
-  margin: 0 0 8px;
-}
-
-.delete-desc {
-  font-size: 0.85rem;
-  color: $text-muted;
-  line-height: 1.6;
-  margin: 0 0 24px;
-}
-
-.delete-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.btn-delete {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(255,60,90,0.15), rgba(200,30,60,0.1));
-  border: 1px solid rgba(255,60,90,0.2);
-  border-radius: 10px;
-  color: #ff6b6b;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-
-  &:hover {
-    background: linear-gradient(135deg, rgba(255,60,90,0.25), rgba(200,30,60,0.15));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(255,60,90,0.15);
   }
 }
 

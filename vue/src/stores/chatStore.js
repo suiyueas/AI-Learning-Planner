@@ -1,8 +1,8 @@
 // 对话状态管理
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { fetchSSE } from '@/api/sseClient'
 import { get } from '@/api/request'
+import { wsClient } from '@/api/wsClient'
 
 export const useChatStore = defineStore('chat', () => {
   // 对话历史列表
@@ -72,19 +72,32 @@ export const useChatStore = defineStore('chat', () => {
   // ===== Token 用量 =====
   const tokenUsage = ref({
     used: 0,
-    total: 30720
+    total: 30720,
+    promptTokens: 0,
+    completionTokens: 0
   })
 
-  // 更新 Token 用量（增量方式，每次只累加本次消耗的 Token）
+  // 更新 Token 用量（增量方式，每次只累加本次消耗的 Token；兼容旧调用方）
   const updateTokenUsage = (tokens) => {
     if (typeof tokens === 'number' && tokens > 0) {
       tokenUsage.value.used += tokens
     }
   }
 
+  // 更新 Token 用量明细（输入/输出分别统计，used 由明细汇总得出）
+  const updateTokenUsageDetail = ({ promptTokens, completionTokens }) => {
+    const prompt = Number(promptTokens) > 0 ? Number(promptTokens) : 0
+    const completion = Number(completionTokens) > 0 ? Number(completionTokens) : 0
+    tokenUsage.value.promptTokens += prompt
+    tokenUsage.value.completionTokens += completion
+    tokenUsage.value.used = tokenUsage.value.promptTokens + tokenUsage.value.completionTokens
+  }
+
   // 重置 Token 用量（切换会话时调用）
   const resetTokenUsage = () => {
     tokenUsage.value.used = 0
+    tokenUsage.value.promptTokens = 0
+    tokenUsage.value.completionTokens = 0
   }
 
   // ===== MCP 服务状态（对话界面专用） =====
@@ -138,18 +151,53 @@ export const useChatStore = defineStore('chat', () => {
   }
   
   // 切换会话
-  const switchConversation = (conversationId) => {
+  const switchConversation = async (conversationId) => {
+    if (!conversationId) return
     currentConversationId.value = conversationId
     const conversation = conversations.value.find(conv => conv.id === conversationId)
     if (conversation) {
-      messages.value = conversation.messages
+      // 如果消息为空（摘要模式），从后端加载
+      if (!conversation.messages || conversation.messages.length === 0) {
+        try {
+          const { chatAPI } = await import('@/api/chatApi')
+          const result = await chatAPI.getConversationHistory(conversationId)
+          if (result.success && result.data && result.data.messages) {
+            const rawMessages = Array.isArray(result.data.messages) ? result.data.messages : []
+            conversation.messages = rawMessages.map(r => ({
+              id: r.id || r.messageId || ('msg_' + Date.now() + '_' + Math.random()),
+              role: r.role === 'user' ? 'user' : 'assistant',
+              content: r.content || r.message || '',
+              timestamp: r.createdAt ? new Date(r.createdAt) : new Date(),
+              steps: r.steps || [],
+              status: 'completed',
+              sources: r.sources || [],
+              toolCalls: r.toolCalls || []
+            }))
+          }
+        } catch (e) {
+          console.warn('加载会话消息失败:', e)
+          conversation.messages = []
+        }
+      }
+      messages.value = conversation.messages || []
+    } else {
+      messages.value = []
     }
     // 切换会话时重置 Token 计数
     resetTokenUsage()
   }
   
-  // 删除会话
-  const deleteConversation = (conversationId) => {
+  // 删除会话（同时调用后端删除）
+  const deleteConversation = async (conversationId) => {
+    // 先调用后端删除
+    try {
+      const { chatAPI } = await import('@/api/chatApi')
+      await chatAPI.deleteConversation(conversationId)
+    } catch (e) {
+      console.warn('后端删除会话失败:', e)
+    }
+
+    // 再从前端列表中移除
     const index = conversations.value.findIndex(conv => conv.id === conversationId)
     if (index > -1) {
       conversations.value.splice(index, 1)
@@ -164,6 +212,7 @@ export const useChatStore = defineStore('chat', () => {
   }
   
   // 添加消息（支持去重：相同ID的消息会被更新而不是重复添加）
+  const MAX_MESSAGES = 200
   const addMessage = (message) => {
     if (!message || !message.id) return
     
@@ -173,8 +222,11 @@ export const useChatStore = defineStore('chat', () => {
       // 更新已有消息
       messages.value[existingIndex] = { ...messages.value[existingIndex], ...message }
     } else {
-      // 添加新消息
+      // 添加新消息，超出上限时裁剪最早的消息
       messages.value.push(message)
+      if (messages.value.length > MAX_MESSAGES) {
+        messages.value = messages.value.slice(-MAX_MESSAGES)
+      }
     }
     
     // 更新会话
@@ -272,9 +324,6 @@ export const useChatStore = defineStore('chat', () => {
     streamingContent.value = ''
   }
   
-  // 会话 ID 持久化（单会话）
-  const sessionId = ref(crypto.randomUUID ? crypto.randomUUID() : 'sess_' + Date.now())
-
   // 当前请求的 AbortController
   let currentAbortController = null
 
@@ -308,7 +357,9 @@ export const useChatStore = defineStore('chat', () => {
       role: 'assistant',
       content: '',
       timestamp: new Date(),
-      reactSteps: []
+      reactSteps: [],
+      sources: [],
+      toolCalls: []
     }
     addMessage(aiMessage)
     
@@ -327,36 +378,35 @@ export const useChatStore = defineStore('chat', () => {
       messages.value[msgIndex].reactSteps = [...reactSteps.value]
     }
     
-    // 调用真实 SSE 流式 API
+    // 调用 chatApi.js 的流式 API（支持结构化事件）
     isStreaming.value = true
     aiStatus.value = 'generating'
     currentAbortController = new AbortController()
-    let fullContent = ''
 
-    return new Promise((resolve) => {
-      fetchSSE('/api/chat/stream', {
+    try {
+      const { chatAPI } = await import('@/api/chatApi')
+      await chatAPI.sendMessageStream({
         message: content,
-        sessionId: sessionId.value,
         role: currentRole.value,
-      }, {
-        signal: currentAbortController.signal,
-        onChunk(chunk) {
-          fullContent += chunk
+        conversationId: currentConversationId.value,
+        onMessage: (chunk) => {
           const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
-          if (msgIdx > -1) {
-            messages.value[msgIdx].content = fullContent
+          if (msgIdx > -1 && chunk.content) {
+            messages.value[msgIdx].content += chunk.content
+            streamingContent.value = messages.value[msgIdx].content
           }
-          streamingContent.value = fullContent
         },
-        onDone() {
+        onComplete: (result) => {
           isStreaming.value = false
           isTyping.value = false
           aiStatus.value = 'online'
           currentStreamingMessageId.value = null
           currentAbortController = null
-          resolve(aiMessageId)
+          if (result?.usage) {
+            updateTokenUsageDetail(result.usage)
+          }
         },
-        onError(error) {
+        onError: (error) => {
           console.error('SSE 请求失败:', error)
           const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
           if (msgIdx > -1 && !messages.value[msgIdx].content) {
@@ -367,10 +417,59 @@ export const useChatStore = defineStore('chat', () => {
           aiStatus.value = 'online'
           currentStreamingMessageId.value = null
           currentAbortController = null
-          resolve(aiMessageId)
         },
+        onThinkingProcess: (step) => {
+          const reactStep = {
+            id: 'step_' + Date.now(),
+            type: step.type,
+            content: step.content,
+            timestamp: step.timestamp || new Date(),
+            status: 'completed'
+          }
+          addReactStep(reactStep)
+          const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
+          if (msgIdx > -1) {
+            messages.value[msgIdx].reactSteps = [...reactSteps.value]
+          }
+        },
+        onKnowledgeRef: (ref) => {
+          const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
+          if (msgIdx > -1 && ref.sources) {
+            messages.value[msgIdx].sources = ref.sources
+          }
+        },
+        onToolCall: (call) => {
+          const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
+          if (msgIdx > -1) {
+            if (!messages.value[msgIdx].toolCalls) {
+              messages.value[msgIdx].toolCalls = []
+            }
+            messages.value[msgIdx].toolCalls.push(call.toolCall)
+          }
+        },
+        onMcpStatus: (status) => {
+          if (status.mcpStatus) {
+            mcpStatus.value = { ...mcpStatus.value, ...status.mcpStatus }
+          }
+        },
+        onStatusChange: (status) => {
+          aiStatus.value = status
+        }
       })
-    })
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      const msgIdx = messages.value.findIndex(m => m.id === aiMessageId)
+      if (msgIdx > -1 && !messages.value[msgIdx].content) {
+        messages.value[msgIdx].content = '抱歉，请求失败，请稍后重试。'
+      }
+      isStreaming.value = false
+      isTyping.value = false
+      aiStatus.value = 'online'
+      currentStreamingMessageId.value = null
+      currentAbortController = null
+    }
+    
+    return aiMessageId
   }
   
   // 停止流式输出
@@ -382,68 +481,23 @@ export const useChatStore = defineStore('chat', () => {
     stopStreaming()
   }
 
-  // 从数据库加载历史对话列表
+  // 从数据库加载历史对话列表（使用轻量级摘要 API）
   const loadConversations = async () => {
     try {
-      // 从 localStorage 获取用户 ID（登录时写入）
-      const userId = localStorage.getItem('userId')
-      if (!userId) return
+      const { chatAPI } = await import('@/api/chatApi')
+      const result = await chatAPI.getConversationSummaries()
+      if (!result.success || !result.data || result.data.length === 0) return
 
-      const token = localStorage.getItem('token')
-      if (!token) return
-
-      const response = await fetch(`/api/chat/history/user/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!response.ok) return
-
-      const records = await response.json()
-      if (!records || records.length === 0) return
-
-      // 按 sessionId 分组
-      const sessionMap = new Map()
-      for (const record of records) {
-        const sid = record.sessionId
-        if (!sessionMap.has(sid)) {
-          sessionMap.set(sid, [])
-        }
-        sessionMap.get(sid).push(record)
-      }
-
-      // 构建会话列表（每个 sessionId 一个会话）
-      const loadedConversations = []
-      for (const [sid, sessionRecords] of sessionMap) {
-        // 按时间正序排列消息
-        sessionRecords.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-
-        // 找到第一条用户消息作为标题
-        const firstUserMsg = sessionRecords.find(r => r.role === 'user')
-        const title = firstUserMsg
-          ? firstUserMsg.content.substring(0, 30) + (firstUserMsg.content.length > 30 ? '...' : '')
-          : '对话记录'
-
-        // 转换为前端消息格式
-        const convMessages = sessionRecords.map(r => ({
-          id: r.id || ('msg_' + Date.now() + '_' + Math.random()),
-          role: r.role === 'user' ? 'user' : 'assistant',
-          content: r.content,
-          timestamp: new Date(r.createdAt),
-          steps: [],
-          status: 'completed'
-        }))
-
-        const lastRecord = sessionRecords[sessionRecords.length - 1]
-        loadedConversations.push({
-          id: sid,
-          title: title,
-          createdAt: new Date(sessionRecords[0].createdAt),
-          updatedAt: new Date(lastRecord.createdAt),
-          messages: convMessages
-        })
-      }
-
-      // 按更新时间倒序排列（最新的在最上面）
-      loadedConversations.sort((a, b) => b.updatedAt - a.updatedAt)
+      // 构建会话列表（从摘要数据）
+      const loadedConversations = result.data.map(conv => ({
+        id: conv.sessionId,
+        title: conv.title,
+        messageCount: conv.messageCount,
+        lastMessage: conv.lastMessage,
+        createdAt: new Date(conv.createdAt),
+        updatedAt: new Date(conv.updatedAt),
+        messages: [] // 摘要模式下不预加载消息，切换时再加载
+      }))
 
       // 合并到 conversations（避免重复）
       const existingIds = new Set(conversations.value.map(c => c.id))
@@ -497,9 +551,72 @@ export const useChatStore = defineStore('chat', () => {
     ])
   }
 
+  // ===== WebSocket 实时推送 =====
+  const wsSubscriptions = ref([])
+
+  /**
+   * 连接 WebSocket 并订阅知识库事件
+   */
+  const connectWebSocket = () => {
+    if (wsClient.connected) return
+
+    wsClient.connect()
+
+    // 订阅知识库事件
+    const subId = wsClient.subscribe('all', (event) => {
+      console.log('[WS] Knowledge event received:', event.type)
+
+      // 文档上传事件
+      if (event.type === 'doc_uploaded') {
+        knowledgeStatus.value.documentCount++
+        knowledgeStatus.value.connected = true
+      }
+
+      // 文档就绪事件（知识块生成完成）
+      if (event.type === 'doc_ready') {
+        knowledgeStatus.value.readyCount++
+        if (event.totalDocs !== undefined) knowledgeStatus.value.documentCount = event.totalDocs
+        if (event.totalChunks !== undefined) knowledgeStatus.value.chunkCount = event.totalChunks
+      }
+
+      // 文档错误事件（知识块生成失败）
+      if (event.type === 'doc_error') {
+        if (event.totalDocs !== undefined) knowledgeStatus.value.documentCount = event.totalDocs
+        if (event.totalChunks !== undefined) knowledgeStatus.value.chunkCount = event.totalChunks
+        if (event.readyDocs !== undefined) knowledgeStatus.value.readyCount = event.readyDocs
+      }
+
+      // 文档删除事件
+      if (event.type === 'doc_deleted') {
+        if (event.totalDocs !== undefined) knowledgeStatus.value.documentCount = event.totalDocs
+        if (event.totalChunks !== undefined) knowledgeStatus.value.chunkCount = event.totalChunks
+        if (event.readyDocs !== undefined) knowledgeStatus.value.readyCount = event.readyDocs
+      }
+
+      // 全量生成完成事件
+      if (event.type === 'chunks_generated') {
+        if (event.totalDocs !== undefined) knowledgeStatus.value.documentCount = event.totalDocs
+        if (event.totalChunks !== undefined) knowledgeStatus.value.chunkCount = event.totalChunks
+        if (event.readyDocs !== undefined) knowledgeStatus.value.readyCount = event.readyDocs
+      }
+    })
+    wsSubscriptions.value.push({ type: 'all', id: subId })
+  }
+
+  /**
+   * 断开 WebSocket 连接
+   */
+  const disconnectWebSocket = () => {
+    wsSubscriptions.value.forEach(({ type, id }) => {
+      wsClient.unsubscribe(type, id)
+    })
+    wsSubscriptions.value = []
+    wsClient.disconnect()
+  }
+
   /**
    * 用户切换时重置：清空全部对话/状态数据（不残留上一用户信息），
-   * 已登录时重新拉取知识库与 MCP 状态
+   * 已登录时重新拉取知识库与 MCP 状态，并连接 WebSocket
    */
   const resetForUser = async (userId = null) => {
     conversations.value = []
@@ -513,12 +630,15 @@ export const useChatStore = defineStore('chat', () => {
     mcpStats.value = { total: 0, success: 0, failed: 0 }
     knowledgeStatus.value = { connected: false, documentCount: 0, chunkCount: 0, readyCount: 0 }
     mcpStatus.value = { availableCount: 0, totalCalls: 0, lastCall: null }
-    tokenUsage.value = { used: 0, total: 30720 }
+    tokenUsage.value = { used: 0, total: 30720, promptTokens: 0, completionTokens: 0 }
     isTyping.value = false
     isStreaming.value = false
     aiStatus.value = 'online'
     if (userId) {
       await Promise.all([fetchAllStatus(), loadConversations()])
+      connectWebSocket()
+    } else {
+      disconnectWebSocket()
     }
   }
 
@@ -543,7 +663,6 @@ export const useChatStore = defineStore('chat', () => {
     tokenUsage,
     currentConversation,
     roleInfo,
-    sessionId,
     createConversation,
     switchConversation,
     deleteConversation,
@@ -569,6 +688,9 @@ export const useChatStore = defineStore('chat', () => {
     fetchAllStatus,
     resetForUser,
     updateTokenUsage,
-    resetTokenUsage
+    updateTokenUsageDetail,
+    resetTokenUsage,
+    connectWebSocket,
+    disconnectWebSocket
   }
 })

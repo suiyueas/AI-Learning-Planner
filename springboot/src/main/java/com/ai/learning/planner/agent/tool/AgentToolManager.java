@@ -23,6 +23,30 @@ public class AgentToolManager {
     /** 工具执行监听器 */
     private final List<ToolExecutionListener> listeners = new ArrayList<>();
 
+    /** 当前工具调用上下文的用户ID（InheritableThreadLocal 支持子线程继承） */
+    private static final InheritableThreadLocal<String> CURRENT_USER_ID = new InheritableThreadLocal<>();
+
+    /**
+     * 设置当前工具调用的用户上下文（必须在调用 execute 前设置）
+     */
+    public void setUserContext(String userId) {
+        CURRENT_USER_ID.set(userId);
+    }
+
+    /**
+     * 清除当前用户上下文（工具执行完毕后调用）
+     */
+    public void clearUserContext() {
+        CURRENT_USER_ID.remove();
+    }
+
+    /**
+     * 获取当前工具调用上下文的用户ID（供工具内部调用）
+     */
+    public static String getCurrentUserId() {
+        return CURRENT_USER_ID.get();
+    }
+
     /**
      * 注册工具
      * @param name 工具名称
@@ -44,51 +68,90 @@ public class AgentToolManager {
     }
 
     /**
-     * 执行工具调用
+     * 执行工具调用（无用户上下文，游客模式）
      * @param name 工具名称
      * @param args 参数Map
      * @return 执行结果
      */
     public String execute(String name, Map<String, Object> args) {
-        ToolEntry entry = toolRegistry.get(name);
-        if (entry == null) {
-            String error = "工具不存在: " + name + "，可用工具: " + toolRegistry.keySet();
-            log.warn(error);
-            notifyListeners(name, args, null, error);
-            return error;
+        return execute(name, args, null);
+    }
+
+    /**
+     * 执行工具调用（带用户上下文，用于数据隔离）
+     * @param name 工具名称
+     * @param args 参数Map
+     * @param userId 当前操作用户ID（可为空表示游客）
+     * @return 执行结果
+     */
+    public String execute(String name, Map<String, Object> args, String userId) {
+        if (userId != null) {
+            setUserContext(userId);
         }
-
-        log.info("执行工具: {}，参数: {}", name, args);
-        long start = System.currentTimeMillis();
-
         try {
-            String result = entry.function().apply(args);
-            long duration = System.currentTimeMillis() - start;
-            log.info("工具执行完成: {}，耗时: {}ms", name, duration);
+            ToolEntry entry = toolRegistry.get(name);
+            if (entry == null) {
+                String error = "工具不存在: " + name + "，可用工具: " + toolRegistry.keySet();
+                log.warn(error);
+                notifyListeners(name, args, null, error);
+                return error;
+            }
 
-            String resultWithMeta = String.format("【工具: %s】\n【耗时: %dms】\n%s", name, duration, result);
-            notifyListeners(name, args, result, null);
-            return resultWithMeta;
-        } catch (Exception e) {
-            String error = "工具执行失败: " + name + "，错误: " + e.getMessage();
-            log.error(error, e);
-            notifyListeners(name, args, null, error);
-            return error;
+            log.info("执行工具: {}，参数: {}，userId: {}", name, args, userId);
+            long start = System.currentTimeMillis();
+
+            try {
+                String result = entry.function().apply(args);
+                long duration = System.currentTimeMillis() - start;
+                log.info("工具执行完成: {}，耗时: {}ms", name, duration);
+
+                String resultWithMeta = String.format("【工具: %s】\n【耗时: %dms】\n%s", name, duration, result);
+                notifyListeners(name, args, result, null);
+                return resultWithMeta;
+            } catch (Exception e) {
+                String error = "工具执行失败: " + name + "，错误: " + e.getMessage();
+                log.error(error, e);
+                notifyListeners(name, args, null, error);
+                return error;
+            }
+        } finally {
+            if (userId != null) {
+                clearUserContext();
+            }
         }
     }
 
     /**
-     * 批量执行工具
+     * 批量执行工具（无用户上下文）
      * @param calls 工具调用列表
      * @return 执行结果列表
      */
     public List<String> executeAll(List<ToolCall> calls) {
-        List<String> results = new ArrayList<>();
-        for (ToolCall call : calls) {
-            String result = execute(call.name(), call.args());
-            results.add(result);
+        return executeAll(calls, null);
+    }
+
+    /**
+     * 批量执行工具（带用户上下文，用于数据隔离）
+     * @param calls 工具调用列表
+     * @param userId 当前操作用户ID
+     * @return 执行结果列表
+     */
+    public List<String> executeAll(List<ToolCall> calls, String userId) {
+        if (userId != null) {
+            setUserContext(userId);
         }
-        return results;
+        try {
+            List<String> results = new ArrayList<>();
+            for (ToolCall call : calls) {
+                String result = execute(call.name(), call.args());
+                results.add(result);
+            }
+            return results;
+        } finally {
+            if (userId != null) {
+                clearUserContext();
+            }
+        }
     }
 
     /**

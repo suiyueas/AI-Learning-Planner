@@ -1,129 +1,127 @@
 ﻿<template>
   <div class="weakness-page">
-    <!-- 顶部导航栏 -->
-    <header class="detail-header">
-      <div class="header-left">
-        <button class="btn-back" @click="goBack">
-          <ArrowLeft :size="20" />
-          <span>返回</span>
-        </button>
-        <h1 class="header-title">
-          <AlertTriangle :size="24" class="header-icon" />
-          薄弱知识点专项分析
-        </h1>
+    <!-- 页面标题 -->
+    <header class="page-header">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">🎯</span>
+            <span>薄弱点分析</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="btn-ghost" @click="retakeAssessment">
+            <RefreshCw :size="16" />
+            重新测评
+          </button>
+        </div>
       </div>
-      <button class="btn-action" @click="retakeAssessment">
+    </header>
+
+    <!-- 测评来源说明 -->
+    <section class="intro-card">
+      <div class="intro-icon">🔍</div>
+      <div class="intro-text">
+        <p class="intro-title">基于最近测评（{{ lastAssess }}）发现以下薄弱环节</p>
+        <p class="intro-desc">针对每个薄弱知识点，系统已为您分析核心问题并推荐学习资源，点击「开始学习」即可补足短板。</p>
+      </div>
+    </section>
+
+    <!-- 薄弱点详情列表 -->
+    <section
+      v-for="(item, index) in weaknessItems"
+      :key="item.name"
+      class="weakness-card"
+      :class="{ resolved: isResolved(item.name) }"
+      :style="{ animationDelay: (index * 0.08) + 's' }"
+    >
+      <div class="weakness-header">
+        <div class="weakness-title-row">
+          <span class="weakness-icon">📘</span>
+          <span class="weakness-name">{{ item.name }}</span>
+          <span class="weakness-badge" :class="resolvedClass(item)">{{ resolvedText(item) }}</span>
+        </div>
+        <div class="weakness-score">
+          <span class="score-value" :class="resolvedClass(item)">{{ item.percentage }}%</span>
+          <span class="score-label">掌握度</span>
+        </div>
+      </div>
+
+      <div class="weakness-progress">
+        <div class="progress-track">
+          <div class="progress-fill" :class="resolvedClass(item)" :style="{ width: item.percentage + '%' }"></div>
+        </div>
+        <span class="progress-text" :class="resolvedClass(item)">{{ item.percentage }}%</span>
+      </div>
+
+      <!-- 核心问题 -->
+      <div class="issue-block">
+        <div class="block-label">核心问题</div>
+        <ul class="issue-list">
+          <li v-for="(issue, i) in item.coreIssues" :key="i" class="issue-item">
+            <span class="issue-dot"></span>
+            {{ issue }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- 推荐学习资源 -->
+      <div class="resource-block">
+        <div class="block-label">推荐学习资源</div>
+        <div v-for="(res, i) in item.resources" :key="i" class="resource-item">
+          <span class="resource-icon" :class="res.type">{{ res.typeIcon }}</span>
+          <div class="resource-info">
+            <span class="resource-title">{{ res.title }}</span>
+            <span class="resource-duration">预计 {{ res.duration }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="weakness-actions">
+        <button class="btn-start" @click="startLearn(item)">
+          <Compass :size="16" />
+          开始学习
+          <ArrowRight :size="14" />
+        </button>
+        <button class="btn-resolve" :class="{ resolved: isResolved(item.name) }" @click="toggleResolved(item)">
+          <CheckCircle2 :size="16" />
+          {{ isResolved(item.name) ? '已解决 ✓' : '标记已解决' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- 学习建议 -->
+    <section class="advice-card">
+      <div class="advice-title">
+        <Lightbulb :size="18" />
+        学习建议
+      </div>
+      <p class="advice-text">
+        建议优先攻克「<span class="advice-strong">{{ priorityAdvice.name }}</span>」，因为它是「{{ priorityAdvice.prerequisite }}」的前置知识。
+        完成后预计整体掌握度可提升至 <span class="advice-strong">{{ expectedMastery }}%</span>。
+      </p>
+      <div class="advice-paths">
+        <div v-for="(advice, index) in adviceData" :key="index" class="advice-item">
+          <span class="advice-num">{{ index + 1 }}</span>
+          <div class="advice-info">
+            <span class="advice-name">{{ advice.name }}</span>
+            <span class="advice-course">推荐课程：{{ advice.course }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部操作 -->
+    <div class="bottom-actions">
+      <button class="btn-bottom primary" @click="viewFullPath">
+        <Map :size="16" />
+        查看完整学习路径
+      </button>
+      <button class="btn-bottom" @click="retakeAssessment">
         <RefreshCw :size="16" />
         重新测评
       </button>
-    </header>
-
-    <div class="detail-content">
-      <!-- 测评来源说明 -->
-      <section class="intro-card">
-        <div class="intro-icon">🔍</div>
-        <div class="intro-text">
-          <p class="intro-title">基于最近测评（{{ lastAssess }}）发现以下薄弱环节</p>
-          <p class="intro-desc">针对每个薄弱知识点，系统已为您分析核心问题并推荐学习资源，点击「开始学习」即可补足短板。</p>
-        </div>
-      </section>
-
-      <!-- 薄弱点详情列表 -->
-      <section
-        v-for="(item, index) in weaknessItems"
-        :key="item.name"
-        class="weakness-card"
-        :class="{ resolved: isResolved(item.name) }"
-        :style="{ animationDelay: (index * 0.08) + 's' }"
-      >
-        <div class="weakness-header">
-          <div class="weakness-title-row">
-            <span class="weakness-icon">📘</span>
-            <span class="weakness-name">{{ item.name }}</span>
-            <span class="weakness-badge" :class="resolvedClass(item)">{{ resolvedText(item) }}</span>
-          </div>
-          <div class="weakness-score">
-            <span class="score-value" :class="resolvedClass(item)">{{ item.percentage }}%</span>
-            <span class="score-label">掌握度</span>
-          </div>
-        </div>
-
-        <div class="weakness-progress">
-          <div class="progress-track">
-            <div class="progress-fill" :class="resolvedClass(item)" :style="{ width: item.percentage + '%' }"></div>
-          </div>
-          <span class="progress-text" :class="resolvedClass(item)">{{ item.percentage }}%</span>
-        </div>
-
-        <!-- 核心问题 -->
-        <div class="issue-block">
-          <div class="block-label">核心问题</div>
-          <ul class="issue-list">
-            <li v-for="(issue, i) in item.coreIssues" :key="i" class="issue-item">
-              <span class="issue-dot"></span>
-              {{ issue }}
-            </li>
-          </ul>
-        </div>
-
-        <!-- 推荐学习资源 -->
-        <div class="resource-block">
-          <div class="block-label">推荐学习资源</div>
-          <div v-for="(res, i) in item.resources" :key="i" class="resource-item">
-            <span class="resource-icon" :class="res.type">{{ res.typeIcon }}</span>
-            <div class="resource-info">
-              <span class="resource-title">{{ res.title }}</span>
-              <span class="resource-duration">预计 {{ res.duration }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="weakness-actions">
-          <button class="btn-start" @click="startLearn(item)">
-            <Compass :size="16" />
-            开始学习
-            <ArrowRight :size="14" />
-          </button>
-          <button class="btn-resolve" :class="{ resolved: isResolved(item.name) }" @click="toggleResolved(item)">
-            <CheckCircle2 :size="16" />
-            {{ isResolved(item.name) ? '已解决 ✓' : '标记已解决' }}
-          </button>
-        </div>
-      </section>
-
-      <!-- 学习建议 -->
-      <section class="advice-card">
-        <div class="advice-title">
-          <Lightbulb :size="18" />
-          学习建议
-        </div>
-        <p class="advice-text">
-          建议优先攻克「<span class="advice-strong">{{ priorityAdvice.name }}</span>」，因为它是「{{ priorityAdvice.prerequisite }}」的前置知识。
-          完成后预计整体掌握度可提升至 <span class="advice-strong">{{ expectedMastery }}%</span>。
-        </p>
-        <div class="advice-paths">
-          <div v-for="(advice, index) in adviceData" :key="index" class="advice-item">
-            <span class="advice-num">{{ index + 1 }}</span>
-            <div class="advice-info">
-              <span class="advice-name">{{ advice.name }}</span>
-              <span class="advice-course">推荐课程：{{ advice.course }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 底部操作 -->
-      <div class="bottom-actions">
-        <button class="btn-bottom primary" @click="viewFullPath">
-          <Map :size="16" />
-          查看完整学习路径
-        </button>
-        <button class="btn-bottom" @click="retakeAssessment">
-          <RefreshCw :size="16" />
-          重新测评
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -132,7 +130,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  ArrowLeft, RefreshCw, AlertTriangle, ArrowRight,
+  RefreshCw, ArrowRight,
   Lightbulb, Compass, CheckCircle2, Map
 } from 'lucide-vue-next'
 
@@ -235,10 +233,6 @@ const resolvedText = (item) => {
   return item.level === 'danger' ? '需加强' : '待提升'
 }
 
-const goBack = () => {
-  router.push('/capability/diagnosis')
-}
-
 const retakeAssessment = () => {
   router.push('/assessment')
 }
@@ -261,109 +255,52 @@ const viewFullPath = () => {
 }
 </script>
 
-<style scoped>
-@use '../styles/variables' as *;
+<style lang="scss" scoped>
+@use '../../styles/variables' as *;
+
 .weakness-page {
   min-height: 100vh;
-  background: $bg-primary;
-  padding-bottom: 80px;
+  position: relative;
+  overflow-x: hidden;
+  padding: 32px 48px 80px;
+  animation: pageEnter 0.6s ease;
 }
 
-/* ===== 顶部导航 ===== */
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 48px;
-  background: rgba($bg-primary, 0.8);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba($accent-secondary, 0.12);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
+/* ===== 页面头部（统一规范） ===== */
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.btn-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: rgba($accent-secondary, 0.04);
-  border: 1px solid rgba($accent-secondary, 0.12);
-  border-radius: 8px;
-  color: $text-secondary;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.btn-back:hover {
-  color: $accent-primary;
-  border-color: rgba($accent-primary, 0.2);
-  background: rgba($accent-primary, 0.04);
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: $text-primary;
-  margin: 0;
-}
-
-.header-icon {
-  color: #EF4444;
-}
-
-.btn-action {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
-  color: $accent-primary;
-  border: 1px solid rgba($accent-primary, 0.25);
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-action:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba($accent-primary, 0.15);
-  border-color: rgba($accent-primary, 0.4);
+.btn-ghost {
+  @include page-header-btn-ghost;
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.2);
+  color: $accent-indigo;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.15);
+    border-color: rgba($accent-indigo, 0.35);
+    color: $accent-indigo-light;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
+  
+  svg { transition: transform 0.25s ease; }
+  &:hover svg { transform: rotate(180deg); }
 }
 
 /* ===== 内容区 ===== */
-.detail-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 32px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* 测评来源说明 */
 .intro-card {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.18);
   border-radius: 14px;
-  animation: fadeInUp 0.5s ease both;
+  animation: slideDown 0.5s ease 0.1s both;
 }
 
 .intro-icon {
@@ -384,29 +321,27 @@ const viewFullPath = () => {
   line-height: 1.6;
 }
 
-/* 薄弱点卡片 */
+/* ===== 薄弱点卡片 ===== */
 .weakness-card {
-  background: rgba($bg-primary, 0.6);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba($accent-secondary, 0.12);
-  border-radius: 16px;
+  position: relative;
+  z-index: 1;
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.18);
+  border-radius: 14px;
   padding: 28px;
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.5s ease both;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardEnter 0.5s ease both;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.15);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-4px);
+    border-color: rgba($accent-indigo,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 40px rgba($accent-indigo,0.03);
   }
 
   &.resolved {
-    border-color: rgba(16, 185, 129, 0.25);
+    border-color: rgba(16, 185, 129, 0.3);
   }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .weakness-header {
@@ -489,7 +424,7 @@ const viewFullPath = () => {
   color: $text-secondary;
 }
 
-/* 进度条 */
+/* ===== 进度条 ===== */
 .weakness-progress {
   display: flex;
   align-items: center;
@@ -528,7 +463,7 @@ const viewFullPath = () => {
   &.resolved { color: #10B981; }
 }
 
-/* 核心问题 */
+/* ===== 核心问题 ===== */
 .issue-block {
   margin-bottom: 20px;
 }
@@ -567,7 +502,7 @@ const viewFullPath = () => {
   margin-top: 8px;
 }
 
-/* 推荐资源 */
+/* ===== 推荐资源 ===== */
 .resource-block {
   margin-bottom: 20px;
 }
@@ -577,15 +512,15 @@ const viewFullPath = () => {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: rgba($accent-secondary, 0.03);
-  border: 1px solid rgba($accent-secondary, 0.08);
+  background: rgba($accent-indigo, 0.05);
+  border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 10px;
   margin-bottom: 8px;
   transition: all 0.25s ease;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.15);
-    background: rgba($accent-primary, 0.03);
+    border-color: rgba($accent-indigo,0.22);
+    background: rgba($accent-indigo,0.08);
   }
 }
 
@@ -613,13 +548,13 @@ const viewFullPath = () => {
   white-space: nowrap;
 }
 
-/* 操作按钮 */
+/* ===== 操作按钮 ===== */
 .weakness-actions {
   display: flex;
   align-items: center;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba($accent-secondary, 0.08);
+  border-top: 1px solid rgba($accent-indigo, 0.1);
 }
 
 .btn-start {
@@ -653,7 +588,7 @@ const viewFullPath = () => {
   gap: 8px;
   padding: 10px 22px;
   background: transparent;
-  border: 1px solid rgba($accent-secondary, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 10px;
   color: $text-secondary;
   font-size: 0.9rem;
@@ -662,25 +597,27 @@ const viewFullPath = () => {
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.35);
     color: #10B981;
   }
 
   &.resolved {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.35);
     color: #10B981;
-    background: rgba(16, 185, 129, 0.06);
+    background: rgba(16, 185, 129, 0.08);
   }
 }
 
-/* 学习建议 */
+/* ===== 学习建议 ===== */
 .advice-card {
-  background: rgba($bg-primary, 0.6);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba($accent-secondary, 0.12);
-  border-radius: 16px;
+  position: relative;
+  z-index: 1;
+  background: rgba($bg-surface, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba($accent-indigo, 0.18);
+  border-radius: 14px;
   padding: 28px;
-  animation: fadeInUp 0.5s ease 0.4s both;
+  animation: cardEnter 0.5s ease 0.2s both;
 }
 
 .advice-title {
@@ -718,8 +655,8 @@ const viewFullPath = () => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba($accent-secondary, 0.03);
-  border: 1px solid rgba($accent-secondary, 0.08);
+  background: rgba($accent-indigo, 0.05);
+  border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 10px;
 }
 
@@ -754,13 +691,15 @@ const viewFullPath = () => {
   color: $accent-primary;
 }
 
-/* 底部操作 */
+/* ===== 底部操作 ===== */
 .bottom-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  animation: fadeInUp 0.5s ease 0.5s both;
+  animation: fadeUp 0.6s ease 0.3s both;
 }
 
 .btn-bottom {
@@ -769,7 +708,7 @@ const viewFullPath = () => {
   gap: 8px;
   padding: 12px 28px;
   background: transparent;
-  border: 1px solid rgba($accent-secondary, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.18);
   border-radius: 10px;
   color: $text-secondary;
   font-size: 0.9rem;
@@ -778,14 +717,14 @@ const viewFullPath = () => {
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba($accent-primary, 0.25);
+    border-color: rgba($accent-indigo, 0.35);
     color: $accent-primary;
-    background: rgba($accent-primary, 0.04);
+    background: rgba($accent-indigo, 0.06);
   }
 
   &.primary {
-    background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(0, 85, 255, 0.1));
-    border-color: rgba($accent-primary, 0.25);
+    background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba($accent-cyan, 0.08));
+    border-color: rgba($accent-primary, 0.3);
     color: $accent-primary;
     font-weight: 600;
 
@@ -796,49 +735,44 @@ const viewFullPath = () => {
   }
 }
 
-/* 响应式 */
+/* ===== 页面动画 ===== */
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .weakness-page { padding: 24px 24px 60px; }
+  .page-title { font-size: 1.5rem; }
+}
+
 @media (max-width: 768px) {
-  .detail-header {
-    padding: 16px 20px;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .header-left {
-    width: 100%;
-  }
-  .btn-action {
-    width: 100%;
-    justify-content: center;
-  }
-  .detail-content {
-    padding: 20px;
-  }
-  .weakness-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .weakness-score {
-    text-align: left;
-  }
-  .weakness-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .btn-start, .btn-resolve {
-    justify-content: center;
-  }
-  .bottom-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .btn-bottom {
-    justify-content: center;
-  }
-  .resource-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
+  .weakness-page { padding: 20px 16px 40px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .header-right { width: 100%; }
+  .btn-action { width: 100%; justify-content: center; }
+  .weakness-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .weakness-score { text-align: left; }
+  .weakness-actions { flex-direction: column; align-items: stretch; }
+  .btn-start, .btn-resolve { justify-content: center; }
+  .bottom-actions { flex-direction: column; align-items: stretch; }
+  .btn-bottom { justify-content: center; }
+  .resource-info { flex-direction: column; align-items: flex-start; gap: 2px; }
 }
 </style>

@@ -83,4 +83,8 @@ public class KnowledgeDocument implements Serializable {
     /** 审核时间 */
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
+
+    /** 处理失败原因（status=error 时保存） */
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
 }

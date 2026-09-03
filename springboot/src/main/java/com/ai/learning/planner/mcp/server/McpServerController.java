@@ -1,6 +1,7 @@
 package com.ai.learning.planner.mcp.server;
 
 import com.ai.learning.planner.agent.tool.AgentToolManager;
+import com.ai.learning.planner.security.SecurityContextHolder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -17,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import jakarta.annotation.PreDestroy;
 
 /**
  * MCP Server — JSON-RPC 2.0 端点
@@ -31,9 +34,25 @@ public class McpServerController {
 
     private final AgentToolManager agentToolManager;
     private final ObjectMapper objectMapper;
+    private final SecurityContextHolder securityContextHolder;
 
     private final ExecutorService sseExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, SseEmitter> sessions = new ConcurrentHashMap<>();
+    /** 并发 SSE 连接数控制，防止无限连接导致 OOM */
+    private final Semaphore sseSemaphore = new Semaphore(50, true);
+    private static final long SSE_TIMEOUT_MS = 600_000L; // 10 分钟
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("[MCP:SSE] 应用关闭，清理 {} 个活跃 SSE 会话", sessions.size());
+        sessions.forEach((id, emitter) -> {
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
+        sessions.clear();
+        sseExecutor.shutdownNow();
+    }
 
     /**
      * JSON-RPC 2.0 入口（HTTP POST 同步传输）
@@ -73,17 +92,44 @@ public class McpServerController {
      */
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter connectSse(@RequestParam(defaultValue = "client") String clientId) {
-        SseEmitter emitter = new SseEmitter(600_000L); // 10 分钟超时
-        sessions.put(clientId, emitter);
+        // 并发连接数限制
+        if (!sseSemaphore.tryAcquire()) {
+            log.warn("[MCP:SSE] 连接数已满，拒绝客户端: {}", clientId);
+            SseEmitter rejectEmitter = new SseEmitter(1000L);
+            try {
+                rejectEmitter.send(SseEmitter.event().name("error")
+                        .data(Map.of("message", "服务器连接数已满，请稍后重试")));
+            } catch (IOException ignored) {}
+            rejectEmitter.complete();
+            return rejectEmitter;
+        }
+
+        // 关闭同一 clientId 的旧连接
+        SseEmitter oldEmitter = sessions.put(clientId, new SseEmitter(SSE_TIMEOUT_MS));
+        if (oldEmitter != null) {
+            try {
+                oldEmitter.complete();
+            } catch (Exception ignored) {}
+            log.info("[MCP:SSE] 关闭旧连接: {}", clientId);
+        }
+
+        SseEmitter emitter = sessions.get(clientId);
 
         emitter.onCompletion(() -> {
             sessions.remove(clientId);
+            sseSemaphore.release();
             log.info("[MCP:SSE] 客户端断开: {}", clientId);
         });
-        emitter.onTimeout(() -> sessions.remove(clientId));
-        emitter.onError(e -> sessions.remove(clientId));
+        emitter.onTimeout(() -> {
+            sessions.remove(clientId);
+            sseSemaphore.release();
+        });
+        emitter.onError(e -> {
+            sessions.remove(clientId);
+            sseSemaphore.release();
+        });
 
-        log.info("[MCP:SSE] 客户端连接: {}", clientId);
+        log.info("[MCP:SSE] 客户端连接: {}, 当前活跃: {}/50", clientId, 50 - sseSemaphore.availablePermits());
         return emitter;
     }
 
@@ -212,7 +258,8 @@ public class McpServerController {
 
         log.info("[MCP] 调用工具: {}, 参数: {}", toolName, args);
 
-        String result = agentToolManager.execute(toolName, args);
+        String userId = securityContextHolder.getCurrentUserId();
+        String result = agentToolManager.execute(toolName, args, userId);
 
         ObjectNode response = objectMapper.createObjectNode();
         ArrayNode content = objectMapper.createArrayNode();

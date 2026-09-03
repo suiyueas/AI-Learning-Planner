@@ -48,15 +48,26 @@ public class FileUploadService {
     private String allowedMcpExtensions;
 
     /**
-     * 初始化：确保上传目录存在
+     * 初始化：确保上传目录存在，路径统一转为绝对路径避免工作目录漂移
      */
     @PostConstruct
     public void init() {
+        uploadRoot = toAbsolutePath(uploadRoot);
+        avatarPath = toAbsolutePath(avatarPath);
+        knowledgePath = toAbsolutePath(knowledgePath);
+        mcpPath = toAbsolutePath(mcpPath);
+
         createDirectoryIfNotExists(uploadRoot);
         createDirectoryIfNotExists(avatarPath);
         createDirectoryIfNotExists(knowledgePath);
         createDirectoryIfNotExists(mcpPath);
         log.info("文件上传服务初始化完成，上传根目录: {}", uploadRoot);
+    }
+
+    private String toAbsolutePath(String path) {
+        Path p = Paths.get(path);
+        return p.isAbsolute() ? p.toAbsolutePath().normalize().toString()
+                : Paths.get(System.getProperty("user.dir"), path).toAbsolutePath().normalize().toString();
     }
 
     /**
@@ -84,9 +95,9 @@ public class FileUploadService {
     public String uploadKnowledge(MultipartFile file, String docId) {
         validateFile(file, allowedKnowledgeExtensions, "知识库文档");
         String filename = generateFileName(docId, file.getOriginalFilename());
-        saveFile(file, knowledgePath, filename);
-        log.info("知识库文档上传成功: docId={}, file={}", docId, filename);
-        return "/uploads/knowledges/" + filename;
+        String absolutePath = saveFile(file, knowledgePath, filename);
+        log.info("知识库文档上传成功: docId={}, file={}, absolutePath={}", docId, filename, absolutePath);
+        return absolutePath;
     }
 
     /**

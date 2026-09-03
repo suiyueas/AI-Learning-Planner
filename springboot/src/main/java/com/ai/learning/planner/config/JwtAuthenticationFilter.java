@@ -45,10 +45,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 userId, username, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
+                // 将 JWT Claims 存入 request attribute，供 SecurityContextHolder.isAdmin() 读取 role
+                try {
+                    io.jsonwebtoken.Claims claims = jwtUtil.parseToken(token);
+                    request.setAttribute("jwtClaims", claims);
+                } catch (Exception e) {
+                    log.debug("无法解析 JWT Claims: {}", e.getMessage());
+                }
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("JWT 认证成功: userId={}, username={}", userId, username);
             } else {
-                // 携带了无效/过期 Token：直接返回 401，避免降级为匿名放行造成身份混淆
                 log.warn("JWT Token 验证失败，即将过期或已过期");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json;charset=UTF-8");

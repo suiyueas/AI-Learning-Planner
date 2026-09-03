@@ -1,19 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64">
-      <stop offset="0%" stop-color="#151538"/>
-      <stop offset="100%" stop-color="#08081a"/>
-    </linearGradient>
-    <linearGradient id="tx" x1="0" y1="0" x2="64" y2="64">
-      <stop offset="0%" stop-color="#00f5d4"/>
-      <stop offset="55%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#7b61ff"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)" stroke="rgba(123,97,255,0.55)" stroke-width="2"/>
-  <text x="32" y="42" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" text-anchor="middle" letter-spacing="-1" fill="url(#tx)">AI</text>
-  <line x1="16" y1="52" x2="48" y2="52" stroke="url(#tx)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-  <circle cx="16" cy="52" r="2.5" fill="#00f5d4"/>
-  <circle cx="32" cy="52" r="2.5" fill="#38bdf8"/>
-  <circle cx="48" cy="52" r="2.5" fill="#7b61ff"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)"/>
+  <text x="32" y="43" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="26" font-weight="800" text-anchor="middle" letter-spacing="-1" fill="white">知途</text>
 </svg>

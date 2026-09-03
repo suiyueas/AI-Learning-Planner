@@ -1,235 +1,285 @@
 ﻿<template>
   <div class="auth-page">
     <canvas ref="canvasRef" class="bg-canvas"></canvas>
-    <div class="bg-gradient"></div>
-    <div class="bg-aurora">
-      <div class="aurora-layer aurora-1"></div>
-      <div class="aurora-layer aurora-2"></div>
-      <div class="aurora-layer aurora-3"></div>
-    </div>
-
-    <div class="auth-container">
+    <div class="auth-wrapper">
       <Transition name="card-fade" mode="out-in">
-        <div v-if="isLoginView" key="login" class="auth-card">
-          <div class="card-glow"></div>
-          <div class="auth-header">
-            <div class="logo-wrap breathing-glow">
-              <Brain :size="32" class="logo-icon" />
+        <!-- 登录视图 -->
+        <div v-if="isLoginView" key="login" class="auth-panel">
+          <!-- 左侧品牌面板 -->
+          <div class="brand-panel">
+            <div class="brand-content">
+              <div class="brand-logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+              </div>
+              <h1 class="brand-name">知途</h1>
+              <p class="brand-slogan">AI 辅助你走好知识之路</p>
+              <div class="brand-features">
+                <div class="feature-item">
+                  <span class="feature-icon">🎯</span>
+                  <span>智能学习路径规划</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">🧠</span>
+                  <span>RAG 知识库问答</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">📊</span>
+                  <span>AI 能力诊断分析</span>
+                </div>
+              </div>
             </div>
-            <h1 class="auth-title">AI学习规划师</h1>
-            <p class="auth-subtitle">欢迎回来</p>
+            <div class="brand-footer">v1.0 · Built with Spring AI</div>
           </div>
-          <form class="auth-form" @submit.prevent="handleLogin">
-            <div class="form-group" :class="{ focused: focusedField === 'username', error: usernameError, 'shake': usernameShake }">
-              <label class="form-label">用户名 / 邮箱</label>
-              <div class="input-wrapper">
-                <User :size="18" class="input-icon" />
-                <input
-                  v-model="form.username"
-                  type="text"
-                  placeholder="请输入用户名或邮箱"
-                  class="form-input"
-                  @focus="focusedField = 'username'"
-                  @blur="focusedField = ''; validateUsername()"
-                />
-                <span v-if="usernameError" class="validation-icon error">
-                  <XCircle :size="16" />
-                </span>
-                <span v-else-if="form.username && !usernameError" class="validation-icon success">
-                  <CheckCircle :size="16" />
-                </span>
-              </div>
-              <div class="input-light-bar"></div>
-              <transition name="spring">
-                <span v-if="usernameError" class="form-hint error">{{ usernameError }}</span>
-              </transition>
-            </div>
 
-            <div class="form-group" :class="{ focused: focusedField === 'password', error: passwordError, 'shake': passwordShake }">
-              <label class="form-label">密码</label>
-              <div class="input-wrapper">
-                <Lock :size="18" class="input-icon" />
-                <input
-                  v-model="form.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="请输入密码"
-                  class="form-input"
-                  @focus="focusedField = 'password'"
-                  @blur="focusedField = ''; validatePassword()"
-                />
-                <button type="button" class="toggle-password" tabindex="-1" @click="showPassword = !showPassword">
-                  <component :is="showPassword ? EyeOff : Eye" :size="18" class="eye-icon" :class="{ active: showPassword }" />
+          <!-- 右侧表单面板 -->
+          <div class="form-panel">
+            <div class="form-content">
+              <div class="form-header">
+                <h2>欢迎回来</h2>
+                <p>登录你的账号继续学习</p>
+              </div>
+              
+              <form class="auth-form" @submit.prevent="handleLogin">
+                <div class="form-group" :class="{ focused: focusedField === 'username', error: usernameError, 'shake': usernameShake }">
+                  <label class="form-label">用户名 / 邮箱</label>
+                  <div class="input-wrapper">
+                    <User :size="18" class="input-icon" />
+                    <input
+                      v-model="form.username"
+                      type="text"
+                      placeholder="请输入用户名或邮箱"
+                      class="form-input"
+                      @focus="focusedField = 'username'"
+                      @blur="focusedField = ''; validateUsername()"
+                    />
+                    <span v-if="usernameError" class="validation-icon error">
+                      <XCircle :size="16" />
+                    </span>
+                    <span v-else-if="form.username && !usernameError" class="validation-icon success">
+                      <CheckCircle :size="16" />
+                    </span>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="usernameError" class="form-hint error">{{ usernameError }}</span>
+                  </transition>
+                </div>
+
+                <div class="form-group" :class="{ focused: focusedField === 'password', error: passwordError, 'shake': passwordShake }">
+                  <label class="form-label">密码</label>
+                  <div class="input-wrapper">
+                    <Lock :size="18" class="input-icon" />
+                    <input
+                      v-model="form.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="请输入密码"
+                      class="form-input"
+                      @focus="focusedField = 'password'"
+                      @blur="focusedField = ''; validatePassword()"
+                    />
+                    <button type="button" class="toggle-password" tabindex="-1" @click="showPassword = !showPassword">
+                      <component :is="showPassword ? EyeOff : Eye" :size="18" class="eye-icon" :class="{ active: showPassword }" />
+                    </button>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="passwordError" class="form-hint error">{{ passwordError }}</span>
+                  </transition>
+                </div>
+
+                <div class="form-options">
+                  <label class="remember-me" @click.prevent="toggleRemember">
+                    <input v-model="form.remember" type="checkbox" class="remember-checkbox" />
+                    <span class="checkbox-custom">
+                      <svg class="check-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span class="remember-text">记住我</span>
+                  </label>
+                </div>
+
+                <transition name="spring">
+                  <div v-if="errorMsg" class="error-banner">
+                    <AlertCircle :size="16" />
+                    <span>{{ errorMsg }}</span>
+                  </div>
+                </transition>
+
+                <button type="submit" class="submit-btn" :disabled="loading" @click="handleBtnClick">
+                  <span v-if="loading" class="loading-spinner"></span>
+                  <span v-else>登 录</span>
+                  <span ref="rippleRef" class="btn-ripple"></span>
                 </button>
+              </form>
+
+              <div class="auth-footer">
+                <span>还没有账号？</span>
+                <router-link to="/register" class="auth-link">去注册</router-link>
               </div>
-              <div class="input-light-bar"></div>
-              <transition name="spring">
-                <span v-if="passwordError" class="form-hint error">{{ passwordError }}</span>
-              </transition>
             </div>
-
-            <div class="form-options">
-              <label class="remember-me" @click.prevent="toggleRemember">
-                <input v-model="form.remember" type="checkbox" class="remember-checkbox" />
-                <span class="checkbox-custom">
-                  <svg class="check-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                </span>
-                <span class="remember-text">记住我</span>
-              </label>
-            </div>
-
-            <transition name="spring">
-              <div v-if="errorMsg" class="error-banner">
-                <AlertCircle :size="16" />
-                <span>{{ errorMsg }}</span>
-              </div>
-            </transition>
-
-            <button type="submit" class="submit-btn" :disabled="loading" @click="handleBtnClick">
-              <span v-if="loading" class="loading-spinner"></span>
-              <span v-else>登 录</span>
-              <span ref="rippleRef" class="btn-ripple"></span>
-            </button>
-          </form>
-
-          <div class="auth-footer">
-            <span>还没有账号？</span>
-            <router-link to="/register" class="auth-link">去注册</router-link>
           </div>
         </div>
 
-        <div v-else key="register" class="auth-card">
-          <div class="card-glow"></div>
-          <div class="auth-header">
-            <div class="logo-wrap breathing-glow">
-              <Brain :size="32" class="logo-icon" />
+        <!-- 注册视图 -->
+        <div v-else key="register" class="auth-panel">
+          <!-- 左侧品牌面板 -->
+          <div class="brand-panel">
+            <div class="brand-content">
+              <div class="brand-logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+              </div>
+              <h1 class="brand-name">知途</h1>
+              <p class="brand-slogan">开启你的 AI 学习之旅</p>
+              <div class="brand-features">
+                <div class="feature-item">
+                  <span class="feature-icon">🎯</span>
+                  <span>智能学习路径规划</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">🧠</span>
+                  <span>RAG 知识库问答</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">📊</span>
+                  <span>AI 能力诊断分析</span>
+                </div>
+              </div>
             </div>
-            <h1 class="auth-title">AI学习规划师</h1>
-            <p class="auth-subtitle">创建账号</p>
+            <div class="brand-footer">v1.0 · Built with Spring AI</div>
           </div>
 
-          <form class="auth-form" @submit.prevent="handleRegister">
-            <div class="form-group" :class="{ focused: focusedField === 'username', error: errors.username, 'shake': usernameShake }">
-              <label class="form-label">用户名</label>
-              <div class="input-wrapper">
-                <User :size="18" class="input-icon" />
-                <input
-                  v-model="form.username"
-                  type="text"
-                  placeholder="3-50个字符，字母数字下划线"
-                  class="form-input"
-                  @focus="focusedField = 'username'"
-                  @blur="focusedField = ''; validateField('username')"
-                />
-                <span v-if="errors.username" class="validation-icon error">
-                  <XCircle :size="16" />
-                </span>
-                <span v-else-if="form.username && !errors.username && validateFieldNoError('username')" class="validation-icon success">
-                  <CheckCircle :size="16" />
-                </span>
+          <!-- 右侧表单面板 -->
+          <div class="form-panel">
+            <div class="form-content">
+              <div class="form-header">
+                <h2>创建账号</h2>
+                <p>开始你的学习之旅</p>
               </div>
-              <div class="input-light-bar"></div>
-              <transition name="spring">
-                <span v-if="errors.username" class="form-hint error">{{ errors.username }}</span>
-              </transition>
-            </div>
-
-            <div class="form-group" :class="{ focused: focusedField === 'email', error: errors.email, 'shake': emailShake }">
-              <label class="form-label">邮箱</label>
-              <div class="input-wrapper">
-                <Mail :size="18" class="input-icon" />
-                <input
-                  v-model="form.email"
-                  type="email"
-                  placeholder="请输入邮箱地址"
-                  class="form-input"
-                  @focus="focusedField = 'email'"
-                  @blur="focusedField = ''; validateField('email')"
-                />
-                <span v-if="errors.email" class="validation-icon error">
-                  <XCircle :size="16" />
-                </span>
-                <span v-else-if="form.email && !errors.email && validateFieldNoError('email')" class="validation-icon success">
-                  <CheckCircle :size="16" />
-                </span>
-              </div>
-              <div class="input-light-bar"></div>
-              <transition name="spring">
-                <span v-if="errors.email" class="form-hint error">{{ errors.email }}</span>
-              </transition>
-            </div>
-
-            <div class="form-group" :class="{ focused: focusedField === 'password', error: errors.password, 'shake': passwordShake }">
-              <label class="form-label">密码</label>
-              <div class="input-wrapper">
-                <Lock :size="18" class="input-icon" />
-                <input
-                  v-model="form.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="至少8位，包含字母和数字"
-                  class="form-input"
-                  @focus="focusedField = 'password'"
-                  @blur="focusedField = ''; validateField('password')"
-                />
-                <button type="button" class="toggle-password" tabindex="-1" @click="showPassword = !showPassword">
-                  <component :is="showPassword ? EyeOff : Eye" :size="18" class="eye-icon" :class="{ active: showPassword }" />
-                </button>
-              </div>
-              <div class="input-light-bar"></div>
-              <div v-if="form.password" class="password-strength">
-                <div class="strength-bar">
-                  <div class="strength-fill" :style="{ width: strength.percent + '%', background: strength.color }"></div>
+              
+              <form class="auth-form" @submit.prevent="handleRegister">
+                <div class="form-group" :class="{ focused: focusedField === 'username', error: errors.username, 'shake': usernameShake }">
+                  <label class="form-label">用户名</label>
+                  <div class="input-wrapper">
+                    <User :size="18" class="input-icon" />
+                    <input
+                      v-model="form.username"
+                      type="text"
+                      placeholder="3-50个字符，字母数字下划线"
+                      class="form-input"
+                      @focus="focusedField = 'username'"
+                      @blur="focusedField = ''; validateField('username')"
+                    />
+                    <span v-if="errors.username" class="validation-icon error">
+                      <XCircle :size="16" />
+                    </span>
+                    <span v-else-if="form.username && !errors.username && validateFieldNoError('username')" class="validation-icon success">
+                      <CheckCircle :size="16" />
+                    </span>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="errors.username" class="form-hint error">{{ errors.username }}</span>
+                  </transition>
                 </div>
-                <span class="strength-text" :style="{ color: strength.color }">{{ strength.label }}</span>
+
+                <div class="form-group" :class="{ focused: focusedField === 'email', error: errors.email, 'shake': emailShake }">
+                  <label class="form-label">邮箱</label>
+                  <div class="input-wrapper">
+                    <Mail :size="18" class="input-icon" />
+                    <input
+                      v-model="form.email"
+                      type="email"
+                      placeholder="请输入邮箱地址"
+                      class="form-input"
+                      @focus="focusedField = 'email'"
+                      @blur="focusedField = ''; validateField('email')"
+                    />
+                    <span v-if="errors.email" class="validation-icon error">
+                      <XCircle :size="16" />
+                    </span>
+                    <span v-else-if="form.email && !errors.email && validateFieldNoError('email')" class="validation-icon success">
+                      <CheckCircle :size="16" />
+                    </span>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="errors.email" class="form-hint error">{{ errors.email }}</span>
+                  </transition>
+                </div>
+
+                <div class="form-group" :class="{ focused: focusedField === 'password', error: errors.password, 'shake': passwordShake }">
+                  <label class="form-label">密码</label>
+                  <div class="input-wrapper">
+                    <Lock :size="18" class="input-icon" />
+                    <input
+                      v-model="form.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="至少8位，包含字母和数字"
+                      class="form-input"
+                      @focus="focusedField = 'password'"
+                      @blur="focusedField = ''; validateField('password')"
+                    />
+                    <button type="button" class="toggle-password" tabindex="-1" @click="showPassword = !showPassword">
+                      <component :is="showPassword ? EyeOff : Eye" :size="18" class="eye-icon" :class="{ active: showPassword }" />
+                    </button>
+                  </div>
+                  <div v-if="form.password" class="password-strength">
+                    <div class="strength-bar">
+                      <div class="strength-fill" :style="{ width: strength.percent + '%', background: strength.color }"></div>
+                    </div>
+                    <span class="strength-text" :style="{ color: strength.color }">{{ strength.label }}</span>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="errors.password" class="form-hint error">{{ errors.password }}</span>
+                  </transition>
+                </div>
+
+                <div class="form-group" :class="{ focused: focusedField === 'confirm', error: errors.confirmPassword, 'shake': confirmShake }">
+                  <label class="form-label">确认密码</label>
+                  <div class="input-wrapper">
+                    <Lock :size="18" class="input-icon" />
+                    <input
+                      v-model="form.confirmPassword"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="再次输入密码"
+                      class="form-input"
+                      @focus="focusedField = 'confirm'"
+                      @blur="focusedField = ''; validateField('confirmPassword')"
+                    />
+                    <span v-if="errors.confirmPassword" class="validation-icon error">
+                      <XCircle :size="16" />
+                    </span>
+                    <span v-else-if="form.confirmPassword && !errors.confirmPassword && form.password === form.confirmPassword" class="validation-icon success">
+                      <CheckCircle :size="16" />
+                    </span>
+                  </div>
+                  <transition name="spring">
+                    <span v-if="errors.confirmPassword" class="form-hint error">{{ errors.confirmPassword }}</span>
+                  </transition>
+                </div>
+
+                <transition name="spring">
+                  <div v-if="errorMsg" class="error-banner">
+                    <AlertCircle :size="16" />
+                    <span>{{ errorMsg }}</span>
+                  </div>
+                </transition>
+
+                <button type="submit" class="submit-btn" :disabled="loading" @click="handleBtnClick">
+                  <span v-if="loading" class="loading-spinner"></span>
+                  <span v-else>注 册</span>
+                  <span ref="rippleRef" class="btn-ripple"></span>
+                </button>
+              </form>
+
+              <div class="auth-footer">
+                <span>已有账号？</span>
+                <router-link to="/login" class="auth-link">去登录</router-link>
               </div>
-              <transition name="spring">
-                <span v-if="errors.password" class="form-hint error">{{ errors.password }}</span>
-              </transition>
             </div>
-
-            <div class="form-group" :class="{ focused: focusedField === 'confirm', error: errors.confirmPassword, 'shake': confirmShake }">
-              <label class="form-label">确认密码</label>
-              <div class="input-wrapper">
-                <Lock :size="18" class="input-icon" />
-                <input
-                  v-model="form.confirmPassword"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="再次输入密码"
-                  class="form-input"
-                  @focus="focusedField = 'confirm'"
-                  @blur="focusedField = ''; validateField('confirmPassword')"
-                />
-                <span v-if="errors.confirmPassword" class="validation-icon error">
-                  <XCircle :size="16" />
-                </span>
-                <span v-else-if="form.confirmPassword && !errors.confirmPassword && form.password === form.confirmPassword" class="validation-icon success">
-                  <CheckCircle :size="16" />
-                </span>
-              </div>
-              <div class="input-light-bar"></div>
-              <transition name="spring">
-                <span v-if="errors.confirmPassword" class="form-hint error">{{ errors.confirmPassword }}</span>
-              </transition>
-            </div>
-
-            <transition name="spring">
-              <div v-if="errorMsg" class="error-banner">
-                <AlertCircle :size="16" />
-                <span>{{ errorMsg }}</span>
-              </div>
-            </transition>
-
-            <button type="submit" class="submit-btn" :disabled="loading" @click="handleBtnClick">
-              <span v-if="loading" class="loading-spinner"></span>
-              <span v-else>注 册</span>
-              <span ref="rippleRef" class="btn-ripple"></span>
-            </button>
-          </form>
-
-          <div class="auth-footer">
-            <span>已有账号？</span>
-            <router-link to="/login" class="auth-link">去登录</router-link>
           </div>
         </div>
       </Transition>
@@ -241,7 +291,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { Brain, User, Lock, Eye, EyeOff, AlertCircle, Mail, XCircle, CheckCircle } from 'lucide-vue-next'
+import { User, Lock, Eye, EyeOff, AlertCircle, Mail, XCircle, CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -309,7 +359,7 @@ class Particle {
     this.vx = (Math.random() - 0.5) * 0.4
     this.vy = (Math.random() - 0.5) * 0.4
     this.radius = Math.random() * 2.5 + 1
-    this.baseHue = Math.random() * 60 + 160
+    this.baseHue = Math.random() * 40 + 140  // 绿色色调范围 (140-180)
   }
   update() {
     this.x += this.vx
@@ -358,7 +408,7 @@ const draw = () => {
         ctx.moveTo(particles[i].x, particles[i].y)
         ctx.lineTo(particles[j].x, particles[j].y)
         const alpha = (1 - dist / CONNECT_DIST) * 0.4
-        ctx.strokeStyle = `hsla(${185 + hueShift * 0.5}, 80%, 60%, ${alpha})`
+        ctx.strokeStyle = `hsla(${150 + hueShift * 0.3}, 70%, 55%, ${alpha})`  // 翡翠绿连线
         ctx.lineWidth = 0.8
         ctx.stroke()
       }
@@ -399,41 +449,22 @@ const handleBtnClick = (e) => {
 }
 
 const triggerShake = (field) => {
-  if (field === 'username') {
-    usernameShake.value = true
-    setTimeout(() => usernameShake.value = false, 300)
-  } else if (field === 'password') {
-    passwordShake.value = true
-    setTimeout(() => passwordShake.value = false, 300)
-  } else if (field === 'email') {
-    emailShake.value = true
-    setTimeout(() => emailShake.value = false, 300)
-  } else if (field === 'confirm') {
-    confirmShake.value = true
-    setTimeout(() => confirmShake.value = false, 300)
-  }
+  if (field === 'username') { usernameShake.value = true; setTimeout(() => usernameShake.value = false, 300) }
+  else if (field === 'password') { passwordShake.value = true; setTimeout(() => passwordShake.value = false, 300) }
+  else if (field === 'email') { emailShake.value = true; setTimeout(() => emailShake.value = false, 300) }
+  else if (field === 'confirm') { confirmShake.value = true; setTimeout(() => confirmShake.value = false, 300) }
 }
 
-const toggleRemember = () => {
-  form.remember = !form.remember
-}
+const toggleRemember = () => { form.remember = !form.remember }
 
 function validateUsername() {
-  if (!form.username.trim()) {
-    usernameError.value = '请输入用户名或邮箱'
-    triggerShake('username')
-    return false
-  }
+  if (!form.username.trim()) { usernameError.value = '请输入用户名或邮箱'; triggerShake('username'); return false }
   usernameError.value = ''
   return true
 }
 
 function validatePassword() {
-  if (!form.password) {
-    passwordError.value = '请输入密码'
-    triggerShake('password')
-    return false
-  }
+  if (!form.password) { passwordError.value = '请输入密码'; triggerShake('password'); return false }
   passwordError.value = ''
   return true
 }
@@ -542,587 +573,183 @@ watch(isLoginView, () => {
   Object.keys(errors).forEach(k => errors[k] = '')
 })
 
-onMounted(() => {
-  initCanvas()
-  window.addEventListener('resize', resize)
-})
-
-onUnmounted(() => {
-  cancelAnimationFrame(animationId)
-  window.removeEventListener('resize', resize)
-})
+onMounted(() => { initCanvas(); window.addEventListener('resize', resize) })
+onUnmounted(() => { cancelAnimationFrame(animationId); window.removeEventListener('resize', resize) })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 @use '../styles/variables' as *;
-.auth-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: $bg-primary;
-  position: relative;
-  overflow: hidden;
-}
 
-.bg-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: $bg-base; padding: 20px; position: relative; overflow: hidden; }
 
-.bg-gradient {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(74, 144, 249, 0.03) 0%, rgba(123, 104, 238, 0.03) 50%, rgba($accent-primary, 0.03) 100%);
-  z-index: 0;
-  pointer-events: none;
-  animation: gradientFlow 15s ease-in-out infinite;
-}
+.bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 
-@keyframes gradientFlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.bg-aurora {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.aurora-layer {
+// 背景微光粒子
+.auth-page::before {
+  content: '';
   position: absolute;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.8;
+  background: radial-gradient(circle, rgba($accent-indigo, 0.1) 0%, transparent 70%);
+  top: -50px;
+  right: -50px;
+  animation: floatOrb1 20s ease-in-out infinite;
 }
-
-.aurora-1 {
-  width: 600px;
-  height: 600px;
-  top: -150px;
-  right: -100px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
-  animation: auroraFloat 8s ease-in-out infinite;
+.auth-page::after {
+  content: '';
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba($accent-violet, 0.06) 0%, transparent 70%);
+  bottom: -40px;
+  left: -30px;
+  animation: floatOrb2 25s ease-in-out infinite;
 }
-
-.aurora-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -120px;
-  left: -80px;
-  background: radial-gradient(circle, rgba(123, 97, 255, 0.10) 0%, transparent 70%);
-  animation: auroraFloat 8s ease-in-out infinite 2s;
-}
-
-.aurora-3 {
-  width: 300px;
-  height: 300px;
-  top: 40%;
-  left: 30%;
-  background: radial-gradient(circle, rgba(58, 134, 255, 0.06) 0%, transparent 70%);
-  animation: auroraFloat 8s ease-in-out infinite 4s;
-}
-
-@keyframes auroraFloat {
+@keyframes floatOrb1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.95); }
+  33% { transform: translate(40px, 30px) scale(1.1); }
+  66% { transform: translate(-20px, -15px) scale(0.95); }
+}
+@keyframes floatOrb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -25px) scale(1.08); }
 }
 
-.auth-container {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
+.auth-wrapper { width: 100%; max-width: 900px; position: relative; z-index: 1; }
+
+.auth-panel { display: grid; grid-template-columns: 1fr 1fr; background: $bg-surface; border: 1px solid $border-default; border-radius: $radius-xl; overflow: hidden; box-shadow: $shadow-lg; animation: panelSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(16px); }
+@keyframes panelSlideIn {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.auth-card {
-  position: relative;
-  background: rgba($accent-secondary, 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba($accent-secondary, 0.1);
-  border-radius: 20px;
-  padding: 40px 32px;
-  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5), 0 0 80px rgba($accent-primary, 0.04);
-  overflow: hidden;
+// 左侧品牌面板
+.brand-panel { background: linear-gradient(135deg, $accent-indigo, $accent-indigo-dark); padding: 48px 40px; display: flex; flex-direction: column; justify-content: space-between; color: white; position: relative; overflow: hidden; background-size: 200% 200%; animation: gradientShift 8s ease infinite; }
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
+.brand-panel::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; }
 
-.card-glow {
+// 品牌面板装饰圆 - 呼吸动画
+.brand-panel::after {
+  content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
-  animation: cardSweep 8s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes cardSweep {
-  0%, 100% { left: -100%; }
-  50% { left: 100%; }
-}
-
-.auth-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.logo-wrap {
-  width: 68px;
-  height: 68px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(123, 97, 255, 0.15));
-  border: 1px solid rgba($accent-primary, 0.2);
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 30px rgba($accent-primary, 0.1);
-}
-
-.logo-icon {
-  color: $accent-primary;
-  filter: drop-shadow(0 0 8px rgba($accent-primary, 0.4));
-}
-
-.breathing-glow {
-  animation: breathingGlow 3s ease-in-out infinite;
-}
-
-@keyframes breathingGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba($accent-primary, 0.1), 0 0 40px rgba($accent-primary, 0.05); }
-  50% { box-shadow: 0 0 30px rgba($accent-primary, 0.2), 0 0 60px rgba($accent-primary, 0.1); }
-}
-
-.auth-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: $text-primary;
-  margin: 0 0 8px;
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  animation: titleGlow 3s ease-in-out infinite;
-}
-
-@keyframes titleGlow {
-  0%, 100% { text-shadow: 0 0 10px rgba($accent-primary, 0.3); }
-  50% { text-shadow: 0 0 20px rgba($accent-primary, 0.5), 0 0 30px rgba(123, 97, 255, 0.3); }
-}
-
-.auth-subtitle {
-  font-size: 15px;
-  color: #a0a0c8;
-  margin: 0;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  position: relative;
-}
-
-.form-group.shake {
-  animation: shake 0.3s ease-in-out;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #a0a0c8;
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  position: relative;
+  bottom: -40px;
+  right: -40px;
+  animation: breatheRing 6s ease-in-out infinite;
+}
+@keyframes breatheRing {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.15); opacity: 0.6; }
 }
 
-.input-wrapper:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-}
+.brand-logo { width: 48px; height: 48px; background: rgba(white, 0.15); border: 1px solid rgba(white, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; transition: all 0.3s ease; }
+.brand-logo:hover { background: rgba(white, 0.22); transform: scale(1.05); }
+.brand-name { font-size: 32px; font-weight: 700; margin: 0 0 8px; }
+.brand-slogan { font-size: 15px; opacity: 0.8; margin: 0 0 40px; }
+.brand-features { display: flex; flex-direction: column; gap: 16px; }
+.feature-item { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.9; transition: all 0.3s ease; padding: 8px 12px; border-radius: 8px; }
+.feature-item:hover { background: rgba(255, 255, 255, 0.08); opacity: 1; transform: translateX(4px); }
+.feature-icon { font-size: 20px; }
+.brand-footer { font-size: 12px; opacity: 0.5; }
 
-.form-group.focused .input-wrapper {
-  border-color: $accent-primary;
-  box-shadow: 0 0 0 3px rgba($accent-primary, 0.1), 0 0 20px rgba($accent-primary, 0.05);
-}
-
-.form-group.error .input-wrapper {
-  border-color: #ff4060;
-  box-shadow: 0 0 0 3px rgba(255, 64, 96, 0.1);
-}
-
-.input-icon {
-  color: $text-muted;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-  transform: scale(1);
-}
-
-.form-group.focused .input-icon {
-  color: $accent-primary;
-  transform: scale(1.1);
-}
-
-.validation-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-
-.validation-icon.error {
-  color: #ff4060;
-  animation: iconPop 0.3s ease;
-}
-
-.validation-icon.success {
-  color: $accent-emerald;
-  animation: iconPop 0.3s ease;
-}
-
-@keyframes iconPop {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-
-.form-input {
-  flex: 1;
-  padding: 12px 0;
-  border: none;
-  background: transparent;
-  font-size: 15px;
-  color: $text-primary;
-  outline: none;
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
-}
-
-.form-input::placeholder {
-  color: #8888a8;
-}
-
-.input-light-bar {
+// 右侧表单面板
+.form-panel { padding: 48px 40px; display: flex; flex-direction: column; justify-content: center; }
+.form-content { width: 100%; }
+.form-header { margin-bottom: 32px; }
+.form-header h2 { font-size: 24px; font-weight: 700; color: $text-primary; margin: 0 0 8px; font-family: $font-display; }
+.form-header p { font-size: 14px; color: $text-secondary; margin: 0; }
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.form-group.shake { animation: shake 0.3s ease-in-out; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.form-label { font-size: 13px; font-weight: 600; color: $text-secondary; }
+.input-wrapper { display: flex; align-items: center; gap: 10px; padding: 0 14px; background: $bg-base; border: 1px solid $border-default; border-radius: $radius-md; transition: all 0.3s ease; position: relative; overflow: hidden; }
+// 输入框底部渐变线
+.input-wrapper::after {
+  content: '';
   position: absolute;
-  bottom: 0;
-  left: 14px;
-  right: 14px;
-  height: 2px;
-  background: $accent-primary;
+  bottom: 0; left: 14px; right: 14px; height: 2px;
+  background: linear-gradient(90deg, $accent-indigo, $accent-violet);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.4s ease;
   border-radius: 1px;
 }
-
-.form-group.focused .input-light-bar {
-  transform: scaleX(1);
+.input-wrapper:hover { border-color: $border-medium; }
+.form-group.focused .input-wrapper { border-color: $accent-indigo; box-shadow: $glow-focus; }
+.form-group.focused .input-wrapper::after { transform: scaleX(1); }
+.form-group.error .input-wrapper { border-color: $color-danger; box-shadow: 0 0 0 3px rgba($color-danger, 0.1); }
+.input-icon { color: $text-muted; flex-shrink: 0; transition: all 0.3s ease; transform: scale(1); }
+.form-group.focused .input-icon { color: $accent-indigo; transform: scale(1.1); }
+.validation-icon { flex-shrink: 0; display: flex; align-items: center; }
+.validation-icon.error { color: $color-danger; animation: iconPop 0.3s ease; }
+.validation-icon.success { color: $color-success; animation: iconPop 0.3s ease; }
+@keyframes iconPop { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.form-input { flex: 1; padding: 12px 0; border: none; background: transparent; font-size: 15px; color: $text-primary; outline: none; font-family: $font-sans; }
+.form-input::placeholder { color: $text-placeholder; }
+.toggle-password { background: none; border: none; cursor: pointer; color: $text-muted; padding: 4px; flex-shrink: 0; transition: all 0.3s ease; display: flex; align-items: center; }
+.toggle-password:hover { color: $text-secondary; }
+.eye-icon { transition: all 0.3s ease; }
+.eye-icon.active { color: $accent-indigo; transform: rotate(180deg); }
+.form-hint { font-size: 12px; padding-left: 4px; }
+.form-hint.error { color: $color-danger; }
+.form-options { display: flex; align-items: center; justify-content: space-between; }
+.remember-me { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.remember-checkbox { display: none; }
+.checkbox-custom { width: 18px; height: 18px; border: 1px solid $border-default; border-radius: 4px; background: $bg-base; transition: all 0.2s ease; position: relative; display: flex; align-items: center; justify-content: center; }
+.check-mark { width: 12px; height: 12px; color: $text-primary; opacity: 0; transform: scale(0) rotate(-45deg); transition: all 0.2s ease; }
+.remember-checkbox:checked + .checkbox-custom { background: $accent-indigo; border-color: transparent; }
+.remember-checkbox:checked + .checkbox-custom .check-mark { opacity: 1; transform: scale(1) rotate(0); }
+.remember-text { font-size: 13px; color: $text-secondary; }
+.password-strength { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+.strength-bar { flex: 1; height: 4px; background: $bg-elevated; border-radius: 2px; overflow: hidden; }
+.strength-fill { height: 100%; border-radius: 2px; transition: all 0.3s ease; }
+.strength-text { font-size: 12px; font-weight: 600; min-width: 2em; text-align: right; }
+.error-banner { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba($color-danger, 0.1); border: 1px solid rgba($color-danger, 0.2); border-radius: 10px; color: $color-danger; font-size: 13px; }
+.spring-enter-active { animation: springIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+.spring-leave-active { transition: all 0.2s ease; }
+.spring-leave-to { opacity: 0; transform: translateY(-10px); }
+@keyframes springIn { 0% { opacity: 0; transform: scale(0.8) translateY(-10px); } 50% { transform: scale(1.05) translateY(0); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+.submit-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; background: $accent-indigo; color: $text-primary; border: none; border-radius: $radius-md; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba($accent-indigo, 0.25); font-family: $font-sans; letter-spacing: 2px; overflow: hidden; }
+.submit-btn:hover:not(:disabled) { background: $accent-indigo-light; transform: scale(1.02) translateY(-1px); box-shadow: 0 8px 30px rgba($accent-indigo, 0.35); }
+.submit-btn:active:not(:disabled) { transform: scale(0.98); }
+.submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.4); pointer-events: none; }
+@keyframes rippleAnim { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+.loading-spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.auth-footer { text-align: center; margin-top: 24px; font-size: 14px; color: $text-secondary; }
+.auth-link { color: $accent-indigo; text-decoration: none; font-weight: 600; margin-left: 4px; position: relative; transition: color 0.3s ease; }
+.auth-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: $accent-indigo; transition: width 0.3s ease; }
+.auth-link:hover::after { width: 100%; }
+.auth-link:hover { color: $accent-indigo-light; }
+.card-fade-enter-active { animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.card-fade-leave-active { animation: cardLeave 0.4s ease forwards; }
+.card-fade-enter-from { opacity: 0; transform: translateY(30px); }
+.card-fade-leave-to { opacity: 0; transform: translateY(-30px); }
+@keyframes cardEnter { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes cardLeave { to { opacity: 0; transform: translateY(-20px) scale(0.98); } }
+@media (max-width: 768px) {
+  .auth-panel { grid-template-columns: 1fr; }
+  .brand-panel { padding: 32px 24px; }
+  .brand-features { display: none; }
+  .form-panel { padding: 32px 24px; }
+  .auth-wrapper { max-width: 400px; }
 }
-
-.toggle-password {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: $text-muted;
-  padding: 4px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-}
-
-.toggle-password:hover {
-  color: #a0a0c8;
-}
-
-.eye-icon {
-  transition: all 0.3s ease;
-}
-
-.eye-icon.active {
-  color: $accent-primary;
-  transform: rotate(180deg);
-}
-
-.form-hint {
-  font-size: 12px;
-  padding-left: 4px;
-}
-
-.form-hint.error {
-  color: #ff4060;
-}
-
-.form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.remember-checkbox {
-  display: none;
-}
-
-.checkbox-custom {
-  width: 18px;
-  height: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.check-mark {
-  width: 12px;
-  height: 12px;
-  color: #fff;
-  opacity: 0;
-  transform: scale(0) rotate(-45deg);
-  transition: all 0.2s ease;
-}
-
-.remember-checkbox:checked + .checkbox-custom {
-  background: linear-gradient(135deg, $accent-primary, $accent-purple);
-  border-color: transparent;
-}
-
-.remember-checkbox:checked + .checkbox-custom .check-mark {
-  opacity: 1;
-  transform: scale(1) rotate(0);
-}
-
-.remember-text {
-  font-size: 13px;
-  color: #a0a0c8;
-}
-
-.password-strength {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 2px;
-}
-
-.strength-bar {
-  flex: 1;
-  height: 4px;
-  background: rgba($accent-secondary, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.strength-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-.strength-text {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 2em;
-  text-align: right;
-}
-
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(255, 64, 96, 0.1);
-  border: 1px solid rgba(255, 64, 96, 0.2);
-  border-radius: 10px;
-  color: #ff4060;
-  font-size: 13px;
-}
-
-.spring-enter-active {
-  animation: springIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-}
-
-.spring-leave-active {
-  transition: all 0.2s ease;
-}
-
-.spring-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-@keyframes springIn {
-  0% { opacity: 0; transform: scale(0.8) translateY(-10px); }
-  50% { transform: scale(1.05) translateY(0); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.submit-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px;
-  background: linear-gradient(135deg, $accent-primary, $accent-purple);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba($accent-primary, 0.25);
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  letter-spacing: 2px;
-  overflow: hidden;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: scale(1.02) translateY(-1px);
-  box-shadow: 0 8px 30px rgba($accent-primary, 0.35), 0 0 40px rgba(123, 97, 255, 0.15);
-}
-
-.submit-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  pointer-events: none;
-}
-
-@keyframes rippleAnim {
-  0% { transform: scale(0); opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.auth-footer {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 14px;
-  color: #a0a0c8;
-}
-
-.auth-link {
-  color: $accent-primary;
-  text-decoration: none;
-  font-weight: 600;
-  margin-left: 4px;
-  position: relative;
-  transition: color 0.3s ease;
-}
-
-.auth-link::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: $accent-primary;
-  transition: width 0.3s ease;
-}
-
-.auth-link:hover::after {
-  width: 100%;
-}
-
-.auth-link:hover {
-  color: #3affd4;
-}
-
-.card-fade-enter-active {
-  animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.card-fade-leave-active {
-  animation: cardLeave 0.4s ease forwards;
-}
-
-.card-fade-enter-from {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-.card-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-30px);
-}
-
-@keyframes cardEnter {
-  from { opacity: 0; transform: translateY(40px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes cardLeave {
-  to { opacity: 0; transform: translateY(-20px) scale(0.98); }
-}
-
 @media (max-width: 480px) {
-  .auth-card {
-    padding: 32px 20px;
-  }
-  .auth-title {
-    font-size: 24px;
-  }
+  .auth-page { padding: 10px; }
+  .brand-panel { padding: 24px 20px; }
+  .brand-name { font-size: 28px; }
+  .brand-slogan { font-size: 14px; margin-bottom: 24px; }
+  .form-panel { padding: 24px 20px; }
+  .form-header h2 { font-size: 22px; }
 }
 </style>

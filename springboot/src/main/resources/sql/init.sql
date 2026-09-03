@@ -70,9 +70,12 @@ CREATE TABLE IF NOT EXISTS learning_paths (
     is_active            BOOLEAN         DEFAULT TRUE                COMMENT '是否激活',
     completion_percentage FLOAT          DEFAULT 0                   COMMENT '完成百分比',
     nodes                JSON                                        COMMENT '节点列表JSON（含nodeId, nodeName, sequenceOrder, status, mastery, estimatedHours, timeSpent等）',
+    source               VARCHAR(20)     DEFAULT 'manual'            COMMENT '路径来源：manual-手动创建, ai_chat-对话生成, ai_assessment-测评生成, ai_quick-一键生成',
     created_at           DATETIME        DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
     updated_at           DATETIME        DEFAULT CURRENT_TIMESTAMP
-                                         ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+                                         ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    INDEX idx_lp_source (source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习路径表';
 
 -- 3. Agent 执行记录（合并 execution_logs + execution_results）
@@ -123,18 +126,7 @@ CREATE TABLE IF NOT EXISTS learning_events (
     INDEX idx_event_type (event_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习行为事件表';
 
--- 5. 知识图谱节点表
-CREATE TABLE IF NOT EXISTS knowledge_nodes (
-    id              VARCHAR(255)    PRIMARY KEY                     COMMENT '节点ID',
-    name            VARCHAR(255)    NOT NULL                        COMMENT '节点名称',
-    description     TEXT                                            COMMENT '节点描述',
-    difficulty      INT             DEFAULT 1                       COMMENT '难度等级',
-    estimated_hours FLOAT                                           COMMENT '预计学习时长',
-    category        VARCHAR(100)                                    COMMENT '分类',
-    prerequisites   TEXT                                            COMMENT '前置节点ID列表(JSON)'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识图谱节点表';
-
--- 6. 知识库文档表
+-- 5. 知识库文档表
 CREATE TABLE IF NOT EXISTS knowledge_documents (
     id            VARCHAR(255)    PRIMARY KEY                      COMMENT '文档ID',
     title         VARCHAR(255)    NOT NULL                         COMMENT '文档标题（原始文件名）',
@@ -167,18 +159,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     INDEX idx_chunk_doc_id_index (doc_id, chunk_index)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识块表';
 
--- 8. 学习资源表
-CREATE TABLE IF NOT EXISTS resources (
-    id          VARCHAR(255)    PRIMARY KEY                        COMMENT '资源ID',
-    title       VARCHAR(255)    NOT NULL                           COMMENT '资源标题',
-    type        VARCHAR(50)                                        COMMENT '资源类型',
-    url         TEXT                                               COMMENT '资源链接',
-    node_id     VARCHAR(255)                                       COMMENT '关联节点ID',
-    avg_rating  FLOAT           DEFAULT 0                          COMMENT '平均评分',
-    description TEXT                                               COMMENT '资源描述'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习资源表';
-
--- 9. 对话历史表
+-- 6. 对话历史表
 CREATE TABLE IF NOT EXISTS chat_histories (
     id          VARCHAR(255)    PRIMARY KEY                        COMMENT '聊天ID',
     session_id  VARCHAR(255)    NOT NULL                           COMMENT '会话ID',
@@ -192,22 +173,7 @@ CREATE TABLE IF NOT EXISTS chat_histories (
     INDEX idx_chat_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话历史表';
 
--- 10. 工具调用统计表
-CREATE TABLE IF NOT EXISTS tool_call_stats (
-    id             BIGINT          PRIMARY KEY AUTO_INCREMENT       COMMENT '主键ID',
-    tool_id        VARCHAR(50)     NOT NULL UNIQUE                 COMMENT '工具ID',
-    tool_name      VARCHAR(100)    NOT NULL                        COMMENT '工具名称',
-    total_calls    INT             DEFAULT 0                       COMMENT '总调用次数',
-    session_calls  INT             DEFAULT 0                       COMMENT '本次会话调用次数',
-    last_called_at DATETIME                                        COMMENT '最后调用时间',
-    created_at     DATETIME        DEFAULT CURRENT_TIMESTAMP       COMMENT '创建时间',
-    updated_at     DATETIME        DEFAULT CURRENT_TIMESTAMP
-                                   ON UPDATE CURRENT_TIMESTAMP     COMMENT '更新时间',
-
-    UNIQUE KEY uk_tool_id (tool_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工具调用统计表';
-
--- 11. 工具执行记录表
+-- 10. 工具执行记录表
 CREATE TABLE IF NOT EXISTS tool_execution_records (
     id             BIGINT          PRIMARY KEY AUTO_INCREMENT       COMMENT '主键ID',
     tool_id        VARCHAR(50)     NOT NULL                        COMMENT '工具ID',
@@ -546,3 +512,53 @@ FROM tool_execution_records;
 -- DROP TABLE IF EXISTS execution_results;
 -- DROP TABLE IF EXISTS learning_path_nodes;
 -- DROP TABLE IF EXISTS learning_records;
+
+-- 16. 用户积分总表（user_points）
+CREATE TABLE IF NOT EXISTS user_points (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
+    user_id BIGINT NOT NULL UNIQUE COMMENT '用户ID，关联 users 表',
+    total_earned BIGINT NOT NULL DEFAULT 0 COMMENT '累计获得积分',
+    available_points BIGINT NOT NULL DEFAULT 0 COMMENT '可用积分',
+    frozen_points BIGINT NOT NULL DEFAULT 0 COMMENT '冻结积分（用于处理中的消耗）',
+    version BIGINT NOT NULL DEFAULT 0 COMMENT '版本号，用于乐观锁',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_up_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户积分总表';
+
+-- 17. 积分流水表（point_transactions）
+CREATE TABLE IF NOT EXISTS point_transactions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '流水ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    transaction_type VARCHAR(30) NOT NULL COMMENT '交易类型：CHECKIN(签到), CHECKIN_BONUS(连续奖励), CONSUME(消耗), ADMIN_GRANT(管理员发放), ADMIN_REVOKE(管理员扣除)',
+    points BIGINT NOT NULL COMMENT '积分变动数量（正数增加，负数减少）',
+    balance_before BIGINT NOT NULL COMMENT '变动前余额',
+    balance_after BIGINT NOT NULL COMMENT '变动后余额',
+    source VARCHAR(50) COMMENT '来源说明（如：CHAT, AGENT, LEARNING_PATH, ADMIN）',
+    reference_id BIGINT COMMENT '关联的业务ID（如：签到记录ID、对话ID等）',
+    description VARCHAR(255) COMMENT '备注信息',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_pt_user_id (user_id),
+    INDEX idx_pt_created_at (created_at),
+    INDEX idx_pt_type (transaction_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='积分流水表';
+
+-- 18. 签到配置表（checkin_config）
+CREATE TABLE IF NOT EXISTS checkin_config (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '配置ID',
+    config_key VARCHAR(50) NOT NULL UNIQUE COMMENT '配置键名',
+    config_value VARCHAR(255) NOT NULL COMMENT '配置值',
+    description VARCHAR(255) COMMENT '配置描述',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='签到配置表';
+
+-- 初始化签到配置默认值
+INSERT INTO checkin_config (config_key, config_value, description) VALUES
+('daily_checkin_points', '10', '每日签到基础积分'),
+('consecutive_days', '7', '连续签到奖励周期（天数）'),
+('consecutive_bonus_points', '20', '连续签到奖励积分'),
+('chat_consume_points', '5', 'AI对话消耗积分'),
+('agent_consume_points', '10', '智能体调用消耗积分'),
+('learning_path_consume_points', '20', '学习路径生成消耗积分')
+ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);

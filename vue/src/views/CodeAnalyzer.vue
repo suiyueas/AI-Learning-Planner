@@ -1,19 +1,21 @@
 ﻿<template>
   <div class="analyzer-page">
-    <!-- 顶部导航 -->
+    <!-- 页面标题区 -->
     <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <ArrowLeft :size="18" />
-        <span>返回</span>
-      </button>
-      <h1 class="page-title">
-        <span class="title-icon">🔍</span>
-        <span class="title-text">代码解析</span>
-      </h1>
-      <button class="analyze-btn" :disabled="analyzing || !code.trim()" @click="runAnalyze">
-        <span v-if="analyzing">⏳ 分析中...</span>
-        <template v-else>开始分析</template>
-      </button>
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">
+            <span class="title-glyph">🔍</span>
+            <span>代码解析</span>
+            <span class="title-sub">智能代码审查与优化建议</span>
+          </h1>
+        </div>
+        <div class="header-right">
+          <button class="analyze-btn" :disabled="analyzing || !code.trim()" @click="runAnalyze">
+            {{ analyzing ? '⏳ 分析中...' : '开始分析' }}
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="analyzer-content">
@@ -185,88 +187,48 @@ const copyOptimizedCode = async () => {
     ElMessage.error('复制失败')
   }
 }
-
-const goBack = () => {
-  if (window.history.length > 1) router.back()
-  else router.push('/modules')
-}
 </script>
 
-<style scoped>
+
+
+<style lang="scss" scoped>
 @use '../styles/variables' as *;
+
 .analyzer-page {
   min-height: calc(100vh - 68px);
-  background: $bg-primary;
   position: relative;
 }
 
-.page-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 32px;
-  background: rgba($bg-primary, 0.85);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba($accent-secondary, 0.08);
-}
+.page-header { @include page-header-base; }
+.page-title { @include page-title-base; }
+.title-sub { font-size: 0.82rem; font-weight: 400; color: $text-muted; margin-left: 4px; -webkit-text-fill-color: initial; }
 
 .back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: rgba($accent-secondary, 0.06);
-  border: 1px solid rgba($accent-secondary, 0.1);
-  border-radius: 8px;
+  @include page-header-btn-ghost;
+  background: rgba($bg-surface, 0.6);
   color: $text-secondary;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.back-btn:hover {
-  border-color: rgba($accent-primary, 0.2);
-  color: $accent-primary;
-}
-
-.page-title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.title-icon {
-  font-size: 1.3rem;
-}
-
-.title-text {
-  font-size: 1.05rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, $accent-primary, $accent-purple);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  border: 1px solid rgba($accent-indigo, 0.15);
+  
+  &:hover {
+    border-color: rgba($accent-indigo, 0.3);
+    color: $accent-indigo-light;
+    background: rgba($accent-indigo, 0.08);
+    transform: translateY(-1px);
+  }
 }
 
 .analyze-btn {
-  padding: 9px 20px;
-  background: linear-gradient(135deg, rgba($accent-primary, 0.15), rgba(123, 97, 255, 0.1));
-  border: 1px solid rgba($accent-primary, 0.2);
-  border-radius: 10px;
-  color: $accent-primary;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.analyze-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 0 20px rgba($accent-primary, 0.12);
+  @include page-header-btn-primary;
+  background: rgba($accent-indigo, 0.1);
+  border: 1px solid rgba($accent-indigo, 0.25);
+  color: $accent-indigo;
+  
+  &:hover:not(:disabled) {
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
 }
 
 .analyze-btn:disabled {
@@ -277,18 +239,25 @@ const goBack = () => {
 .analyzer-content {
   max-width: 860px;
   margin: 0 auto;
-  padding: 24px 32px 60px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
 .glass-card {
-  background: rgba($bg-primary, 0.5);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba($accent-secondary, 0.08);
+  background: rgba($bg-surface, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba($accent-cyan, 0.12);
   border-radius: 16px;
   padding: 24px;
+  transition: all 0.3s ease;
+  box-shadow: $shadow-sm;
+  
+  &:hover {
+    border-color: rgba($accent-cyan, 0.25);
+    box-shadow: $shadow-md, 0 0 20px rgba($accent-cyan, 0.06);
+  }
 }
 
 /* 输入区 */
@@ -297,31 +266,56 @@ const goBack = () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba($accent-cyan, 0.08);
 }
 
 .section-title {
   font-size: 0.95rem;
   font-weight: 700;
   color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: linear-gradient(135deg, $accent-indigo, $accent-cyan);
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba($accent-indigo, 0.4);
+  }
 }
 
 .language-dropdown {
   padding: 6px 12px;
-  background: rgba($bg-primary, 0.6);
-  border: 1px solid rgba($accent-secondary, 0.15);
+  background: rgba($bg-surface, 0.4);
+  border: 1px solid rgba($accent-cyan, 0.15);
   border-radius: 8px;
   color: $text-secondary;
   font-size: 0.8rem;
   outline: none;
   cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba($accent-cyan, 0.3);
+    background: rgba($accent-cyan, 0.05);
+  }
+  
+  &:focus {
+    border-color: rgba($accent-cyan, 0.4);
+    box-shadow: 0 0 0 2px rgba($accent-indigo, 0.1);
+  }
 }
 
 .code-input {
   width: 100%;
   min-height: 260px;
   padding: 16px;
-  background: rgba($bg-primary, 0.7);
-  border: 1px solid rgba($accent-secondary, 0.12);
+  background: rgba($bg-surface, 0.35);
+  border: 1px solid rgba($accent-cyan, 0.12);
   border-radius: 12px;
   color: $text-primary;
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
@@ -329,11 +323,16 @@ const goBack = () => {
   line-height: 1.7;
   resize: vertical;
   outline: none;
-  transition: border-color 0.25s ease;
-}
-
-.code-input:focus {
-  border-color: rgba($accent-primary, 0.3);
+  transition: all 0.3s ease;
+  
+  &:focus {
+    border-color: rgba($accent-cyan, 0.3);
+    box-shadow: 0 0 0 3px rgba($accent-cyan, 0.1);
+  }
+  
+  &::placeholder {
+    color: $text-placeholder;
+  }
 }
 
 .input-meta {
@@ -343,16 +342,22 @@ const goBack = () => {
   margin-top: 10px;
   font-size: 0.75rem;
   color: $text-muted;
+  padding-top: 10px;
+  border-top: 1px solid rgba($accent-indigo, 0.06);
 }
 
 .sample-link {
-  color: #3a86ff;
+  color: $text-primary;
   cursor: pointer;
-  transition: color 0.2s;
-}
-
-.sample-link:hover {
-  color: $accent-primary;
+  transition: all 0.3s ease;
+  padding: 4px 8px;
+  border-radius: 6px;
+  
+  &:hover {
+    color: $accent-indigo-light;
+    background: rgba($accent-indigo, 0.08);
+    text-shadow: 0 0 10px rgba($accent-indigo, 0.5);
+  }
 }
 
 /* 结果区 */
@@ -361,6 +366,19 @@ const goBack = () => {
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
+  padding: 24px;
+  background: rgba($bg-surface, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba($accent-cyan, 0.12);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: $shadow-sm;
+  
+  &:hover {
+    border-color: rgba($accent-cyan, 0.25);
+    box-shadow: $shadow-md, 0 0 20px rgba($accent-cyan, 0.06);
+  }
 }
 
 .summary-main {
@@ -371,6 +389,9 @@ const goBack = () => {
 .summary-label {
   font-size: 0.72rem;
   color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 .summary-text {
@@ -378,6 +399,10 @@ const goBack = () => {
   color: $text-primary;
   line-height: 1.7;
   margin: 6px 0 0;
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .summary-chips {
@@ -391,21 +416,36 @@ const goBack = () => {
   align-items: center;
   gap: 4px;
   padding: 12px 18px;
-  background: rgba($accent-secondary, 0.05);
-  border: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 10px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.15);
+    border-color: rgba($accent-indigo, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.15);
+  }
 }
 
 .chip-label {
   font-size: 0.68rem;
   color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .chip-value {
   font-size: 1rem;
   font-weight: 700;
-  color: $accent-primary;
+  color: $accent-indigo;
   font-family: 'JetBrains Mono', monospace;
+  background: linear-gradient(135deg, $accent-indigo 0%, $accent-cyan 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba($accent-indigo, 0.3));
 }
 
 .card-title {
@@ -413,6 +453,18 @@ const goBack = () => {
   font-weight: 700;
   color: $text-primary;
   margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    background: linear-gradient(135deg, $accent-indigo, $accent-cyan);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba($accent-indigo, 0.5);
+  }
 }
 
 /* 问题列表 */
@@ -423,21 +475,27 @@ const goBack = () => {
   padding: 12px 14px;
   margin-bottom: 10px;
   border-radius: 10px;
-  background: rgba($accent-secondary, 0.03);
+  background: rgba($accent-indigo, 0.05);
   border-left: 3px solid #94a3b8;
   flex-wrap: wrap;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.1);
+    transform: translateX(3px);
+  }
 }
 
 .issue-item.critical {
-  border-left-color: $accent-red;
+  border-left-color: $color-danger;
 }
 
 .issue-item.warning {
-  border-left-color: $accent-amber;
+  border-left-color: $color-warning;
 }
 
 .issue-item.info {
-  border-left-color: #3a86ff;
+  border-left-color: $accent-indigo;
 }
 
 .issue-severity {
@@ -446,35 +504,47 @@ const goBack = () => {
   border-radius: 8px;
   font-weight: 600;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .issue-severity.critical {
-  background: rgba(239, 68, 68, 0.12);
-  color: $accent-red;
+  background: rgba($color-danger, 0.12);
+  color: $color-danger;
 }
 
 .issue-severity.warning {
-  background: rgba(245, 158, 11, 0.12);
-  color: $accent-amber;
+  background: rgba($color-warning, 0.12);
+  color: $color-warning;
 }
 
 .issue-severity.info {
-  background: rgba(58, 134, 255, 0.12);
-  color: #3a86ff;
+  background: rgba($accent-indigo, 0.12);
+  color: $accent-indigo;
 }
 
 .issue-type {
   font-size: 0.72rem;
-  color: #a78bfa;
-  background: rgba(123, 97, 255, 0.08);
+  color: $accent-indigo;
+  background: rgba($accent-indigo, 0.1);
   padding: 2px 8px;
   border-radius: 8px;
+  border: 1px solid rgba($accent-indigo, 0.15);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.3);
+  }
 }
 
 .issue-line {
   font-size: 0.7rem;
   color: $text-muted;
   font-family: 'JetBrains Mono', monospace;
+  background: rgba($bg-elevated, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba($accent-indigo, 0.08);
 }
 
 .issue-message {
@@ -489,6 +559,19 @@ const goBack = () => {
 .suggestion-list {
   margin: 0;
   padding-left: 20px;
+  list-style: none;
+  
+  li {
+    position: relative;
+    
+    &::before {
+      content: '•';
+      color: $accent-indigo;
+      font-weight: bold;
+      position: absolute;
+      left: -15px;
+    }
+  }
 }
 
 .suggestion-item {
@@ -496,6 +579,17 @@ const goBack = () => {
   color: $text-secondary;
   line-height: 1.7;
   margin-bottom: 6px;
+  padding: 8px 12px;
+  background: rgba($accent-indigo, 0.03);
+  border-radius: 8px;
+  border-left: 2px solid rgba($accent-indigo, 0.2);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.08);
+    border-left-color: rgba($accent-indigo, 0.4);
+    transform: translateX(3px);
+  }
 }
 
 /* 优化代码 */
@@ -504,54 +598,98 @@ const goBack = () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba($accent-indigo, 0.08);
 }
 
 .copy-btn {
   padding: 5px 12px;
-  background: rgba($accent-primary, 0.08);
-  border: 1px solid rgba($accent-primary, 0.2);
+  background: rgba($accent-indigo, 0.1);
+  border: 1px solid rgba($accent-indigo, 0.2);
   border-radius: 8px;
-  color: $accent-primary;
+  color: $accent-indigo;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.copy-btn:hover {
-  background: rgba($accent-primary, 0.15);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($accent-indigo, 0.2);
+    border-color: rgba($accent-indigo, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($accent-indigo, 0.2);
+  }
 }
 
 .optimized-code {
   max-height: 320px;
   overflow: auto;
   padding: 16px;
-  background: rgba($bg-primary, 0.7);
-  border: 1px solid rgba($accent-secondary, 0.1);
+  background: rgba($bg-base, 0.7);
+  border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 10px;
-  color: $accent-emerald;
+  color: $color-success;
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.7;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba($accent-indigo, 0.2);
+    box-shadow: 0 0 15px rgba($accent-indigo, 0.05);
+  }
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba($accent-indigo, 0.2);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba($accent-indigo, 0.35);
+    }
+  }
 }
 
 /* 空态 / 错误 */
 .empty-state {
   text-align: center;
   padding: 60px 24px;
+  background: rgba($bg-surface, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba($accent-indigo, 0.12);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba($accent-indigo, 0.25);
+    box-shadow: 0 0 20px rgba($accent-indigo, 0.06);
+  }
 }
 
 .empty-icon {
   font-size: 3rem;
   margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba($accent-indigo, 0.3));
 }
 
 .empty-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: $text-primary;
+  background: linear-gradient(135deg, $text-primary 0%, $accent-indigo-light 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 8px;
 }
 
@@ -559,6 +697,10 @@ const goBack = () => {
   font-size: 0.85rem;
   color: $text-muted;
   margin: 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.55;
 }
 
 .load-error {
@@ -567,35 +709,47 @@ const goBack = () => {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba($color-danger, 0.08);
+  border: 1px solid rgba($color-danger, 0.25);
   border-radius: 12px;
-  color: $accent-red;
+  color: $color-danger;
   font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba($color-danger, 0.4);
+    box-shadow: 0 0 15px rgba($color-danger, 0.1);
+  }
 }
 
 .retry-btn {
   padding: 6px 14px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba($color-danger, 0.12);
+  border: 1px solid rgba($color-danger, 0.3);
   border-radius: 8px;
-  color: $accent-red;
+  color: $color-danger;
   font-size: 0.85rem;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba($color-danger, 0.2);
+    border-color: rgba($color-danger, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($color-danger, 0.2);
+  }
 }
 
 @media (max-width: 640px) {
   .page-header {
-    padding: 10px 12px;
-    gap: 10px;
     flex-wrap: wrap;
+    gap: 10px;
   }
   .back-btn span {
     display: none;
-  }
-  .analyzer-content {
-    padding: 16px;
   }
   .result-summary {
     flex-direction: column;

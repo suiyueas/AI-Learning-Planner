@@ -54,8 +54,8 @@ public class AuthService {
                 .build();
         userRepository.save(user);
 
-        // 生成 Token
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        // 生成 Token（包含 role 信息，避免后续 DB 查询）
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
@@ -82,8 +82,8 @@ public class AuthService {
             throw new IllegalArgumentException("用户名/邮箱或密码错误");
         }
 
-        // 生成 Token
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        // 生成 Token（包含 role 信息，避免后续 DB 查询）
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);

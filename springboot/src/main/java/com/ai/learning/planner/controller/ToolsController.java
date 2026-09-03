@@ -313,11 +313,32 @@ public class ToolsController {
                     "message", "无效的工具ID: " + toolId
             ));
         }
-        int totalCalls = toolStatsService.recordCall(toolId);
+        int totalCalls = toolStatsService.recordall(toolId);
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "totalCalls", totalCalls
         ));
+    }
+
+    /**
+     * 切换工具启用/禁用状态（仅管理员，内存态）
+     * 禁用后工具从 LLM 工具清单与前端列表移除，且直接执行接口会被拦截
+     */
+    @PostMapping("/{toolId}/toggle")
+    public Map<String, Object> toggleTool(@PathVariable String toolId) {
+        if (!securityContextHolder.isAdmin()) {
+            throw new AccessDeniedException("仅管理员可启停工具");
+        }
+        if (ToolDefinitionRegistry.byId(toolId).isEmpty()) {
+            return Map.of("success", false, "message", "工具不存在: " + toolId);
+        }
+        boolean enabled = ToolDefinitionRegistry.toggleTool(toolId);
+        log.info("工具状态切换: toolId={}, enabled={}", toolId, enabled);
+        return Map.of(
+                "success", true,
+                "enabled", enabled,
+                "message", enabled ? "工具已启用" : "工具已禁用"
+        );
     }
 
     /**

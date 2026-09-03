@@ -1,5 +1,6 @@
 package com.ai.learning.planner.config;
 
+import com.ai.learning.planner.service.VectorPersistenceService;
 import com.ai.learning.planner.vectorstore.InMemoryVectorStoreWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
@@ -45,7 +46,7 @@ public class VectorStoreConfig {
     @ConditionalOnProperty(name = "spring.ai.vectorstore.elasticsearch.enabled", havingValue = "true", matchIfMissing = false)
     public VectorStore elasticsearchVectorStore(
             @Value("${spring.elasticsearch.uris:http://localhost:9200}") String uris,
-            @Autowired(required = false) EmbeddingModel embeddingModel) {
+            @Autowired(required = false) @Qualifier("qwenEmbeddingModel") EmbeddingModel embeddingModel) {
 
         if (embeddingModel == null) {
             log.warn("EmbeddingModel 不可用，无法创建 ElasticsearchVectorStore");
@@ -54,16 +55,30 @@ public class VectorStoreConfig {
 
         RestClient restClient = null;
         try {
-            // 连接超时 3s / socket 5s：ES 不可达时快速失败，避免启动与首次检索长时间阻塞
+            // 连接超时 3s / socket 10s：ES 不可达时快速失败，避免启动与首次检索长时间阻塞
+            // 连接池：max 30 总连接，max 10 每路由，防止并发向量查询耗尽连接
             restClient = RestClient.builder(HttpHost.create(uris))
                     .setRequestConfigCallback(rcb -> rcb
                             .setConnectTimeout(3000)
-                            .setSocketTimeout(5000))
+                            .setSocketTimeout(10000))
+                    .setHttpClientConfigCallback(hcb -> hcb
+                            .setMaxConnTotal(30)
+                            .setMaxConnPerRoute(10))
                     .build();
 
-            // 连通性预检：ES 不可达时提前降级，避免 build() 后 InitializingBean#afterPropertiesSet
-            // 内部 indexExists() 检查失败导致 bean 创建异常、阻断应用启动
-            restClient.performRequest(new Request("GET", "/"));
+            // 连通性预检（带重试）：ES 不可达时提前降级
+            int maxRetries = 3;
+            for (int i = 0; i < maxRetries; i++) {
+                try {
+                    restClient.performRequest(new Request("GET", "/"));
+                    break;
+                } catch (Exception retryEx) {
+                    if (i == maxRetries - 1) throw retryEx;
+                    log.warn("ES 连通性预检失败，{}ms 后重试 ({}/{}): {}",
+                            1000 * (i + 1), i + 1, maxRetries, retryEx.getMessage());
+                    Thread.sleep(1000L * (i + 1));
+                }
+            }
 
             // Spring AI 1.1.7 API：ElasticsearchVectorStore.builder(RestClient, EmbeddingModel)
             ElasticsearchVectorStoreOptions options = new ElasticsearchVectorStoreOptions();
@@ -97,15 +112,16 @@ public class VectorStoreConfig {
 
     @Bean
     public VectorStore inMemoryVectorStore(
-            @Autowired(required = false) org.springframework.ai.embedding.EmbeddingModel embeddingModel) {
+            @Autowired(required = false) @Qualifier("qwenEmbeddingModel") org.springframework.ai.embedding.EmbeddingModel embeddingModel,
+            @Autowired(required = false) VectorPersistenceService persistenceService) {
 
         if (embeddingModel == null) {
             log.warn("EmbeddingModel 不可用，InMemoryVectorStore 仅支持关键词降级模式");
-            return new InMemoryVectorStoreWrapper(null);
+            return new InMemoryVectorStoreWrapper(null, persistenceService);
         }
 
-        InMemoryVectorStoreWrapper vectorStore = new InMemoryVectorStoreWrapper(embeddingModel);
-        log.info("InMemoryVectorStore 初始化成功（降级模式）");
+        InMemoryVectorStoreWrapper vectorStore = new InMemoryVectorStoreWrapper(embeddingModel, persistenceService);
+        log.info("InMemoryVectorStore 初始化成功（降级模式，持久化={}）", persistenceService != null);
         return vectorStore;
     }
 
