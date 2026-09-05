@@ -329,8 +329,41 @@
         </template>
       </div>
 
+      <!-- 使用模式 -->
+      <div class="glass-card security-card">
+        <h3 class="card-title">🚀 使用模式</h3>
+        <p class="intervention-desc">切换引导模式或专家模式，适配你的使用习惯</p>
+        <div class="mode-switch">
+          <div
+            class="mode-option"
+            :class="{ active: userMode === 'guided' }"
+            @click="setUserMode('guided')"
+          >
+            <span class="mode-icon">🌟</span>
+            <div class="mode-info">
+              <span class="mode-name">引导模式</span>
+              <span class="mode-desc">AI 自动编排学习流程，无需手动操作</span>
+            </div>
+          </div>
+          <div
+            class="mode-option"
+            :class="{ active: userMode === 'expert' }"
+            @click="setUserMode('expert')"
+          >
+            <span class="mode-icon">🚀</span>
+            <div class="mode-info">
+              <span class="mode-name">专家模式</span>
+              <span class="mode-desc">完整 Agent 中心 + 执行日志 + 工具管理</span>
+            </div>
+          </div>
+        </div>
+        <router-link v-if="userMode === 'expert'" to="/agents" class="expert-entry">
+          🤖 进入智能体中心
+        </router-link>
+      </div>
+
       <!-- 退出登录 -->
-      <button class="logout-btn" @click="handleLogout">
+      <button class="logout-btn" @click="showLogoutConfirm = true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
           <polyline points="16 17 21 12 16 7" />
@@ -338,6 +371,13 @@
         </svg>
         <span>退出登录</span>
       </button>
+
+      <!-- 退出登录确认对话框 -->
+      <LogoutConfirmDialog
+        v-model="showLogoutConfirm"
+        @cancel="showLogoutConfirm = false"
+        @confirm="confirmLogout"
+      />
     </div>
   </div>
 </template>
@@ -345,12 +385,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { useAchievementStore } from '@/stores/achievement'
 import { updateProfile as updateProfileApi, changePassword as changePasswordApi, getPreferences as getPreferencesApi, updatePreferences as updatePreferencesApi } from '@/api/user'
 import AvatarUpload from '@/components/AvatarUpload.vue'
+import LogoutConfirmDialog from '@/components/common/LogoutConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -385,6 +426,15 @@ const passwordForm = reactive({
 
 const savingProfile = ref(false)
 const savingPassword = ref(false)
+const showLogoutConfirm = ref(false)
+
+// 用户模式
+const userMode = ref(localStorage.getItem('userMode') || 'guided')
+
+const setUserMode = (mode) => {
+  userMode.value = mode
+  localStorage.setItem('userMode', mode)
+}
 
 // 智能干预设置表单
 const interventionForm = reactive({
@@ -582,21 +632,13 @@ async function handleChangePassword() {
 }
 
 /**
- * 退出登录
+ * 退出登录确认
  */
-async function handleLogout() {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '确认退出', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    authStore.logout()
-    ElMessage.success('已退出登录')
-    router.push('/login')
-  } catch {
-    // 用户取消
-  }
+function confirmLogout() {
+  showLogoutConfirm.value = false
+  authStore.logout()
+  ElMessage.success('已退出登录')
+  router.push('/login')
 }
 </script>
 
@@ -608,110 +650,6 @@ async function handleLogout() {
   position: relative;
   overflow: hidden;
   padding: 24px;
-}
-
-/* ===== 粒子背景（增强版 - 双色发光） ===== */
-.bg-particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.particle {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  animation: particle-float 20s linear infinite;
-  
-  &.cyan {
-    background: rgba(0, 245, 212, 0.6);
-    box-shadow: 0 0 10px rgba(0, 245, 212, 0.5), 0 0 20px rgba(0, 245, 212, 0.3);
-  }
-  
-  &.purple {
-    background: rgba(139, 92, 246, 0.6);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
-  }
-}
-
-@keyframes particle-float {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100px) rotate(720deg);
-    opacity: 0;
-  }
-}
-
-/* ===== 极光背景（增强版） ===== */
-.bg-aurora {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.aurora-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(150px);
-  animation: aurora 25s ease-in-out infinite;
-}
-
-.aurora-1 {
-  width: 600px;
-  height: 600px;
-  top: -200px;
-  right: -100px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
-}
-
-.aurora-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -150px;
-  left: -100px;
-  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
-  animation-delay: -8s;
-}
-
-.aurora-3 {
-  width: 400px;
-  height: 400px;
-  top: 40%;
-  left: 40%;
-  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
-  animation-delay: -15s;
-}
-
-@keyframes aurora {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(40px, -40px) scale(1.15); }
-  50% { transform: translate(-30px, 30px) scale(0.9); }
-  75% { transform: translate(25px, 15px) scale(1.1); }
-}
-
-/* ===== 网格纹理 ===== */
-.bg-grid-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: 
-    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
-  background-size: 60px 60px;
 }
 
 .profile-container {
@@ -1270,6 +1208,80 @@ async function handleLogout() {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+// ===== 使用模式切换 =====
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba($bg-primary, 0.4);
+  border: 1px solid rgba($accent-secondary, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  &:hover {
+    border-color: rgba($accent-primary, 0.2);
+    background: rgba($accent-primary, 0.04);
+  }
+
+  &.active {
+    border-color: rgba($accent-primary, 0.4);
+    background: rgba($accent-primary, 0.08);
+    box-shadow: 0 0 12px rgba($accent-primary, 0.1);
+  }
+}
+
+.mode-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.mode-desc {
+  font-size: 0.75rem;
+  color: $text-muted;
+  line-height: 1.3;
+}
+
+.expert-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba($accent-primary, 0.08);
+  border: 1px solid rgba($accent-primary, 0.15);
+  border-radius: 8px;
+  color: $accent-primary;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba($accent-primary, 0.15);
+    border-color: rgba($accent-primary, 0.3);
+  }
 }
 
 @keyframes spin {

@@ -17,7 +17,7 @@ import java.util.Map;
  * 暴露 ReasoningMonitor 的 Micrometer 指标，供前端可视化或运维观测
  */
 @RestController
-@RequestMapping("/api/reasoning")
+@RequestMapping("/reasoning")
 @RequiredArgsConstructor
 public class ReasoningMonitorController {
 

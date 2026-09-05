@@ -545,27 +545,34 @@ onMounted(() => {
 
 .btn-export {
   @include page-header-btn-ghost;
-  color: $accent-cyan;
-  border-color: rgba($accent-cyan, 0.2);
-  background: rgba($accent-cyan, 0.08);
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.3);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.08), rgba(20, 184, 166, 0.08));
 
   &:hover:not(:disabled) {
-    color: $accent-cyan;
-    border-color: rgba($accent-cyan, 0.35);
-    background: rgba($accent-cyan, 0.15);
+    color: #14b8a6;
+    border-color: rgba(20, 184, 166, 0.45);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.18), rgba(20, 184, 166, 0.18));
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
 .btn-create {
   @include page-header-btn-ghost;
-  color: $accent-cyan;
-  border-color: rgba($accent-cyan, 0.2);
-  background: rgba($accent-cyan, 0.08);
+  color: #14b8a6;
+  border-color: rgba(20, 184, 166, 0.35);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.12), rgba(45, 212, 191, 0.12));
 
   &:hover:not(:disabled) {
-    color: $accent-cyan;
-    border-color: rgba($accent-cyan, 0.35);
-    background: rgba($accent-cyan, 0.15);
+    color: #2dd4bf;
+    border-color: rgba(45, 212, 191, 0.55);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.25), rgba(45, 212, 191, 0.25));
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.25);
   }
 }
 
@@ -960,23 +967,24 @@ onMounted(() => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
+  padding: 20px 20px 80px;
 }
 
 .modal-panel {
   width: 600px;
   max-width: 92vw;
-  max-height: 85vh;
-  background: rgba(12,14,30,0.97);
-  border: 1px solid rgba($accent-secondary,0.12);
+  max-height: calc(100vh - 120px);
+  background: rgba($bg-surface, 0.98);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba($accent-primary,0.03);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba($accent-indigo, 0.05);
   display: flex;
   flex-direction: column;
   animation: modalEnter 0.3s ease;
@@ -992,8 +1000,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  background: rgba($bg-primary,0.8);
-  border-bottom: 1px solid rgba($accent-secondary,0.08);
+  background: rgba($bg-elevated, 0.5);
+  border-bottom: 1px solid rgba($accent-indigo, 0.1);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -1014,7 +1023,7 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba($accent-secondary,0.08);
+  background: rgba($accent-indigo, 0.08);
   border: none;
   border-radius: 8px;
   color: $text-muted;
@@ -1022,7 +1031,7 @@ onMounted(() => {
   transition: all 0.2s;
 
   &:hover {
-    background: rgba($accent-secondary,0.15);
+    background: rgba($accent-indigo, 0.15);
     color: $text-primary;
   }
 }
@@ -1032,10 +1041,10 @@ onMounted(() => {
   overflow-y: auto;
   padding: 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba($accent-primary,0.12) transparent;
+  scrollbar-color: rgba($accent-indigo, 0.12) transparent;
 
   &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-thumb { background: rgba($accent-primary,0.12); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba($accent-indigo, 0.12); border-radius: 3px; }
 }
 
 .form-group {
@@ -1064,8 +1073,8 @@ onMounted(() => {
 .form-textarea {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba($accent-secondary,0.1);
+  background: rgba($bg-surface, 0.6);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 10px;
   color: $text-primary;
   font-size: 0.9rem;
@@ -1075,11 +1084,11 @@ onMounted(() => {
   font-family: inherit;
 
   &:focus {
-    border-color: rgba($accent-primary,0.25);
-    box-shadow: 0 0 0 3px rgba($accent-primary,0.04);
+    border-color: rgba($accent-indigo, 0.4);
+    box-shadow: 0 0 0 3px rgba($accent-indigo, 0.08);
   }
 
-  &::placeholder { color: #606088; }
+  &::placeholder { color: $text-placeholder; }
 }
 
 .form-textarea {
@@ -1102,13 +1111,13 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px 10px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba($accent-secondary,0.1);
+  background: rgba($bg-surface, 0.6);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 10px;
   transition: border-color 0.25s ease;
 
   &:focus-within {
-    border-color: rgba($accent-primary,0.25);
+    border-color: rgba($accent-indigo, 0.4);
   }
 }
 
@@ -1173,18 +1182,18 @@ onMounted(() => {
 
 .tag-suggestion {
   padding: 3px 10px;
-  background: rgba(123,97,255,0.08);
-  border: 1px solid rgba(123,97,255,0.12);
+  background: rgba($accent-indigo, 0.06);
+  border: 1px solid rgba($accent-indigo, 0.12);
   border-radius: 8px;
   font-size: 0.72rem;
-  color: #a78bfa;
+  color: $accent-indigo;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(123,97,255,0.15);
-    border-color: rgba(123,97,255,0.2);
-    color: #c4b5fd;
+    background: rgba($accent-indigo, 0.12);
+    border-color: rgba($accent-indigo, 0.2);
+    color: $accent-indigo-light;
   }
 }
 
@@ -1195,24 +1204,26 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid rgba($accent-secondary,0.08);
-  background: rgba($bg-primary,0.5);
+  border-top: 1px solid rgba($accent-indigo, 0.1);
+  background: rgba($bg-elevated, 0.3);
+  flex-shrink: 0;
 }
 
 .btn-cancel {
   padding: 10px 20px;
   background: transparent;
-  border: 1px solid rgba($accent-secondary,0.12);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 10px;
-  color: $text-muted;
+  color: $text-secondary;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba($accent-secondary,0.2);
+    border-color: rgba($accent-indigo, 0.25);
     color: $text-primary;
+    background: rgba($accent-indigo, 0.05);
   }
 }
 
@@ -1221,7 +1232,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, $accent-primary, #0055FF);
+  background: linear-gradient(135deg, $accent-indigo, $accent-violet);
   border: none;
   border-radius: 10px;
   color: #fff;
@@ -1232,7 +1243,7 @@ onMounted(() => {
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba($accent-primary,0.25);
+    box-shadow: 0 4px 16px rgba($accent-indigo, 0.3);
   }
 
   &:active:not(:disabled) { transform: scale(0.98) translateY(-1px); }

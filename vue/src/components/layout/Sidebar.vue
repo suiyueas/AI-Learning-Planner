@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ collapsed: collapsed }">
     <!-- Logo 区域 -->
     <div class="sidebar-logo">
       <div class="logo-icon">
@@ -9,99 +9,52 @@
           <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <span class="logo-text">知途</span>
-      <span class="logo-subtitle">Zhitu</span>
+      <template v-if="!collapsed">
+        <span class="logo-text">知途</span>
+        <span class="logo-subtitle">Zhitu</span>
+      </template>
     </div>
 
     <!-- 导航菜单 -->
     <nav class="sidebar-nav">
-      <!-- 总览组 -->
+      <!-- 核心组 -->
       <div class="nav-group">
-        <div class="nav-group-title">总览</div>
+        <div v-if="!collapsed" class="nav-group-title">核心</div>
         <router-link
-          :to="overviewItem.path"
-          class="nav-item"
-          :class="{ active: isActive(overviewItem.path) }"
-        >
-          <component :is="overviewItem.icon" :size="18" />
-          <span class="nav-label">{{ overviewItem.label }}</span>
-        </router-link>
-      </div>
-
-      <!-- 学习组 -->
-      <div class="nav-group">
-        <div class="nav-group-title">学习</div>
-        <router-link
-          v-for="item in learningItems"
+          v-for="item in coreItems"
           :key="item.path"
           :to="item.path"
           class="nav-item"
           :class="{ active: isActive(item.path) }"
+          :title="collapsed ? item.label : ''"
         >
           <component :is="item.icon" :size="18" />
-          <span class="nav-label">{{ item.label }}</span>
+          <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
         </router-link>
       </div>
 
-      <!-- 知识组 -->
+      <!-- 个人组 -->
       <div class="nav-group">
-        <div class="nav-group-title">知识</div>
+        <div v-if="!collapsed" class="nav-group-title">个人</div>
         <router-link
-          v-for="item in knowledgeItems"
+          v-for="item in personalItems"
           :key="item.path"
           :to="item.path"
           class="nav-item"
           :class="{ active: isActive(item.path) }"
+          :title="collapsed ? item.label : ''"
         >
           <component :is="item.icon" :size="18" />
-          <span class="nav-label">{{ item.label }}</span>
-        </router-link>
-      </div>
-
-      <!-- 诊断组 -->
-      <div class="nav-group">
-        <div class="nav-group-title">诊断</div>
-        <router-link
-          v-for="item in diagnosisItems"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ active: isActive(item.path) }"
-        >
-          <component :is="item.icon" :size="18" />
-          <span class="nav-label">{{ item.label }}</span>
-        </router-link>
-      </div>
-
-      <!-- 智能体中心 -->
-      <div class="nav-group">
-        <div class="nav-group-title">智能体中心</div>
-        <router-link
-          v-for="item in agentItems"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ active: isActive(item.path) }"
-        >
-          <component :is="item.icon" :size="18" />
-          <span class="nav-label">{{ item.label }}</span>
+          <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
         </router-link>
       </div>
     </nav>
 
-    <!-- 底部导航 -->
-    <div class="sidebar-footer">
-      <router-link
-        v-for="item in footerItems"
-        :key="item.path"
-        :to="item.path"
-        class="nav-item"
-        :class="{ active: isActive(item.path) }"
-      >
-        <component :is="item.icon" :size="18" />
-        <span class="nav-label">{{ item.label }}</span>
-      </router-link>
-    </div>
+    <!-- 伸缩按钮 -->
+    <button class="collapse-toggle" @click="$emit('toggle-collapse')">
+      <ChevronLeft v-if="!collapsed" :size="16" />
+      <ChevronRight v-else :size="16" />
+    </button>
   </aside>
 </template>
 
@@ -109,49 +62,40 @@
 import { useRoute } from 'vue-router'
 import {
   LayoutDashboard,
-  BookOpen,
-  Calendar,
-  FileText,
   Brain,
-  Code,
-  Stethoscope,
-  AlertTriangle,
-  Target,
-  Bot,
-  BarChart3,
+  Calendar,
   Trophy,
-  Settings
+  Settings,
+  Bot,
+  BookOpen,
+  Code2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-vue-next'
+
+defineProps({
+  collapsed: {
+    type: Boolean,
+    default: false
+  }
+})
+
+defineEmits(['toggle-collapse'])
 
 const route = useRoute()
 
-const overviewItem = { path: '/home', label: '仪表盘', icon: LayoutDashboard }
-
-const learningItems = [
-  { path: '/learning-path', label: '学习路径', icon: BookOpen },
-  { path: '/calendar', label: '学习日历', icon: Calendar },
-  { path: '/study-notes', label: '学习笔记', icon: FileText }
-]
-
-const knowledgeItems = [
+const coreItems = [
+  { path: '/workbench', label: '学习工作台', icon: LayoutDashboard },
   { path: '/knowledge', label: '知识库', icon: Brain },
-  { path: '/code-analyze', label: '代码管理', icon: Code }
+  { path: '/calendar', label: '学习日历', icon: Calendar },
 ]
 
-const diagnosisItems = [
-  { path: '/assessment', label: '能力评估', icon: Stethoscope },
-  { path: '/capability/weakness', label: '薄弱点分析', icon: AlertTriangle },
-  { path: '/capability/adaptive', label: '自适应学习', icon: Target }
-]
-
-const agentItems = [
-  { path: '/agents', label: '智能体中心', icon: Bot }
-]
-
-const footerItems = [
-  { path: '/statistics', label: '学习统计', icon: BarChart3 },
-  { path: '/achievements', label: '成就系统', icon: Trophy },
-  { path: '/profile', label: '个人中心', icon: Settings }
+const personalItems = [
+  { path: '/achievements', label: '成就徽章', icon: Trophy },
+  { path: '/study-notes', label: '学习笔记', icon: BookOpen },
+  { path: '/code-analyze', label: '代码分析', icon: Code2 },
+  { path: '/agents', label: '智能体中心', icon: Bot },
+  { path: '/profile', label: '个人中心', icon: Settings },
 ]
 
 const isActive = (path) => route.path === path || route.path.startsWith(path + '/')
@@ -163,25 +107,31 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
 .sidebar {
   width: $sidebar-width;
   height: 100vh;
-  background: rgba($bg-surface, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba($border-default, 0.5);
+  background: rgba($bg-surface, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba($border-default, 0.4);
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 40;
-  transition: transform $transition-normal;
+  transition: width $transition-normal;
+  overflow: hidden;
+
+  &.collapsed {
+    width: $sidebar-collapsed;
+  }
 }
 
 .sidebar-logo {
-  padding: $space-5 $space-4;
+  height: $topbar-height;
+  padding: $space-4;
   display: flex;
   align-items: center;
   gap: $space-3;
-  border-bottom: 1px solid $border-subtle;
+  border-bottom: 1px solid rgba($border-subtle, 0.5);
   flex-shrink: 0;
 }
 
@@ -192,6 +142,7 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 
   svg { width: 100%; height: 100%; }
 }
@@ -201,25 +152,21 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
   font-weight: 700;
   color: $text-primary;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .logo-subtitle {
   font-size: $text-xs;
   color: $text-muted;
-  margin-left: $space-1;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: $space-3 0;
-}
-
-.sidebar-footer {
-  border-top: 1px solid $border-subtle;
-  padding: $space-3 0;
-  flex-shrink: 0;
 }
 
 .nav-group {
@@ -233,22 +180,24 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
   color: $text-muted;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: $space-3;
-  padding: 8px 16px;
-  margin: 1px 8px;
+  padding: 10px $space-4;
+  margin: 2px $space-2;
   color: $text-secondary;
   text-decoration: none;
   border-radius: $radius-md;
   transition: all $transition-fast;
   border-left: 2px solid transparent;
+  white-space: nowrap;
 
   &:hover {
-    background: $bg-muted;
+    background: rgba($accent-indigo, 0.06);
     color: $text-primary;
   }
 
@@ -264,11 +213,34 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
   font-weight: 500;
 }
 
+/* 伸缩按钮 */
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  margin: $space-2;
+  background: rgba($accent-indigo, 0.1);
+  border: 1px solid rgba($accent-indigo, 0.2);
+  border-radius: $radius-md;
+  color: $accent-indigo;
+  cursor: pointer;
+  transition: all $transition-fast;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba($accent-indigo, 0.18);
+    border-color: rgba($accent-indigo, 0.35);
+    transform: scale(1.02);
+  }
+}
+
 /* 移动端适配 */
 @media (max-width: $breakpoint-md) {
   .sidebar {
     transform: translateX(-100%);
     z-index: 100;
+    width: $sidebar-width;
 
     &.open {
       transform: translateX(0);

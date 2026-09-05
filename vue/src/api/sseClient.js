@@ -12,16 +12,34 @@ export class SSEClient {
     this.headers = options.headers || {}
     this.eventSource = null
     this.listeners = {}
+    this.shouldReconnect = true // 是否允许自动重连
+    this._isCompleted = false // 标记是否已收到完成信号
   }
   
   /**
    * 连接到SSE端点
-   * @param {string} url - SSE端点URL
+   * @param {string} url - SSE端点URL（无需/api前缀，会自动添加）
    * @param {object} params - 查询参数
    */
   connect(url, params = {}) {
+    // 重置完成标记和重连标志（新连接开始时允许重连）
+    this._isCompleted = false
+    this.shouldReconnect = true
+
+    // 确保 URL 有 /api 前缀（后端 context-path 为 /api，SSE 不走 Axios 拦截器）
+    if (!url.startsWith('/api') && !url.startsWith('http')) {
+      url = '/api' + (url.startsWith('/') ? url : '/' + url)
+    }
+    
+    // 自动注入 JWT Token（EventSource 不支持自定义请求头，只能通过 query param 传递）
+    const token = localStorage.getItem('token')
+    if (token) {
+      params._token = token
+    }
+    
     // 构建完整URL
     const fullUrl = this.buildUrl(url, params)
+    console.log('[SSEClient] 连接:', fullUrl)
     
     // 创建EventSource连接
     this.eventSource = new EventSource(fullUrl)
@@ -39,7 +57,9 @@ export class SSEClient {
    * @returns {string} 完整URL
    */
   buildUrl(url, params) {
-    const urlObj = new URL(url, this.baseUrl)
+    // 当 baseUrl 为空时，使用当前页面 origin 作为 base
+    const base = this.baseUrl || window.location.origin
+    const urlObj = new URL(url, base)
     
     // 添加查询参数
     Object.entries(params).forEach(([key, value]) => {
@@ -74,6 +94,7 @@ export class SSEClient {
     
     // 连接打开事件
     this.eventSource.onopen = (event) => {
+      console.log('[SSEClient] 连接已打开')
       this.emit('open', event)
     }
     
@@ -84,8 +105,43 @@ export class SSEClient {
     
     // 错误事件
     this.eventSource.onerror = (event) => {
+      // ★ 如果已经收到完成信号，直接忽略所有错误事件，不再重连
+      if (this._isCompleted || !this.shouldReconnect) {
+        console.log('[SSEClient] 会话已完成，忽略错误事件，不再重连')
+        this.close()
+        return
+      }
+
+      console.error('[SSEClient] 连接错误:', event)
+
+      // EventSource 不暴露 HTTP 状态码，但可以通过 readyState 判断
+      // CONNECTING(0) = 正在重连, CLOSED(2) = 已关闭
+      // 如果是 401/403 导致的错误，服务端会关闭连接，readyState 变为 CLOSED
+      if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
+        // 连接已彻底关闭（非自动重连），检查 Token 是否有效
+        const token = localStorage.getItem('token')
+        if (!token) {
+          console.warn('[SSEClient] Token 已丢失，停止重连')
+          this.emit('auth_expired', { message: '登录已过期，请重新登录' })
+          this.close()
+          return
+        }
+        // Token 存在但连接关闭，可能是 Token 过期
+        // 通过一个轻量级请求验证 Token 有效性
+        this._checkTokenValidity().then(valid => {
+          if (!valid) {
+            console.warn('[SSEClient] Token 已过期，通知认证过期')
+            this.emit('auth_expired', { message: '登录已过期，请重新登录' })
+            this.close()
+          } else {
+            console.warn('[SSEClient] Token 有效但连接关闭，可能是服务端异常')
+          }
+        })
+      }
+
       this.emit('error', event)
-      this.close()
+      // 不在此处主动 close，让 EventSource 自动重连（readyState === CONNECTING 时）
+      // 但自动重连受 shouldReconnect 控制（由外部在 onError 回调中判断）
     }
   }
   
@@ -110,6 +166,21 @@ export class SSEClient {
   on(event, callback) {
     if (!this.listeners[event]) {
       this.listeners[event] = []
+      // 首次注册命名事件时，通过 addEventListener 注册到 EventSource
+      // 这样后端 SSE 推送的命名事件（如 question、phase_transition 等）才能被接收
+      if (this.eventSource && event !== 'open' && event !== 'message' && event !== 'error') {
+        this.eventSource.addEventListener(event, (e) => {
+          const data = this.parseMessage(e.data)
+          // ★ 关键：收到 session_completed 事件后，主动关闭连接并禁用重连
+          if (event === 'session_completed') {
+            this._isCompleted = true
+            this.shouldReconnect = false
+            // 主动关闭连接，阻止浏览器内置自动重连
+            this.close()
+          }
+          this.listeners[event]?.forEach(cb => cb(data))
+        })
+      }
     }
     this.listeners[event].push(callback)
     return this
@@ -139,9 +210,32 @@ export class SSEClient {
   }
   
   /**
-   * 关闭连接
+   * 检查 Token 有效性（轻量级请求，不触发 UI 加载状态）
+   * @returns {Promise<boolean>} Token 是否有效
    */
-  close() {
+  async _checkTokenValidity() {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return false
+      const response = await fetch('/api/notifications/unread-stats', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        // 不触发 loading 状态
+      })
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * 关闭连接
+   * @param {boolean} completed - 是否因会话完成而关闭
+   */
+  close(completed = false) {
+    if (completed) {
+      this._isCompleted = true
+      this.shouldReconnect = false
+    }
     if (this.eventSource) {
       this.eventSource.close()
       this.eventSource = null

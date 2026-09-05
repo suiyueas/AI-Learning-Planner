@@ -201,58 +201,56 @@ springdoc:
 # JWT 配置（密钥由 .env 提供）
 jwt:
   secret: ${JWT_SECRET:}
-  expiration: ${JWT_EXPIRATION:86400}
+  expiration: ${JWT_EXPIRATION:604800}
 
-# 日志配置（学者视角优化版）
-# 核心启动信息保持 INFO 级别，冗余日志降低或关闭
+# 日志配置 - 精简输出关键信息
 logging:
   level:
-    # ========== 核心日志（保持 INFO） ==========
+    # ========== 核心业务日志（INFO）==========
     com.ai.learning.planner: INFO
     com.ai.learning.planner.runner: INFO
+    # JWT 认证过滤器日志（调试用，生产环境改为 WARN）
+    com.ai.learning.planner.config.JwtAuthenticationFilter: DEBUG
 
-    # ========== Spring Framework（按需调整） ==========
-    # 关闭 Spring Data Redis 仓库扫描警告
-    org.springframework.data.repository.config: WARN
-    org.springframework.data.redis: WARN
+    # ========== 过滤噪音（WARN/ERROR only）==========
+    # Spring Framework
+    org.springframework: WARN
+    org.springframework.web: WARN
+    org.springframework.data: WARN
+    org.springframework.security: WARN
+    org.springframework.ai: WARN
 
-    # 关闭 Hibernate 方言警告
-    org.hibernate.orm.deprecation: WARN
+    # Hibernate/JPA
     org.hibernate: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type: WARN
+    org.hibernate.SQL: ERROR
+    org.hibernate.type: ERROR
 
-    # 关闭 Spring Security 默认密码输出
-    org.springframework.security.config.annotation.authentication.configurers.userdetails: WARN
-    org.springframework.security.core.userdetails: WARN
-
-    # ========== Tomcat/容器 ==========
+    # Tomcat/容器
     org.apache.catalina: WARN
     org.apache.tomcat: WARN
 
-    # ========== Spring Web ==========
-    org.springframework.web: WARN
-
-    # ========== HikariCP 连接池 ==========
+    # 连接池
     com.zaxxer.hikari: WARN
 
-    # ========== Spring JDBC ==========
-    org.springframework.jdbc: WARN
+    # Commons Logging 警告
+    org.apache.commons.logging: ERROR
 
-    # ========== 应用内部日志优化 ==========
-    # ToolExecutionService 的 ? 占位符日志降级
+    # ========== 业务组件精简 ==========
+    # ToolExecutionService 降级
     com.ai.learning.planner.service.ToolExecutionService: WARN
+    # 缓存预热降级（日常不显示）
+    com.ai.learning.planner.runner.CacheWarmupRunner: WARN
+    com.ai.learning.planner.service.ConfigDataCacheService: WARN
+    # VectorStoreConfig 重试日志降级（只显示最终结果）
+    com.ai.learning.planner.config.VectorStoreConfig: ERROR
+    # 知识块服务精简
+    com.ai.learning.planner.service.KnowledgeChunkService: WARN
+    # ReasoningEngine 精简（合并为一条汇总）
+    com.ai.learning.planner.config.ReasoningEngineConfig: WARN
 
-    # 缓存预热日志降级为 DEBUG（日常不显示）
-    com.ai.learning.planner.runner.CacheWarmupRunner: DEBUG
-    com.ai.learning.planner.service.ConfigDataCacheService: DEBUG
-
-    # ========== 第三方库 ==========
-    org.springframework.ai: WARN
-
-    # Pattern layout for cleaner output
+  # 简洁的输出格式
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} %highlight(%-5level) %cyan([%thread]) %green(%logger{20}) - %msg%n"
 
 # Actuator
 management:

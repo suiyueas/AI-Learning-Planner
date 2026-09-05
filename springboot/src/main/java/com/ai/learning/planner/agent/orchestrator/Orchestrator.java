@@ -343,7 +343,7 @@ public class Orchestrator {
             List<SubTask> subTasks = decomposeTask(input);
             emitter.send(SseEmitter.event().name("decomposition")
                     .data(Map.of("content", "📋 拆解为 " + subTasks.size() + " 个子任务",
-                            "subTasks", subTasks.stream().map(st -> Map.of("agentId", st.agentId(), "agentName", st.agentName(), "description", st.description())).collect(Collectors.toList()))));
+                            "subTasks", subTasks.stream().<Map<String, Object>>map(st -> Map.of("agentId", st.agentId(), "agentName", st.agentName(), "description", st.description())).collect(Collectors.toList()))));
 
             // 2. 并行派发
             List<CompletableFuture<SubTaskResult>> futures = new ArrayList<>();

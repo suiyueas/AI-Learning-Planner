@@ -1,11 +1,5 @@
 ﻿<template>
   <div ref="pageRef" class="agents-page">
-    <!-- 深空动态背景 -->
-    <div class="bg-deep">
-      <div class="aurora-orb orb-cyan"></div>
-      <div class="aurora-orb orb-purple"></div>
-    </div>
-    <div class="grid-overlay"></div>
 
     <!-- ===== 顶部栏（纯净化）===== -->
     <header class="top-bar">
@@ -27,6 +21,7 @@
           <span class="tb-dot"></span>
           {{ selectedAgent.status === 'available' ? '在线' : selectedAgent.status === 'executing' ? '执行中' : '离线' }}
         </span>
+        <span class="tb-right-spacer"></span>
         <button class="tb-history-btn" @click="showHistoryDrawer = true">
           📋 历史
           <span v-if="successLogCount > 0" class="tb-badge">{{ successLogCount }}</span>
@@ -261,7 +256,68 @@
           </div>
         </div>
       </main>
+
+      <!-- ===== 右侧: Orchestrator 编排面板 ===== -->
+      <aside class="orchestrator-panel" :class="{ 'orchestrator--open': orchestratorPanelOpen }">
+        <div class="orch-header">
+          <div class="orch-title">
+            <span class="orch-icon">🧠</span>
+            <span>智能编排</span>
+          </div>
+          <button class="orch-toggle" @click="orchestratorPanelOpen = !orchestratorPanelOpen" title="收起编排面板">
+            <ChevronRight />
+          </button>
+        </div>
+        <div class="orch-messages" ref="orchestratorMessagesRef">
+          <div v-if="orchestrationMessages.length === 0 && !isOrchestrating" class="orch-empty">
+            <p>在这里输入复杂任务，Orchestrator 会自动拆解任务，调用多个 Agent <strong>并行执行</strong>，最后聚合结果</p>
+            <div class="orch-hints">
+              <span class="hint">示例：帮我规划一个 30 天的 Java 学习路线，并评估我的当前水平，最后生成练习题</span>
+            </div>
+          </div>
+          <div v-for="msg in orchestrationMessages" :key="msg.id" class="orch-message" :class="msg.type">
+            <div class="orch-msg-header">
+              <span class="orch-msg-icon">{{ getOrchestrationIcon(msg.type) }}</span>
+              <span class="orch-msg-title">{{ getOrchestrationTitle(msg) }}</span>
+              <span v-if="msg.agentName" class="orch-msg-agent">{{ msg.agentName }}</span>
+            </div>
+            <div v-if="msg.content" class="orch-msg-content" v-html="formatOrchestrationContent(msg.content)"></div>
+            <div v-if="msg.subTasks" class="orch-subtasks">
+              <div v-for="task in msg.subTasks" :key="task.agentId" class="orch-subtask" :class="getSubTaskClass(task.agentId)">
+                <span class="st-agent">{{ task.agentName }}</span>
+                <span class="st-desc">{{ task.description }}</span>
+                <span class="st-status" :class="subTaskStatusMap[task.agentId] || 'pending'">
+                  {{ getSubTaskStatusLabel(subTaskStatusMap[task.agentId]) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-if="isOrchestrating" class="orch-loading">
+            <div class="spinner"></div>
+            <span>编排执行中...</span>
+          </div>
+        </div>
+        <div class="orch-input-area">
+          <input
+            v-model="orchestratorInput"
+            class="orch-input"
+            placeholder="输入复杂任务，Orchestrator 会自动多Agent调度..."
+            @keydown.enter="sendOrchestration"
+            :disabled="isOrchestrating"
+          />
+          <button class="orch-send" @click="sendOrchestration" :disabled="isOrchestrating || !orchestratorInput.trim()">
+            {{ isOrchestrating ? '执行中...' : '发送' }}
+          </button>
+        </div>
+      </aside>
     </div>
+
+    <!-- 编排面板伸缩标签（独立于面板，始终可见） -->
+    <button class="orch-tab" :class="{ 'orch-tab--open': orchestratorPanelOpen }" @click="orchestratorPanelOpen = !orchestratorPanelOpen" :title="orchestratorPanelOpen ? '收起编排面板' : '打开编排面板'">
+      <ChevronLeft v-if="!orchestratorPanelOpen" :size="16" />
+      <ChevronRight v-else :size="16" />
+      <span v-if="!orchestratorPanelOpen" class="orch-tab-label">编排</span>
+    </button>
 
     <!-- ===== 底部状态栏 ===== -->
     <footer class="status-bar">
@@ -515,6 +571,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { cleanupDialogs } from '@/utils/modalHelper'
 import { saveAgentExecution, getAllResults, clearAllResults, deleteResultById, deleteResultsBatch, getTrashResults, restoreResult, postStreamExecution, postOrchestrateExecution } from '@/api/agentApi'
 import { getToolExecutionHistory, deleteToolExecution } from '@/api/toolsApi'
@@ -538,6 +595,15 @@ const showRouterModal = ref(false)
 const chatInput = ref('')
 const chatRef = ref(null)
 const conversations = reactive({})
+
+// ===== Orchestrator 编排面板状态 =====
+const orchestratorPanelOpen = ref(false)
+const orchestratorInput = ref('')
+const isOrchestrating = ref(false)
+const orchestrationMessages = ref([])
+const orchestratorMessagesRef = ref(null)
+const subTaskStatusMap = ref({})
+let messageIdCounter = 0
 
 // ===== 多标签页 - 支持多 Agent 并行对话 =====
 const openTabs = ref([])
@@ -1128,6 +1194,150 @@ const submitTask = async () => {
   agentExecuting.value[agentId] = false
 }
 
+// ===== Orchestrator 编排逻辑 =====
+const getOrchestrationIcon = (type) => {
+  switch (type) {
+    case 'user': return '👤'
+    case 'orchestration_start': return '🧠'
+    case 'decomposition': return '📋'
+    case 'subtask_start': return '⚡'
+    case 'subtask_done': return '✅'
+    case 'subtask_error': return '❌'
+    case 'aggregating': return '🔄'
+    case 'orchestration_done': return '🎯'
+    case 'error': return '⚠️'
+    default: return '💬'
+  }
+}
+
+const getOrchestrationTitle = (msg) => {
+  switch (msg.type) {
+    case 'user': return '你的任务'
+    case 'orchestration_start': return '🧠 Orchestrator 启动'
+    case 'decomposition': return '📋 任务拆解'
+    case 'subtask_start': return '⚡ 子任务执行'
+    case 'subtask_done': return '✅ 子任务完成'
+    case 'subtask_error': return '❌ 子任务失败'
+    case 'aggregating': return '🔄 结果聚合'
+    case 'orchestration_done': return '🎯 编排结果'
+    case 'error': return '⚠️ 错误'
+    default: return '💬 消息'
+  }
+}
+
+const getSubTaskClass = (agentId) => {
+  const status = subTaskStatusMap.value[agentId]
+  return status === 'running' ? 'st-running' : status === 'done' ? 'st-done' : status === 'error' ? 'st-error' : ''
+}
+
+const getSubTaskStatusLabel = (status) => {
+  switch (status) {
+    case 'pending': return '⏳ 等待中'
+    case 'running': return '🔄 执行中...'
+    case 'done': return '✅ 完成'
+    case 'error': return '❌ 失败'
+    default: return '⏳ 等待中'
+  }
+}
+
+const formatOrchestrationContent = (content) => {
+  if (!content) return ''
+  let html = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+  return html
+}
+
+const addOrchestrationMessage = (type, data) => {
+  const msg = { id: ++messageIdCounter, type, ...data, time: new Date().toLocaleTimeString() }
+  orchestrationMessages.value.push(msg)
+  scrollOrchestrationToBottom()
+}
+
+const scrollOrchestrationToBottom = () => {
+  nextTick(() => {
+    if (orchestratorMessagesRef.value) {
+      orchestratorMessagesRef.value.scrollTop = orchestratorMessagesRef.value.scrollHeight
+    }
+  })
+}
+
+const sendOrchestration = async () => {
+  const input = orchestratorInput.value.trim()
+  if (!input || isOrchestrating.value) return
+
+  addOrchestrationMessage('user', { content: input })
+  orchestratorInput.value = ''
+
+  if (!orchestratorPanelOpen.value) {
+    orchestratorPanelOpen.value = true
+  }
+
+  isOrchestrating.value = true
+  subTaskStatusMap.value = {}
+  addOrchestrationMessage('orchestration_start', { content: `正在分析任务并拆解...` })
+
+  try {
+    await postOrchestrateExecution(input, {
+      onDecomposition: (data) => {
+        const subTasks = data.subTasks || []
+        subTasks.forEach(t => { subTaskStatusMap.value[t.agentId] = 'pending' })
+        addOrchestrationMessage('decomposition', {
+          content: data.content || `已拆解为 ${subTasks.length} 个子任务`,
+          subTasks
+        })
+      },
+      onSubtaskStart: (data) => {
+        subTaskStatusMap.value[data.agentId] = 'running'
+        addOrchestrationMessage('subtask_start', {
+          content: data.description || '',
+          agentName: data.agentName,
+          agentId: data.agentId
+        })
+      },
+      onSubtaskDone: (data) => {
+        subTaskStatusMap.value[data.agentId] = 'done'
+        addOrchestrationMessage('subtask_done', {
+          content: data.outputPreview || `${data.agentName} 执行完成`,
+          agentName: data.agentName,
+          agentId: data.agentId
+        })
+      },
+      onSubtaskError: (data) => {
+        subTaskStatusMap.value[data.agentId] = 'error'
+        addOrchestrationMessage('subtask_error', {
+          content: data.error || '执行失败',
+          agentName: data.agentName,
+          agentId: data.agentId
+        })
+      },
+      onAggregating: (data) => {
+        addOrchestrationMessage('aggregating', {
+          content: data.content || '正在聚合多个 Agent 的结果...'
+        })
+      },
+      onOrchestrationDone: (data) => {
+        addOrchestrationMessage('orchestration_done', {
+          content: data.content || '编排完成',
+          stats: { total: data.subTaskCount, success: data.successCount, error: data.errorCount }
+        })
+        isOrchestrating.value = false
+      },
+      onError: (data) => {
+        addOrchestrationMessage('error', { content: data.message || data.error || '编排执行失败' })
+        isOrchestrating.value = false
+      }
+    })
+  } catch (e) {
+    addOrchestrationMessage('error', { content: `编排执行异常: ${e.message}` })
+    isOrchestrating.value = false
+  }
+}
+
 // ===== SSE 流式执行 =====
 const simulateExecution = async (agent, task, logCollector) => {
   const desc = task.length > 35 ? task.substring(0, 35) + '...' : task
@@ -1488,31 +1698,10 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 
 /* ===== 页面容器 ===== */
 .agents-page {
-  position: relative; min-height: 100vh;
-  background: $bg-base; color: $text-primary; overflow-x: hidden;
+  position: relative; height: 100vh;
+  color: $text-primary; overflow-x: clip;
   display: flex; flex-direction: column;
-}
-
-/* ===== 深空背景 ===== */
-.bg-deep {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background: radial-gradient(ellipse at 70% 20%, rgba($accent-cyan, 0.05) 0%, transparent 50%),
-              radial-gradient(ellipse at 30% 80%, rgba($accent-violet, 0.04) 0%, transparent 50%),
-              $bg-base;
-}
-.aurora-orb { position: absolute; border-radius: 50%; filter: blur(130px); animation: floatOrb 22s ease-in-out infinite; }
-.orb-cyan { width: 650px; height: 650px; top: -220px; right: -120px; background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%); }
-.orb-purple { width: 550px; height: 550px; bottom: -180px; left: -100px; background: radial-gradient(circle, rgba($accent-violet, 0.08) 0%, transparent 70%); animation-delay: -8s; }
-@keyframes floatOrb {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33% { transform: translate(30px,-25px) scale(1.05); }
-  66% { transform: translate(-20px,20px) scale(0.95); }
-}
-.grid-overlay {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background-image: linear-gradient(rgba($accent-cyan, 0.02) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba($accent-cyan, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+  background: transparent;
 }
 
 /* ===== 顶部栏（纯净化）===== */
@@ -1522,12 +1711,13 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   padding: 10px 20px;
   background: rgba($bg-surface, 0.6);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid $border-default;
+  border-bottom: 1px solid rgba($accent-indigo, 0.15);
   flex-shrink: 0;
 }
 .top-bar-left { flex-shrink: 0; }
 .top-bar-center { flex: 1; display: flex; justify-content: center; }
-.top-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.top-bar-right { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
+.tb-right-spacer { flex: 1; }
 
 .tb-title {
   font-size: 1rem; font-weight: 700; margin: 0;
@@ -1546,11 +1736,12 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   font-size: 0.72rem; color: $text-muted;
 }
 .tb-route-btn {
-  padding: 6px 14px; background: rgba($bg-elevated, 0.5);
-  border: 1px solid $border-default; border-radius: 8px;
-  color: $text-secondary; font-size: 0.78rem; cursor: pointer;
-  transition: all 0.2s; font-family: $font-sans;
-  &:hover { border-color: $border-medium; background: $bg-elevated; }
+  padding: 6px 14px; background: rgba($accent-teal, 0.35);
+  border: 1px solid rgba($accent-teal, 0.5); border-radius: 8px;
+  color: $accent-teal; font-size: 0.78rem; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans; backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba($accent-teal, 0.15);
+  &:hover { border-color: rgba($accent-teal, 0.7); background: rgba($accent-teal, 0.5); box-shadow: 0 4px 16px rgba($accent-teal, 0.25); transform: translateY(-1px); }
 }
 .tb-status {
   display: flex; align-items: center; gap: 5px;
@@ -1563,17 +1754,18 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .tb-dot { width: 6px; height: 6px; border-radius: 50%; }
 .tb-history-btn {
   position: relative; display: flex; align-items: center; gap: 4px;
-  padding: 6px 14px; background: rgba($bg-elevated, 0.5);
-  border: 1px solid $border-default; border-radius: 8px;
-  color: $text-secondary; font-size: 0.8rem; cursor: pointer;
-  transition: all 0.2s; font-family: $font-sans;
-  &:hover { border-color: $border-medium; background: $bg-elevated; }
+  padding: 6px 14px; background: rgba($accent-teal, 0.35);
+  border: 1px solid rgba($accent-teal, 0.5); border-radius: 8px;
+  color: $accent-teal; font-size: 0.8rem; cursor: pointer;
+  transition: all 0.2s; font-family: $font-sans; backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba($accent-teal, 0.15);
+  &:hover { border-color: rgba($accent-teal, 0.7); background: rgba($accent-teal, 0.5); box-shadow: 0 4px 16px rgba($accent-teal, 0.25); transform: translateY(-1px); }
 }
 .tb-badge {
   position: absolute; top: -4px; right: -4px;
   min-width: 16px; height: 16px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
-  background: $accent-cyan; color: $text-primary;
+  background: $accent-teal; color: #ffffff;
   font-size: 0.6rem; font-weight: 700; border-radius: 8px;
 }
 
@@ -1587,20 +1779,20 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .router-modal {
   width: 520px; max-width: 90vw;
   background: $bg-surface;
-  border: 1px solid rgba($accent-cyan, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: modalEnter 0.2s ease;
 }
 .router-modal-header {
-  padding: 18px 20px; border-bottom: 1px solid $border-default;
+  padding: 18px 20px; border-bottom: 1px solid rgba($accent-indigo, 0.12);
   h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 700; }
   p { margin: 0; font-size: 0.78rem; color: $text-muted; }
 }
 .router-modal-close {
   position: absolute; top: 16px; right: 16px;
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid $border-default; border-radius: 6px;
+  background: transparent; border: 1px solid rgba($accent-indigo, 0.1); border-radius: 6px;
   color: $text-muted; cursor: pointer; font-size: 0.8rem;
   &:hover { background: $bg-elevated; }
 }
@@ -1612,36 +1804,36 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 }
 .rm-search-input {
   flex: 1; padding: 10px 14px;
-  background: rgba($bg-elevated, 0.3); border: 1px solid $border-default;
+  background: rgba($bg-elevated, 0.3); border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 10px; color: $text-primary; font-size: 0.82rem; outline: none;
   font-family: $font-sans;
   &::placeholder { color: $text-placeholder; }
-  &:focus { border-color: rgba($accent-cyan, 0.25); }
+  &:focus { border-color: rgba($accent-indigo, 0.25); }
 }
 .rm-search-btn {
-  padding: 10px 20px; background: rgba($accent-cyan, 0.1);
-  border: none; border-radius: 10px; color: $accent-cyan;
+  padding: 10px 20px; background: rgba($accent-indigo, 0.1);
+  border: none; border-radius: 10px; color: $accent-indigo;
   font-size: 0.8rem; font-weight: 600; cursor: pointer;
   transition: all 0.2s; font-family: $font-sans; white-space: nowrap;
-  &:hover:not(:disabled) { background: rgba($accent-cyan, 0.2); }
+  &:hover:not(:disabled) { background: rgba($accent-indigo, 0.2); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .rm-result { margin: 12px 0; }
 .rmr-card {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 16px; background: rgba($accent-cyan, 0.06);
-  border: 1px solid rgba($accent-cyan, 0.15); border-radius: 10px;
+  padding: 12px 16px; background: rgba($accent-indigo, 0.06);
+  border: 1px solid rgba($accent-indigo, 0.15); border-radius: 10px;
 }
 .rmr-icon { font-size: 1.8rem; }
 .rmr-info { flex: 1; }
 .rmr-name { display: block; font-size: 0.9rem; font-weight: 700; color: $text-primary; }
 .rmr-role { display: block; font-size: 0.72rem; color: $text-muted; }
 .rmr-go {
-  padding: 6px 16px; background: rgba($accent-cyan, 0.15);
-  border: 1px solid rgba($accent-cyan, 0.25); border-radius: 8px;
-  color: $accent-cyan; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  padding: 6px 16px; background: rgba($accent-indigo, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.25); border-radius: 8px;
+  color: $accent-indigo; font-size: 0.78rem; font-weight: 600; cursor: pointer;
   transition: all 0.2s; font-family: $font-sans;
-  &:hover { background: rgba($accent-cyan, 0.25); }
+  &:hover { background: rgba($accent-indigo, 0.25); }
 }
 .rm-error {
   margin: 8px 0; padding: 8px 12px;
@@ -1649,16 +1841,16 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   border-radius: 8px; color: $color-danger; font-size: 0.78rem;
 }
 .rm-quick {
-  margin-top: 12px; padding-top: 12px; border-top: 1px solid $border-default;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba($accent-indigo, 0.1);
 }
 .rmq-label { font-size: 0.75rem; color: $text-muted; margin-bottom: 8px; }
 .rmq-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rmq-chip {
   padding: 4px 10px; background: rgba($bg-elevated, 0.3);
-  border: 1px solid $border-default; border-radius: 6px;
+  border: 1px solid rgba($accent-indigo, 0.1); border-radius: 6px;
   font-size: 0.72rem; color: $text-muted; cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: $border-medium; color: $text-secondary; background: $bg-elevated; }
+  &:hover { border-color: rgba($accent-indigo, 0.2); color: $text-secondary; background: $bg-elevated; }
 }
 
 /* ===== fade 动画 ===== */
@@ -1670,7 +1862,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .main-layout {
   position: relative; z-index: 1;
   display: flex; flex: 1; overflow: hidden;
-  height: calc(100vh - 110px);
+  min-height: 0;
 }
 
 /* ===== 左侧边栏 ===== */
@@ -1678,7 +1870,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   width: 240px; flex-shrink: 0;
   display: flex; flex-direction: column;
   background: rgba($bg-surface, 0.3);
-  border-right: 1px solid $border-default;
+  border-right: 1px solid rgba($accent-indigo, 0.12);
   padding: 12px 0;
 }
 .sidebar-search {
@@ -1686,11 +1878,11 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   input {
     width: 100%; padding: 8px 12px;
     background: rgba($bg-elevated, 0.4);
-    border: 1px solid $border-default; border-radius: 8px;
+    border: 1px solid rgba($accent-indigo, 0.1); border-radius: 8px;
     color: $text-primary; font-size: 0.78rem; outline: none;
     font-family: $font-sans;
     &::placeholder { color: $text-placeholder; }
-    &:focus { border-color: $border-medium; }
+    &:focus { border-color: rgba($accent-indigo, 0.25); }
   }
 }
 .sidebar-cats {
@@ -1701,7 +1893,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   font-size: 0.72rem; color: $text-muted; cursor: pointer;
   transition: all 0.2s; font-weight: 500;
   &:hover { color: $text-secondary; background: rgba($bg-elevated, 0.3); }
-  &.active { color: $accent-cyan; background: rgba($accent-cyan, 0.08); }
+  &.active { color: $accent-indigo; background: rgba($accent-indigo, 0.08); }
 }
 .sidebar-list {
   flex: 1; overflow-y: auto; padding: 0 6px;
@@ -1715,8 +1907,8 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   transition: all 0.15s;
   &:hover { background: rgba($bg-elevated, 0.4); }
   &.active {
-    background: rgba($accent-cyan, 0.06);
-    border: 1px solid rgba($accent-cyan, 0.12);
+    background: rgba($accent-indigo, 0.06);
+    border: 1px solid rgba($accent-indigo, 0.12);
     margin: -1px 0 1px; padding: 9px 11px;
   }
   &.executing { .sli-dot { animation: pulse 1.5s ease-in-out infinite; } }
@@ -1746,7 +1938,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   display: flex; align-items: center; gap: 4px;
   padding: 6px 12px;
   background: rgba($bg-surface, 0.6);
-  border-bottom: 1px solid $border-default;
+  border-bottom: 1px solid rgba($accent-indigo, 0.12);
   flex-shrink: 0;
   overflow-x: auto;
   &::-webkit-scrollbar { height: 2px; }
@@ -1760,15 +1952,15 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   display: flex; align-items: center; gap: 6px;
   padding: 5px 10px 5px 8px;
   background: rgba($bg-elevated, 0.2);
-  border: 1px solid $border-default;
+  border: 1px solid rgba($accent-indigo, 0.1);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
   min-width: 0; cursor: pointer; transition: all 0.15s;
   &.active {
     background: $bg-surface;
-    border-color: $border-medium;
+    border-color: rgba($accent-indigo, 0.2);
     margin-bottom: -1px;
-    box-shadow: 0 -1px 6px rgba($accent-cyan, 0.06);
+    box-shadow: 0 -1px 6px rgba($accent-indigo, 0.06);
   }
   &.executing { .tab-name { padding-right: 4px; } }
   &:hover:not(.active) { background: rgba($bg-elevated, 0.35); }
@@ -1792,10 +1984,10 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 }
 .tab-add {
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; border: 1px dashed $border-default;
+  border-radius: 4px; border: 1px dashed rgba($accent-indigo, 0.15);
   cursor: pointer; transition: all 0.2s; flex-shrink: 0;
   span { font-size: 0.9rem; color: $text-muted; line-height: 1; }
-  &:hover { border-color: $border-medium; background: rgba($bg-elevated, 0.3); }
+  &:hover { border-color: rgba($accent-indigo, 0.3); background: rgba($bg-elevated, 0.3); }
 }
 
 /* ===== 欢迎页 ===== */
@@ -1807,7 +1999,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .welcome-orb {
   position: absolute; width: 400px; height: 400px;
   top: 50%; left: 50%; transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba($accent-cyan, 0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba($accent-indigo, 0.04) 0%, transparent 70%);
   border-radius: 50%; filter: blur(60px);
   animation: warpPulse 6s ease-in-out infinite;
 }
@@ -1821,7 +2013,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   gap: 12px; max-width: 480px; padding: 20px;
 }
 .welcome-icon {
-  font-size: 3.5rem; filter: drop-shadow(0 0 30px rgba($accent-cyan, 0.2));
+  font-size: 3.5rem; filter: drop-shadow(0 0 30px rgba($accent-indigo, 0.2));
   animation: floatY 3s ease-in-out infinite;
 }
 @keyframes floatY {
@@ -1837,9 +2029,9 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .wl-card {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; background: rgba($bg-surface, 0.5);
-  border: 1px solid $border-default; border-radius: 12px;
+  border: 1px solid rgba($accent-indigo, 0.1); border-radius: 12px;
   cursor: pointer; transition: all 0.2s;
-  &:hover { border-color: rgba($accent-cyan, 0.2); background: rgba($bg-surface, 0.8); transform: translateY(-1px); }
+  &:hover { border-color: rgba($accent-indigo, 0.2); background: rgba($bg-surface, 0.8); transform: translateY(-1px); }
 }
 .wl-card-icon { font-size: 1.4rem; flex-shrink: 0; }
 .wl-card-text { display: flex; flex-direction: column; min-width: 0; }
@@ -1862,10 +2054,10 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .ch-right { display: flex; align-items: center; gap: 8px; }
 .ch-tool-btn {
   padding: 6px 14px; background: rgba($bg-elevated, 0.4);
-  border: 1px solid $border-default; border-radius: 8px;
+  border: 1px solid rgba($accent-indigo, 0.1); border-radius: 8px;
   color: $text-secondary; font-size: 0.75rem; cursor: pointer;
   transition: all 0.2s; font-family: $font-sans;
-  &:hover { border-color: $border-medium; background: $bg-elevated; }
+  &:hover { border-color: rgba($accent-indigo, 0.2); background: $bg-elevated; }
 }
 
 /* 工具链标签 */
@@ -1902,7 +2094,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .cmsg-bubble {
   padding: 10px 14px; border-radius: 14px;
   background: rgba($bg-elevated, 0.25);
-  .cmsg.user & { background: rgba($accent-cyan, 0.08); }
+  .cmsg.user & { background: rgba($accent-indigo, 0.08); }
   &.typing-bubble { background: rgba($bg-elevated, 0.2); padding: 12px 18px; display: flex; gap: 4px; align-items: center; }
 }
 .cmsg-text { font-size: 0.82rem; color: $text-primary; margin: 0; line-height: 1.5; white-space: pre-wrap; }
@@ -1937,10 +2129,10 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 }
 .cq-chip {
   padding: 5px 12px; background: rgba($bg-elevated, 0.25);
-  border: 1px solid $border-default; border-radius: 8px;
+  border: 1px solid rgba($accent-indigo, 0.1); border-radius: 8px;
   font-size: 0.72rem; color: $text-muted; cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: $border-medium; color: $text-secondary; background: $bg-elevated; }
+  &:hover { border-color: rgba($accent-indigo, 0.2); color: $text-secondary; background: $bg-elevated; }
 }
 
 /* ===== 输入区（固定底部）===== */
@@ -1951,9 +2143,9 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   display: flex; align-items: center; gap: 8px;
   padding: 4px 4px 4px 14px;
   background: rgba($bg-elevated, 0.2);
-  border: 1px solid $border-default; border-radius: 12px;
+  border: 1px solid rgba($accent-indigo, 0.1); border-radius: 12px;
   transition: all 0.2s;
-  &:focus-within { border-color: rgba($accent-cyan, 0.2); }
+  &:focus-within { border-color: rgba($accent-indigo, 0.2); }
 }
 .ci-field {
   flex: 1; padding: 10px 4px; background: transparent;
@@ -1962,11 +2154,11 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   &::placeholder { color: $text-placeholder; }
 }
 .ci-btn {
-  padding: 8px 18px; background: rgba($accent-cyan, 0.1);
-  border: none; border-radius: 8px; color: $accent-cyan;
+  padding: 8px 18px; background: rgba($accent-indigo, 0.1);
+  border: none; border-radius: 8px; color: $accent-indigo;
   font-size: 0.78rem; font-weight: 600; cursor: pointer;
   transition: all 0.2s; font-family: $font-sans; white-space: nowrap;
-  &:hover:not(:disabled) { background: rgba($accent-cyan, 0.2); }
+  &:hover:not(:disabled) { background: rgba($accent-indigo, 0.2); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
@@ -1977,7 +2169,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   padding: 6px 20px;
   background: rgba($bg-surface, 0.5);
   backdrop-filter: blur(12px);
-  border-top: 1px solid $border-default;
+  border-top: 1px solid rgba($accent-indigo, 0.15);
   flex-shrink: 0;
 }
 .sb-item {
@@ -1985,7 +2177,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   display: flex; align-items: center; gap: 4px;
 }
 .sb-dot { width: 6px; height: 6px; border-radius: 50%; &.online { background: $color-success; } }
-.sb-divider { width: 1px; height: 12px; background: $border-default; }
+.sb-divider { width: 1px; height: 12px; background: rgba($accent-indigo, 0.15); }
 .sb-live { color: $color-success; }
 .live-dot-pulse {
   width: 6px; height: 6px; border-radius: 50%;
@@ -2006,17 +2198,17 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 }
 .hd-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid $border-default;
+  padding: 16px 20px; border-bottom: 1px solid rgba($accent-indigo, 0.12);
 }
 .hd-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
 .hd-close {
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid $border-default; border-radius: 6px;
+  background: transparent; border: 1px solid rgba($accent-indigo, 0.1); border-radius: 6px;
   color: $text-muted; cursor: pointer; font-size: 0.75rem;
   &:hover { background: $bg-elevated; }
 }
 .hd-toolbar {
-  padding: 12px 20px; border-bottom: 1px solid $border-default;
+  padding: 12px 20px; border-bottom: 1px solid rgba($accent-indigo, 0.12);
 }
 .hd-tabs {
   display: flex; gap: 4px; margin-bottom: 8px;
@@ -2024,18 +2216,18 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .hd-tab {
   padding: 4px 12px; border-radius: 6px;
   font-size: 0.75rem; color: $text-muted; cursor: pointer; font-weight: 500;
-  &.active { color: $accent-cyan; background: rgba($accent-cyan, 0.08); }
+  &.active { color: $accent-indigo; background: rgba($accent-indigo, 0.08); }
 }
 .hd-actions { display: flex; gap: 6px; }
 .hd-search {
   flex: 1; padding: 6px 10px;
-  background: rgba($bg-elevated, 0.3); border: 1px solid $border-default;
+  background: rgba($bg-elevated, 0.3); border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 6px; color: $text-primary; font-size: 0.75rem; outline: none;
   font-family: $font-sans;
   &::placeholder { color: $text-placeholder; }
 }
 .hd-btn {
-  padding: 6px 10px; border: 1px solid $border-default; border-radius: 6px;
+  padding: 6px 10px; border: 1px solid rgba($accent-indigo, 0.1); border-radius: 6px;
   background: transparent; color: $text-muted; font-size: 0.7rem; cursor: pointer;
   font-family: $font-sans; white-space: nowrap;
   &:hover { background: $bg-elevated; }
@@ -2068,7 +2260,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .hd-log .hdt.badge {
   &.success, &.observe { background: rgba($color-success, 0.1); color: $color-success; }
   &.error { background: rgba($color-danger, 0.1); color: $color-danger; }
-  &.task { background: rgba($accent-cyan, 0.1); color: $accent-cyan; }
+  &.task { background: rgba($accent-indigo, 0.1); color: $accent-indigo; }
   &.think, &.reflect, &.replan, &.act { background: rgba($color-warning, 0.1); color: $color-warning; }
 }
 .hda {
@@ -2093,7 +2285,7 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 }
 .hd-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 20px; border-top: 1px solid $border-default;
+  padding: 8px 20px; border-top: 1px solid rgba($accent-indigo, 0.12);
   font-size: 0.7rem; color: $text-muted;
 }
 .hd-count { font-size: 0.7rem; }
@@ -2118,14 +2310,14 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .task-dialog {
   width: 640px; max-width: 90vw; max-height: 85vh;
   background: rgba($bg-surface, 0.95);
-  border: 1px solid rgba($accent-cyan, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba($accent-cyan, 0.05);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba($accent-indigo, 0.05);
   display: flex; flex-direction: column; animation: modalEnter 0.25s ease;
 }
 .dialog-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 22px; border-bottom: 1px solid rgba($accent-cyan, 0.08); flex-shrink: 0;
+  padding: 18px 22px; border-bottom: 1px solid rgba($accent-indigo, 0.08); flex-shrink: 0;
 }
 .dialog-header-left { display: flex; align-items: center; gap: 12px; }
 .dialog-icon { font-size: 1.6rem; }
@@ -2133,9 +2325,9 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .dialog-role { font-size: 0.75rem; color: $text-muted; margin: 0; }
 .dialog-close {
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-  background: rgba($accent-cyan, 0.06); border: none; border-radius: 8px;
+  background: rgba($accent-indigo, 0.06); border: none; border-radius: 8px;
   font-size: 14px; cursor: pointer; color: $text-muted; transition: all 0.15s;
-  &:hover { background: rgba($accent-cyan, 0.12); color: $text-primary; }
+  &:hover { background: rgba($accent-indigo, 0.12); color: $text-primary; }
 }
 
 .dialog-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
@@ -2145,11 +2337,11 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .example-list { display: flex; flex-direction: column; gap: 4px; }
 .example-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; background: rgba($accent-cyan, 0.03);
-  border: 1px solid rgba($accent-cyan, 0.06); border-radius: 10px;
+  padding: 9px 14px; background: rgba($accent-indigo, 0.03);
+  border: 1px solid rgba($accent-indigo, 0.06); border-radius: 10px;
   cursor: pointer; transition: all 0.2s; font-size: 0.8rem;
-  &:hover { background: rgba($accent-cyan, 0.06); border-color: rgba($accent-cyan, 0.12); }
-  &.active { background: rgba($accent-cyan, 0.1); border-color: rgba($accent-cyan, 0.25); color: $accent-cyan; }
+  &:hover { background: rgba($accent-indigo, 0.06); border-color: rgba($accent-indigo, 0.12); }
+  &.active { background: rgba($accent-indigo, 0.1); border-color: rgba($accent-indigo, 0.25); color: $accent-indigo; }
 }
 .ex-cat { font-size: 0.65rem; padding: 2px 8px; background: rgba($accent-violet, 0.1); color: $accent-violet; border-radius: 6px; flex-shrink: 0; font-weight: 500; }
 .ex-text { color: $text-secondary; }
@@ -2159,16 +2351,16 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .opt-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .opt-btn {
   padding: 6px 14px; border-radius: 8px; font-size: 0.78rem;
-  background: rgba($accent-cyan, 0.04); border: 1px solid rgba($accent-cyan, 0.08);
+  background: rgba($accent-indigo, 0.04); border: 1px solid rgba($accent-indigo, 0.08);
   color: $text-secondary; cursor: pointer; transition: all 0.2s; font-family: $font-sans;
-  &:hover { color: $accent-cyan; border-color: rgba($accent-cyan, 0.2); }
-  &.active { background: rgba($accent-cyan, 0.1); border-color: rgba($accent-cyan, 0.3); color: $accent-cyan; }
+  &:hover { color: $accent-indigo; border-color: rgba($accent-indigo, 0.2); }
+  &.active { background: rgba($accent-indigo, 0.1); border-color: rgba($accent-indigo, 0.3); color: $accent-indigo; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .count-group { display: flex; align-items: center; gap: 8px; }
 .count-btn {
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-  background: rgba($accent-cyan, 0.06); border: 1px solid rgba($accent-cyan, 0.1);
+  background: rgba($accent-indigo, 0.06); border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 8px; color: $text-secondary; font-size: 1rem; cursor: pointer;
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
@@ -2177,8 +2369,8 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: $text-secondary; }
 .toggle {
   width: 42px; height: 24px; border-radius: 12px; cursor: pointer;
-  background: rgba($accent-cyan, 0.12); position: relative; transition: background 0.2s;
-  &.on { background: rgba($accent-cyan, 0.5); }
+  background: rgba($accent-indigo, 0.12); position: relative; transition: background 0.2s;
+  &.on { background: rgba($accent-indigo, 0.5); }
 }
 .toggle-knob {
   width: 20px; height: 20px; border-radius: 50%; background: $text-primary;
@@ -2190,11 +2382,11 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 .input-label { display: block; font-size: 0.78rem; font-weight: 600; color: $text-secondary; margin-bottom: 6px; }
 .task-textarea {
   width: 100%; padding: 12px 14px;
-  background: rgba($accent-cyan, 0.04); border: 1px solid rgba($accent-cyan, 0.1);
+  background: rgba($accent-indigo, 0.04); border: 1px solid rgba($accent-indigo, 0.1);
   border-radius: 10px; color: $text-primary; font-size: 0.85rem;
   resize: vertical; min-height: 72px; outline: none; font-family: $font-sans;
   &::placeholder { color: $text-placeholder; }
-  &:focus { border-color: rgba($accent-cyan, 0.35); box-shadow: 0 0 0 3px rgba($accent-cyan, 0.06); }
+  &:focus { border-color: rgba($accent-indigo, 0.35); box-shadow: 0 0 0 3px rgba($accent-indigo, 0.06); }
   &:disabled { opacity: 0.5; }
 }
 .tool-dialog-error {
@@ -2205,19 +2397,19 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
 
 .dialog-footer {
   display: flex; justify-content: flex-end; gap: 8px;
-  padding: 14px 22px; border-top: 1px solid rgba($accent-cyan, 0.08); flex-shrink: 0;
+  padding: 14px 22px; border-top: 1px solid rgba($accent-indigo, 0.08); flex-shrink: 0;
 }
 .dialog-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 9px 20px; border-radius: 10px; font-weight: 600; font-size: 0.82rem;
   cursor: pointer; transition: all 0.2s; border: none; font-family: $font-sans;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
-  &.cancel { background: rgba($accent-cyan, 0.06); color: $text-secondary; &:hover { background: rgba($accent-cyan, 0.12); } }
+  &.cancel { background: rgba($accent-indigo, 0.06); color: $text-secondary; &:hover { background: rgba($accent-indigo, 0.12); } }
   &.primary {
-    background: linear-gradient(135deg, rgba($accent-cyan, 0.85), rgba($accent-indigo, 0.85));
+    background: linear-gradient(135deg, rgba($accent-indigo, 0.85), rgba($accent-indigo, 0.85));
     color: $text-primary;
-    box-shadow: 0 2px 12px rgba($accent-cyan, 0.2);
-    &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba($accent-cyan, 0.3); }
+    box-shadow: 0 2px 12px rgba($accent-indigo, 0.2);
+    &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba($accent-indigo, 0.3); }
   }
 }
 
@@ -2294,5 +2486,317 @@ onActivated(() => { loadAllResultsFromBackend(); startPolling(); if (flowView.va
   .command-icon { display: none; }
   .command-btn { align-self: flex-end; }
   .terminal-output { max-height: 300px; }
+}
+
+/* ===== 右侧: Orchestrator 编排面板 ===== */
+.orchestrator-panel {
+  width: 0;
+  overflow: hidden;
+  background: rgba($bg-surface, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba($accent-indigo, 0.12);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s ease;
+  position: relative;
+
+  &.orchestrator--open {
+    width: 380px;
+  }
+}
+
+/* 面板伸缩标签 - 始终固定在视图右侧边缘 */
+.orch-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  width: 36px;
+  height: 100px;
+  background: rgba($accent-teal, 0.35);
+  border: 1px solid rgba($accent-teal, 0.5);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  color: $accent-teal;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  box-shadow: -3px 0 16px rgba($accent-teal, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  &:hover {
+    width: 42px;
+    background: rgba($accent-teal, 0.5);
+    border-color: rgba($accent-teal, 0.7);
+    box-shadow: -5px 0 24px rgba($accent-teal, 0.35);
+    transform: translateY(-50%) translateX(-3px);
+  }
+
+  .orch-tab-label {
+    font-size: 11px;
+    font-weight: 600;
+    writing-mode: vertical-rl;
+    letter-spacing: 2px;
+    color: $accent-teal;
+  }
+
+  /* 面板打开时，标签移动到面板左侧边缘 */
+  &.orch-tab--open {
+    right: 380px;
+    border-radius: 0 10px 10px 0;
+    border: 1px solid rgba($accent-teal, 0.5);
+    border-left: none;
+    box-shadow: 3px 0 16px rgba($accent-teal, 0.2);
+  }
+}
+
+.orch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba($accent-indigo, 0.12);
+  flex-shrink: 0;
+  height: 48px;
+}
+
+.orch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $text-primary;
+
+  .orch-icon { font-size: 1.2rem; }
+}
+
+.orch-toggle {
+  background: none;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+
+  &:hover { color: $accent-indigo; background: rgba($accent-indigo, 0.08); }
+}
+
+.orch-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.orch-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: $text-muted;
+  font-size: 0.75rem;
+  line-height: 1.6;
+
+  p { margin: 0 0 16px; }
+  strong { color: $accent-indigo; }
+}
+
+.orch-hints {
+  .hint {
+    display: block;
+    font-size: 0.72rem;
+    color: $text-placeholder;
+    background: rgba($accent-indigo, 0.05);
+    border: 1px dashed rgba($accent-indigo, 0.15);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+  }
+}
+
+.orch-message {
+  background: $bg-elevated;
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  animation: fadeIn 0.3s ease;
+
+  &.user {
+    border-color: rgba($accent-indigo, 0.2);
+    background: rgba($accent-indigo, 0.04);
+  }
+
+  &.orchestration_start {
+    border-color: rgba($accent-violet, 0.2);
+    background: rgba($accent-violet, 0.04);
+  }
+
+  &.decomposition {
+    border-color: rgba($color-warning, 0.2);
+    background: rgba($color-warning, 0.04);
+  }
+
+  &.subtask_start { border-left: 3px solid $accent-indigo; }
+  &.subtask_done { border-left: 3px solid $color-success; }
+  &.subtask_error { border-left: 3px solid $color-danger; }
+  &.aggregating { border-color: rgba($accent-violet, 0.2); }
+  &.orchestration_done { border-color: rgba($color-success, 0.3); background: rgba($color-success, 0.04); }
+  &.error { border-color: rgba($color-danger, 0.3); background: rgba($color-danger, 0.04); }
+}
+
+.orch-msg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.orch-msg-icon { font-size: 1rem; }
+
+.orch-msg-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $text-primary;
+  flex: 1;
+}
+
+.orch-msg-agent {
+  font-size: 10px;
+  color: $accent-indigo;
+  background: rgba($accent-indigo, 0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.orch-msg-content {
+  font-size: 0.75rem;
+  color: $text-secondary;
+  line-height: 1.6;
+
+  code {
+    background: rgba($accent-indigo, 0.08);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: 'Fira Code', monospace;
+  }
+}
+
+.orch-subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.orch-subtask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba($bg-surface, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba($accent-indigo, 0.08);
+  font-size: 0.75rem;
+
+  .st-agent {
+    font-weight: 600;
+    color: $accent-indigo;
+    min-width: 70px;
+  }
+
+  .st-desc {
+    flex: 1;
+    color: $text-secondary;
+  }
+
+  .st-status {
+    font-size: 10px;
+    white-space: nowrap;
+    color: $text-muted;
+
+    &.pending { color: $text-muted; }
+    &.running { color: $accent-indigo; }
+    &.done { color: $color-success; }
+    &.error { color: $color-danger; }
+  }
+
+  &.st-running { border-color: rgba($accent-indigo, 0.3); }
+  &.st-done { border-color: rgba($color-success, 0.3); }
+  &.st-error { border-color: rgba($color-danger, 0.3); }
+}
+
+.orch-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: $text-muted;
+  font-size: 0.75rem;
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba($accent-indigo, 0.2);
+    border-top-color: $accent-indigo;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.orch-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba($accent-indigo, 0.12);
+  flex-shrink: 0;
+}
+
+.orch-input {
+  flex: 1;
+  background: $bg-elevated;
+  border: 1px solid rgba($accent-indigo, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  color: $text-primary;
+  outline: none;
+  font-family: $font-sans;
+  transition: border-color 0.2s;
+
+  &:focus { border-color: $accent-indigo; }
+  &:disabled { opacity: 0.5; }
+  &::placeholder { color: $text-placeholder; }
+}
+
+.orch-send {
+  padding: 8px 16px;
+  background: rgba($accent-indigo, 0.15);
+  border: 1px solid rgba($accent-indigo, 0.3);
+  border-radius: 8px;
+  color: $accent-indigo;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: $font-sans;
+
+  &:hover:not(:disabled) {
+    background: rgba($accent-indigo, 0.25);
+    border-color: rgba($accent-indigo, 0.5);
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 </style>

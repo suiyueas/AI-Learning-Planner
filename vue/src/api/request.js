@@ -4,7 +4,6 @@ import { useAppStore } from '@/stores/appStore'
 
 // 创建 Axios 实例
 const service = axios.create({
-  baseURL: '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -14,6 +13,13 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   (config) => {
+    // 自动添加 /api 前缀（后端 context-path 为 /api，Vite 代理也匹配 /api）
+    // 前端: /session/create → 拦截器: /api/session/create → Vite代理: /api→http://localhost:8080
+    // 后端: context-path /api 剥离后 → /session/create → 控制器匹配 ✓
+    if (config.url && !config.url.startsWith('/api') && !config.url.startsWith('http')) {
+      config.url = '/api/' + config.url.replace(/^\/+/, '')
+    }
+    
     // 可以在这里添加 token
     const token = localStorage.getItem('token')
     if (token) {

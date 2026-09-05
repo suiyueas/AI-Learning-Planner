@@ -30,6 +30,8 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
+
 .workflow-steps {
   padding: 12px 16px;
   display: flex;
@@ -43,19 +45,19 @@ defineProps({
   gap: 10px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba($bg-surface, 0.3);
   transition: all 0.2s ease;
 
   &.active {
-    background: rgba(124, 97, 255, 0.08);
+    background: rgba($accent-indigo, 0.08);
   }
 
   &.completed {
-    background: rgba(16, 185, 129, 0.06);
+    background: rgba($color-success, 0.06);
   }
 
   &.error {
-    background: rgba(239, 68, 68, 0.06);
+    background: rgba($color-danger, 0.06);
   }
 }
 
@@ -71,16 +73,16 @@ defineProps({
   font-weight: 600;
 
   .step-index {
-    color: #6b6b8b;
+    color: $text-muted;
   }
 
   .step-icon {
-    color: #10b981;
+    color: $accent-indigo;
   }
 
   .step-icon.spin {
     animation: spin 1s linear infinite;
-    color: #7c61ff;
+    color: $accent-indigo;
   }
 }
 
@@ -96,12 +98,12 @@ defineProps({
 
 .step-label {
   font-size: 0.85rem;
-  color: #e0e0f0;
+  color: $text-primary;
   font-weight: 500;
 }
 
 .step-detail {
   font-size: 0.78rem;
-  color: #8b8ba8;
+  color: $text-muted;
 }
 </style>

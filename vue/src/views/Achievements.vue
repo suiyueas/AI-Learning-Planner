@@ -184,6 +184,14 @@ async function doCheckin() {
     const res = await checkin()
     checkinStats.value = res.data
     ElMessage.success(`🎉 打卡成功！已连续打卡 ${res.data.continuousDays} 天`)
+
+    // 检查是否有新解锁的成就
+    const newlyUnlocked = res.data.newlyUnlockedAchievements
+    if (newlyUnlocked && newlyUnlocked.length > 0) {
+      const names = newlyUnlocked.map(a => a.name || a.achievementName).join('、')
+      ElMessage.success(`🏆 解锁新成就：${names}！`)
+    }
+
     await achievementStore.fetchAchievements()
     await loadCheckinStats()
   } catch (error) {
@@ -267,96 +275,6 @@ onMounted(loadData)
 @use '../styles/variables' as *;
 .achievements-page {
   min-height: calc(100vh - 68px); position: relative;
-}
-/* ===== 粒子背景 ===== */
-.bg-particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -3;
-  overflow: hidden;
-}
-
-.particle {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  background: $accent-cyan;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba($accent-cyan, 0.5);
-  animation: particle-float 20s linear infinite;
-
-  &:nth-child(odd) {
-    background: $accent-primary;
-    box-shadow: 0 0 10px rgba($accent-primary, 0.5);
-  }
-}
-
-@keyframes particle-float {
-  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
-}
-
-/* ===== 极光背景 ===== */
-.bg-aurora {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -2;
-}
-
-.aurora-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(150px);
-  animation: aurora 25s ease-in-out infinite;
-}
-
-.aurora-1 {
-  width: 800px;
-  height: 800px;
-  top: -300px;
-  right: -200px;
-  background: radial-gradient(circle, rgba($accent-primary, 0.12) 0%, transparent 70%);
-}
-
-.aurora-2 {
-  width: 700px;
-  height: 700px;
-  bottom: -250px;
-  left: -200px;
-  background: radial-gradient(circle, rgba($accent-cyan, 0.1) 0%, transparent 70%);
-  animation-delay: -8s;
-}
-
-.aurora-3 {
-  width: 500px;
-  height: 500px;
-  top: 40%;
-  left: 50%;
-  background: radial-gradient(circle, rgba($accent-blue, 0.08) 0%, transparent 70%);
-  animation-delay: -15s;
-}
-
-@keyframes aurora {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(40px, -40px) scale(1.15); }
-  50% { transform: translate(-30px, 30px) scale(0.9); }
-  75% { transform: translate(25px, 15px) scale(1.1); }
-}
-
-/* ===== 网格纹理 ===== */
-.bg-grid-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background-image:
-    linear-gradient(rgba($accent-primary, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba($accent-primary, 0.02) 1px, transparent 1px);
-  background-size: 60px 60px;
 }
 
 /* ===== 页面头部（统一规范） ===== */

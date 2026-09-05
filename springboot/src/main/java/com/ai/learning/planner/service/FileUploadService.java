@@ -41,7 +41,7 @@ public class FileUploadService {
     @Value("${file.upload.allowed-extensions.avatar:.jpg,.jpeg,.png,.gif,.webp}")
     private String allowedAvatarExtensions;
 
-    @Value("${file.upload.allowed-extensions.knowledge:.pdf,.docx,.doc,.md,.txt,.pptx,.xlsx}")
+    @Value("${file.upload.allowed-extensions.knowledge:.pdf,.docx,.doc,.md,.txt,.pptx,.xlsx,.xls,.ppt}")
     private String allowedKnowledgeExtensions;
 
     @Value("${file.upload.allowed-extensions.mcp:.json,.yaml,.yml,.xml,.js,.ts}")
@@ -228,4 +228,3 @@ public class FileUploadService {
         }
     }
 }
-

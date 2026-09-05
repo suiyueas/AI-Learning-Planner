@@ -1,5 +1,5 @@
 <template>
-  <div class="app-layout">
+  <div class="app-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <!-- 动态背景 -->
     <div class="bg-dynamic">
       <!-- 粒子背景 -->
@@ -14,7 +14,11 @@
     </div>
 
     <!-- 侧边栏 -->
-    <Sidebar :class="{ open: sidebarOpen }" />
+    <Sidebar
+      :collapsed="sidebarCollapsed"
+      :class="{ open: sidebarOpen }"
+      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+    />
 
     <!-- 移动端遮罩 -->
     <div
@@ -26,9 +30,7 @@
     <!-- 主内容区域 -->
     <div class="main-area">
       <TopBar
-        :ai-panel-visible="aiPanelVisible"
         @toggle-sidebar="sidebarOpen = !sidebarOpen"
-        @toggle-ai-panel="aiPanelVisible = !aiPanelVisible"
       />
 
       <main class="page-content">
@@ -36,8 +38,8 @@
       </main>
     </div>
 
-    <!-- AI 面板 -->
-    <AiPanel v-model:visible="aiPanelVisible" />
+    <!-- 全局聊天栏 -->
+    <GlobalChatBar :sidebar-collapsed="sidebarCollapsed" />
   </div>
 </template>
 
@@ -45,10 +47,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import TopBar from '@/components/layout/TopBar.vue'
-import AiPanel from '@/components/layout/AiPanel.vue'
+import GlobalChatBar from '@/components/chat/GlobalChatBar.vue'
+
+const props = defineProps({})
 
 const sidebarOpen = ref(false)
-const aiPanelVisible = ref(false)
+const sidebarCollapsed = ref(true)
 
 const handleResize = () => {
   if (window.innerWidth > 768) sidebarOpen.value = false
@@ -191,6 +195,10 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
   transition: margin-left $transition-normal;
   position: relative;
   z-index: 1;
+}
+
+.sidebar-collapsed .main-area {
+  margin-left: $sidebar-collapsed;
 }
 
 .page-content {

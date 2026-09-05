@@ -23,20 +23,14 @@
         />
       </div>
 
-      <button
-        class="topbar-btn ai-toggle"
-        :class="{ active: aiPanelVisible }"
-        @click="$emit('toggle-ai-panel')"
-      >
-        <Bot :size="20" />
-      </button>
+
 
       <!-- 用户头像下拉 -->
       <div class="user-menu" @click.stop="showUserMenu = !showUserMenu">
-        <div class="user-avatar" v-if="authStore.hasAvatar">
+        <div class="user-avatar" v-if="authStore.hasAvatar" @click.stop="goToProfile">
           <img :src="authStore.displayAvatar" alt="头像" />
         </div>
-        <div class="user-avatar placeholder" v-else>
+        <div class="user-avatar placeholder" v-else @click.stop="goToProfile">
           {{ authStore.displayName.charAt(0).toUpperCase() }}
         </div>
 
@@ -46,15 +40,6 @@
               <div class="dropdown-name">{{ authStore.displayName }}</div>
               <div class="dropdown-email">{{ authStore.user.email || '未设置邮箱' }}</div>
             </div>
-            <div class="dropdown-divider"></div>
-            <router-link to="/profile" class="dropdown-item" @click="showUserMenu = false">
-              <User :size="16" />
-              <span>个人中心</span>
-            </router-link>
-            <router-link to="/statistics" class="dropdown-item" @click="showUserMenu = false">
-              <BarChart3 :size="16" />
-              <span>学习统计</span>
-            </router-link>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item danger" @click="handleLogout">
               <LogOut :size="16" />
@@ -70,6 +55,13 @@
       v-model="showAdjustPlanDialog"
       :plan-data="adjustPlanData"
     />
+
+    <!-- 退出登录确认对话框 -->
+    <LogoutConfirmDialog
+      v-model="showLogoutConfirm"
+      @cancel="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </header>
 </template>
 
@@ -77,16 +69,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { Menu, Bell, Bot, User, BarChart3, LogOut } from 'lucide-vue-next'
+import { Menu, Bell, LogOut } from 'lucide-vue-next'
 import NotificationPanel from './NotificationPanel.vue'
 import AdjustPlanDialog from '@/components/AdjustPlanDialog.vue'
+import LogoutConfirmDialog from '@/components/common/LogoutConfirmDialog.vue'
 import { getUnreadStats } from '@/api/notificationApi'
 
-defineProps({
-  aiPanelVisible: { type: Boolean, default: false }
-})
+defineProps({})
 
-defineEmits(['toggle-sidebar', 'toggle-ai-panel'])
+defineEmits(['toggle-sidebar'])
 
 const route = useRoute()
 const router = useRouter()
@@ -98,12 +89,23 @@ const showAdjustPlanDialog = ref(false)
 const adjustPlanData = ref({})
 const unreadCount = ref(0)
 const hasEmergency = ref(false)
+const showLogoutConfirm = ref(false)
 
 const pageTitle = computed(() => route.meta.title || '知途')
 
-const handleLogout = () => {
-  authStore.logout()
+const goToProfile = () => {
   showUserMenu.value = false
+  router.push('/profile')
+}
+
+const handleLogout = () => {
+  showLogoutConfirm.value = true
+  showUserMenu.value = false
+}
+
+const confirmLogout = () => {
+  authStore.logout()
+  showLogoutConfirm.value = false
   router.push('/login')
 }
 

@@ -4,6 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.hslf.usermodel.HSLFShape;
+import org.apache.poi.hslf.usermodel.HSLFSlide;
+import org.apache.poi.hslf.usermodel.HSLFSlideShow;
+import org.apache.poi.hslf.usermodel.HSLFTextShape;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -69,7 +74,9 @@ public class DocumentContentExtractor {
                 case "docx" -> extractDocx(file);
                 case "doc" -> extractDoc(file);
                 case "pptx" -> extractPptx(file);
+                case "ppt" -> extractPpt(file);
                 case "xlsx" -> extractXlsx(file);
+                case "xls" -> extractXls(file);
                 default -> {
                     log.warn("不支持的文档格式: {}，尝试按纯文本读取", ext);
                     yield extractPlainText(file);
@@ -182,6 +189,55 @@ public class DocumentContentExtractor {
                             sb.append(text).append('\n');
                         }
                     }
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /** PPT 旧格式文本提取（POI HSLF） */
+    private String extractPpt(Path file) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file.toFile()));
+             HSLFSlideShow ppt = new HSLFSlideShow(in)) {
+
+            int slideNo = 0;
+            for (HSLFSlide slide : ppt.getSlides()) {
+                slideNo++;
+                sb.append("[幻灯片 ").append(slideNo).append("]\n");
+                for (HSLFShape shape : slide.getShapes()) {
+                    if (shape instanceof HSLFTextShape textShape) {
+                        String text = textShape.getText();
+                        if (text != null && !text.isBlank()) {
+                            sb.append(text).append('\n');
+                        }
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /** XLS 旧格式文本提取（POI HSSF） */
+    private String extractXls(Path file) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        DataFormatter formatter = new DataFormatter(Locale.ROOT);
+
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file.toFile()));
+             HSSFWorkbook workbook = new HSSFWorkbook(in)) {
+
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                sb.append("[工作表: ").append(sheet.getSheetName()).append("]\n");
+                for (Iterator<Row> rowIt = sheet.rowIterator(); rowIt.hasNext(); ) {
+                    Row row = rowIt.next();
+                    StringBuilder line = new StringBuilder();
+                    for (Iterator<Cell> cellIt = row.cellIterator(); cellIt.hasNext(); ) {
+                        Cell cell = cellIt.next();
+                        if (!line.isEmpty()) line.append(" | ");
+                        line.append(formatCell(formatter, cell));
+                    }
+                    if (!line.isEmpty()) sb.append(line).append('\n');
                 }
             }
         }

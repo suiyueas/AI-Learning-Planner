@@ -30,18 +30,20 @@ defineEmits(['run'])
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
+
 .quick-templates {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(17, 17, 39, 0.4);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($bg-elevated, 0.25);
+  border-bottom: 1px solid rgba($border-subtle, 0.3);
 }
 
 .template-label {
   font-size: 0.78rem;
-  color: var(--text-muted, #8b8ba8);
+  color: $text-muted;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -54,18 +56,18 @@ defineEmits(['run'])
 
 .template-bubble {
   padding: 6px 14px;
-  background: rgba(124, 97, 255, 0.08);
-  border: 1px solid rgba(124, 97, 255, 0.15);
+  background: rgba($accent-indigo, 0.06);
+  border: 1px solid rgba($accent-indigo, 0.12);
   border-radius: 20px;
-  color: #c4c4d4;
+  color: $text-secondary;
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(124, 97, 255, 0.18);
-    border-color: rgba(124, 97, 255, 0.3);
-    color: #fff;
+    background: rgba($accent-indigo, 0.12);
+    border-color: rgba($accent-indigo, 0.25);
+    color: $accent-indigo;
     transform: translateY(-1px);
   }
 }

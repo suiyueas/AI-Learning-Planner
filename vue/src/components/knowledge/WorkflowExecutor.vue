@@ -113,16 +113,18 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
+
 .workflow-executor {
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba($bg-surface, 0.3);
   border-radius: 12px;
   overflow: hidden;
 }
 
 .workflow-input-area {
   padding: 16px;
-  background: rgba(17, 17, 39, 0.3);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.08);
+  background: rgba($bg-elevated, 0.2);
+  border-bottom: 1px solid rgba($border-subtle, 0.3);
 }
 
 .input-wrapper {
@@ -134,21 +136,21 @@ defineExpose({
 .workflow-input {
   flex: 1;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(124, 97, 255, 0.2);
+  background: rgba($bg-surface, 0.6);
+  border: 1px solid rgba($accent-indigo, 0.2);
   border-radius: 10px;
-  color: #f0f0ff;
+  color: $text-primary;
   font-size: 0.9rem;
   outline: none;
   transition: all 0.2s ease;
 
   &::placeholder {
-    color: var(--text-placeholder, #6b6b8b);
+    color: $text-placeholder;
   }
 
   &:focus {
-    border-color: rgba(124, 97, 255, 0.5);
-    box-shadow: 0 0 20px rgba(124, 97, 255, 0.1);
+    border-color: rgba($accent-indigo, 0.5);
+    box-shadow: 0 0 20px rgba($accent-indigo, 0.1);
   }
 
   &:disabled {
@@ -159,7 +161,7 @@ defineExpose({
 
 .execute-btn {
   padding: 12px 24px;
-  background: linear-gradient(135deg, rgba(124, 97, 255, 0.8), rgba(91, 134, 255, 0.8));
+  background: linear-gradient(135deg, rgba($accent-indigo, 0.85), rgba($accent-violet, 0.75));
   border: none;
   border-radius: 10px;
   color: #fff;
@@ -172,7 +174,7 @@ defineExpose({
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(124, 97, 255, 0.3);
+    box-shadow: 0 4px 20px rgba($accent-indigo, 0.3);
   }
 
   &:disabled {
@@ -203,8 +205,8 @@ defineExpose({
 .workflow-result {
   margin: 0 16px 16px;
   padding: 16px;
-  background: rgba(100, 100, 180, 0.08);
-  border: 1px solid rgba(100, 100, 180, 0.12);
+  background: rgba($bg-elevated, 0.3);
+  border: 1px solid rgba($border-default, 0.4);
   border-radius: 12px;
 }
 
@@ -218,29 +220,29 @@ defineExpose({
 .result-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-primary, #f0f0ff);
+  color: $text-primary;
 }
 
 .copy-btn {
   padding: 6px 12px;
-  background: rgba(100, 100, 180, 0.1);
-  border: 1px solid rgba(100, 100, 180, 0.15);
+  background: rgba($accent-indigo, 0.08);
+  border: 1px solid rgba($accent-indigo, 0.15);
   border-radius: 6px;
-  color: var(--text-secondary, #a0a0c0);
+  color: $text-secondary;
   font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(100, 100, 180, 0.2);
-    color: #f0f0ff;
+    background: rgba($accent-indigo, 0.15);
+    color: $text-primary;
   }
 }
 
 .result-body {
   font-size: 0.88rem;
   line-height: 1.6;
-  color: var(--text-secondary, #a0a0c0);
+  color: $text-secondary;
 
   :deep(p) {
     margin: 0 0 12px;
@@ -249,7 +251,7 @@ defineExpose({
 
   :deep(code) {
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba($bg-surface, 0.5);
     border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85em;
@@ -257,7 +259,7 @@ defineExpose({
 
   :deep(pre) {
     padding: 12px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba($bg-surface, 0.5);
     border-radius: 8px;
     overflow-x: auto;
     margin: 12px 0;
@@ -269,7 +271,7 @@ defineExpose({
   }
 
   :deep(strong) {
-    color: #00f5d4;
+    color: $accent-indigo;
   }
 }
 </style>

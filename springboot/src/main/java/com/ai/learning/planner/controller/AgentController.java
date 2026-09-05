@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -277,12 +278,30 @@ public class AgentController {
      * 将复杂任务拆解为多个子任务，并行分配给多个Agent，聚合结果
      */
     @PostMapping(value = "/orchestrate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter orchestrateTask(@RequestBody Map<String, String> request) {
+    public SseEmitter orchestrateTask(@RequestBody Map<String, String> request, Authentication authentication) {
         String message = request.get("message");
-        log.info("多Agent编排: message={}", message);
+        String userId = securityContextHolder.getCurrentUserId();
+        log.info("多Agent编排: userId={}, message={}", userId, message);
+
+        // 积分检查：多Agent编排消耗积分
+        if (userId != null) {
+            try {
+                Long userIdLong = Long.parseLong(userId);
+                pointsInterceptor.checkAndConsumeByFeature(userIdLong, "AGENT");
+            } catch (RuntimeException e) {
+                log.warn("[积分] 编排积分不足: userId={}", userId);
+                SseEmitter rejectEmitter = new SseEmitter(1000L);
+                try {
+                    rejectEmitter.send(SseEmitter.event().name("error")
+                            .data(Map.of("message", "积分不足，请充值后重试")));
+                } catch (Exception ignored) {}
+                rejectEmitter.complete();
+                return rejectEmitter;
+            }
+        }
 
         if (!sseSemaphore.tryAcquire()) {
-            log.warn("[SSE] 连接数已满，拒绝编排请求");
+            log.warn("[SSE] 连接数已满，拒绝编排请求: userId={}", userId);
             SseEmitter rejectEmitter = new SseEmitter(1000L);
             try { rejectEmitter.send(SseEmitter.event().name("error").data(Map.of("message", "服务器连接数已满")));
             } catch (Exception ignored) {}
@@ -292,17 +311,36 @@ public class AgentController {
 
         SseEmitter emitter = new SseEmitter(600_000L); // 10分钟超时
         activeEmitters.add(emitter);
+        long start = System.currentTimeMillis();
 
         Runnable releaseResources = () -> { activeEmitters.remove(emitter); sseSemaphore.release(); };
-        emitter.onTimeout(() -> { try { emitter.send(SseEmitter.event().name("timeout").data(Map.of("message", "编排超时"))); } catch (Exception ignored) {} emitter.complete(); releaseResources.run(); });
-        emitter.onError(e -> releaseResources.run());
-        emitter.onCompletion(releaseResources::run);
+        emitter.onTimeout(() -> {
+            long duration = System.currentTimeMillis() - start;
+            auditService.logAgentExecution(userId, "orchestrator", message, false, duration, "编排超时");
+            try { emitter.send(SseEmitter.event().name("timeout").data(Map.of("message", "编排超时"))); } catch (Exception ignored) {}
+            emitter.complete();
+            releaseResources.run();
+        });
+        emitter.onError(e -> {
+            long duration = System.currentTimeMillis() - start;
+            auditService.logAgentExecution(userId, "orchestrator", message, false, duration, e.getMessage());
+            releaseResources.run();
+        });
+        emitter.onCompletion(() -> {
+            long duration = System.currentTimeMillis() - start;
+            log.info("[SSE] 编排完成: userId={}, duration={}ms", userId, duration);
+            releaseResources.run();
+        });
 
         taskExecutor.execute(() -> {
             try {
                 orchestrator.executeMultiAgentStream(message, emitter);
+                long duration = System.currentTimeMillis() - start;
+                auditService.logAgentExecution(userId, "orchestrator", message, true, duration, null);
             } catch (Exception e) {
-                log.error("编排异常", e);
+                long duration = System.currentTimeMillis() - start;
+                log.error("编排异常: userId={}", userId, e);
+                auditService.logAgentExecution(userId, "orchestrator", message, false, duration, e.getMessage());
                 try { emitter.send(SseEmitter.event().name("error").data(Map.of("message", "编排异常: " + e.getMessage()))); } catch (Exception ex) { log.warn("异常发送失败", ex); }
             } finally { emitter.complete(); }
         });

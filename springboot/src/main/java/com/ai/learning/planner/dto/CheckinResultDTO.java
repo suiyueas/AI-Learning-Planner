@@ -36,4 +36,6 @@ public class CheckinResultDTO {
     private Boolean todayChecked;
     /** 本月签到日期列表 */
     private java.util.List<java.time.LocalDate> monthDays;
+    /** 本次打卡新解锁的成就列表 */
+    private java.util.List<java.util.Map<String, Object>> newlyUnlockedAchievements;
 }

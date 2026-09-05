@@ -55,13 +55,15 @@ defineEmits(['select'])
 </script>
 
 <style lang="scss" scoped>
+@use '../../styles/variables' as *;
+
 .workflow-selector {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   padding: 16px;
-  background: rgba(17, 17, 39, 0.4);
-  border-bottom: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($bg-surface, 0.4);
+  border-bottom: 1px solid rgba($border-subtle, 0.5);
 }
 
 .workflow-item {
@@ -70,30 +72,30 @@ defineEmits(['select'])
   align-items: center;
   gap: 8px;
   padding: 16px 12px;
-  background: rgba(100, 100, 180, 0.06);
-  border: 1px solid rgba(100, 100, 180, 0.1);
+  background: rgba($bg-elevated, 0.3);
+  border: 1px solid rgba($border-default, 0.5);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
   text-align: center;
 
   &:hover {
-    background: rgba(124, 97, 255, 0.1);
-    border-color: rgba(124, 97, 255, 0.25);
+    background: rgba($accent-indigo, 0.08);
+    border-color: rgba($accent-indigo, 0.2);
     transform: translateY(-2px);
   }
 
   &.active {
-    background: rgba(124, 97, 255, 0.15);
-    border-color: rgba(124, 97, 255, 0.4);
-    box-shadow: 0 0 20px rgba(124, 97, 255, 0.15);
+    background: rgba($accent-indigo, 0.12);
+    border-color: rgba($accent-indigo, 0.4);
+    box-shadow: 0 0 20px rgba($accent-indigo, 0.12);
 
     .flow-icon {
       transform: scale(1.1);
     }
 
     .flow-label {
-      color: #fff;
+      color: $accent-indigo;
     }
   }
 }
@@ -106,13 +108,13 @@ defineEmits(['select'])
 .flow-label {
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--text-primary, #f0f0ff);
+  color: $text-primary;
   transition: color 0.25s ease;
 }
 
 .flow-desc {
   font-size: 0.75rem;
-  color: var(--text-muted, #8b8ba8);
+  color: $text-muted;
   line-height: 1.3;
 }
 </style>

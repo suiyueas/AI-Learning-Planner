@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * 所有接口仅限管理员访问
  */
 @RestController
-@RequestMapping("/api/admin/points")
+@RequestMapping("/admin/points")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "管理员积分管理", description = "管理员手动发放/扣除积分、更新配置")

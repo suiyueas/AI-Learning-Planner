@@ -1,20 +1,5 @@
-﻿<template>
+﻿﻿<template>
   <div ref="pageRef" class="knowledge-page">
-    <!-- 背景层 -->
-    <div class="bg-layer">
-      <div class="aurora-bg">
-        <div class="aurora-layer a1"></div>
-        <div class="aurora-layer a2"></div>
-        <div class="aurora-layer a3"></div>
-      </div>
-      <div class="grid-bg"></div>
-      <div class="floating-glow fg-cyan"></div>
-      <div class="floating-glow fg-purple"></div>
-      <div class="bg-particles">
-        <div v-for="i in 20" :key="i" class="particle" :style="particleStyle(i)"></div>
-      </div>
-    </div>
-
     <!-- 页面标题 -->
     <header class="page-header">
       <div class="header-row">
@@ -553,20 +538,6 @@ const allChunks = ref([])
 const showChunkDetail = ref(false)
 const selectedChunk = ref(null)
 
-// ===== 粒子效果 =====
-const particleStyle = () => {
-  const size = Math.random() * 3 + 1
-  return {
-    left: Math.random() * 100 + '%',
-    top: Math.random() * 100 + '%',
-    width: size + 'px',
-    height: size + 'px',
-    animationDuration: (Math.random() * 20 + 15) + 's',
-    animationDelay: (Math.random() * 10) + 's',
-    opacity: Math.random() * 0.3 + 0.1
-  }
-}
-
 // ===== Store 状态 =====
 const documents = computed(() => knowledgeStore.documents)
 const filteredDocuments = computed(() => knowledgeStore.filteredDocuments)
@@ -1104,7 +1075,6 @@ onActivated(async () => {
 })
 
 onUnmounted(() => {
-  if (rafId) { cancelAnimationFrame(rafId); rafId = null }
   if (chunkSearchTimer.value) clearTimeout(chunkSearchTimer.value)
   knowledgeStore.stopStatusPolling()
   // 清理未关闭的确认弹窗，防止路由切换后残留堆叠
@@ -1121,57 +1091,6 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   padding: 32px 24px 60px;
-}
-
-/* ===== 背景层 ===== */
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* ===== 浮动光晕 ===== */
-.floating-glow { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; animation: floatGlow 16s ease-in-out infinite alternate; }
-.fg-cyan { width: 500px; height: 500px; top: -120px; right: -120px; background: radial-gradient(circle, rgba($accent-primary,0.06) 0%, transparent 70%); animation-duration: 18s; }
-.fg-purple { width: 420px; height: 420px; bottom: -100px; left: -100px; background: radial-gradient(circle, rgba(123,97,255,0.06) 0%, transparent 70%); animation-duration: 22s; animation-delay: -6s; }
-@keyframes floatGlow { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(25px,-18px) scale(1.08)} 50%{transform:translate(-18px,22px) scale(0.92)} 75%{transform:translate(15px,12px) scale(1.04)} 100%{transform:translate(-10px,-8px) scale(1.02)} }
-
-/* ===== 极光背景 ===== */
-.aurora-bg { position: absolute; inset: 0; pointer-events: none; }
-.aurora-layer { position: absolute; border-radius: 50%; filter: blur(120px); animation: aurora 20s ease-in-out infinite; }
-.a1 { width: 600px; height: 600px; top: -200px; right: -100px; background: radial-gradient(circle, rgba($accent-primary,0.07) 0%, transparent 70%); }
-.a2 { width: 500px; height: 500px; bottom: -150px; left: -100px; background: radial-gradient(circle, rgba(0,85,255,0.07) 0%, transparent 70%); animation-delay: -7s; }
-.a3 { width: 400px; height: 400px; top: 40%; left: 40%; background: radial-gradient(circle, rgba(123,97,255,0.05) 0%, transparent 70%); animation-delay: -14s; }
-@keyframes aurora { 0%,100%{transform:translate(0,0) scale(1)} 25%{transform:translate(30px,-30px) scale(1.1)} 50%{transform:translate(-20px,20px) scale(0.95)} 75%{transform:translate(20px,10px) scale(1.05)} }
-.grid-bg {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba($accent-primary,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(123,97,255,0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  animation: gridPulse 8s ease-in-out infinite alternate;
-  transform-origin: center center;
-  will-change: opacity, transform;
-}
-@keyframes gridPulse {
-  0% { opacity: 0.3; transform: scale(1); }
-  100% { opacity: 0.6; transform: scale(1.02); }
-}
-.bg-particles { position: absolute; inset: 0; }
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: $accent-primary;
-  animation: particleFloat linear infinite;
-}
-@keyframes particleFloat {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  10% { opacity: 0.4; }
-  90% { opacity: 0.2; }
-  100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
 }
 
 /* ===== 页面标题 ===== */

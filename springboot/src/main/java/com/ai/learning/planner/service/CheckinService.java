@@ -30,6 +30,7 @@ public class CheckinService {
     private final CheckinRecordRepository checkinRecordRepository;
     private final UserRepository userRepository;
     private final LearningRecordRepository learningRecordRepository;
+    private final AchievementService achievementService;
 
     /**
      * 用户每日打卡
@@ -69,6 +70,18 @@ public class CheckinService {
         result.setTotalDays(totalDays);
         result.setCheckinDate(today.toString());
         result.setMonthDays(getMonthCheckinDates(userId, today.getYear(), today.getMonthValue()));
+
+        // 打卡成功后自动检查并解锁成就
+        try {
+            Map<String, Object> achievementResult = achievementService.checkAndUpdateAchievements(String.valueOf(userId));
+            List<Map<String, Object>> newlyUnlocked = (List<Map<String, Object>>) achievementResult.getOrDefault("newlyUnlocked", Collections.emptyList());
+            if (!newlyUnlocked.isEmpty()) {
+                log.info("打卡解锁新成就: userId={}, count={}", userId, newlyUnlocked.size());
+                result.setNewlyUnlockedAchievements(newlyUnlocked);
+            }
+        } catch (Exception e) {
+            log.warn("打卡后检查成就异常: userId={}", userId, e);
+        }
 
         return result;
     }
