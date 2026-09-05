@@ -6,6 +6,8 @@ import com.ai.learning.planner.entity.LearningSession;
 import com.ai.learning.planner.entity.SessionPhase;
 import com.ai.learning.planner.service.LearningSessionService;
 import com.ai.learning.planner.utils.SecurityUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -175,6 +177,9 @@ public class LearningSessionController {
                                 .data(Map.of("code", "UNKNOWN_PHASE", "message", "未知阶段: " + phase)));
                     }
                 }
+
+                // ★ 阶段处理完成后立即释放锁，让下一个 SSE 连接可以立即获取锁
+                releaseLock.run();
 
                 // 保持连接短暂存活，等待前端可能的重连
                 Thread.sleep(2000);

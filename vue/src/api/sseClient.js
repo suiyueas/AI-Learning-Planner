@@ -167,8 +167,10 @@ export class SSEClient {
     if (!this.listeners[event]) {
       this.listeners[event] = []
       // 首次注册命名事件时，通过 addEventListener 注册到 EventSource
-      // 这样后端 SSE 推送的命名事件（如 question、phase_transition 等）才能被接收
-      if (this.eventSource && event !== 'open' && event !== 'message' && event !== 'error') {
+      // 注意：open/message/error 是 EventSource 内置事件，用对应回调处理
+      if (this.eventSource && event !== 'open' && event !== 'message') {
+        // 对于 error 事件，我们使用 addEventListener 捕获后端推送的命名 error 事件
+        // 这与 EventSource 内置的 onerror（连接错误）不同，两者互不干扰
         this.eventSource.addEventListener(event, (e) => {
           const data = this.parseMessage(e.data)
           // ★ 关键：收到 session_completed 事件后，主动关闭连接并禁用重连

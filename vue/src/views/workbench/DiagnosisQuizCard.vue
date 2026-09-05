@@ -5,9 +5,15 @@
       <p class="dq-desc">AI 正在分析你的知识水平，请回答以下问题</p>
     </div>
 
-    <div v-if="questions.length === 0" class="dq-loading">
+    <div v-if="questions.length === 0 && !loadingTimeout" class="dq-loading">
       <div class="dq-spinner"></div>
       <p>正在生成诊断题目...</p>
+    </div>
+
+    <div v-else-if="loadingTimeout" class="dq-loading dq-loading--empty">
+      <div class="dq-empty-icon">📭</div>
+      <p>暂无诊断题目</p>
+      <p class="dq-empty-hint">请检查网络连接或重新开始学习</p>
     </div>
 
     <div v-else class="dq-questions">
@@ -77,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 
 const props = defineProps({
   session: { type: Object, default: () => ({}) }
@@ -88,13 +94,24 @@ const emit = defineEmits(['answer', 'complete'])
 const questions = ref(props.session.questions || [])
 const answers = ref({})
 const showResults = ref(false)
+const loadingTimeout = ref(false)
 
 // 监听 session.questions 变化，SSE 推送题目后自动更新视图
 watch(() => props.session.questions, (newQuestions) => {
   if (Array.isArray(newQuestions) && newQuestions.length > 0) {
     questions.value = newQuestions
+    loadingTimeout.value = false
   }
 }, { deep: true })
+
+// 15 秒超时，防止无限加载
+onMounted(() => {
+  setTimeout(() => {
+    if (questions.value.length === 0) {
+      loadingTimeout.value = true
+    }
+  }, 15000)
+})
 
 const selectAnswer = (questionId, optionIndex) => {
   answers.value[questionId] = optionIndex
@@ -136,6 +153,19 @@ const submitAll = () => {
   text-align: center;
   padding: $space-12;
   color: $text-muted;
+}
+
+.dq-loading--empty {
+  .dq-empty-icon {
+    font-size: 48px;
+    margin-bottom: $space-3;
+  }
+  p { margin: $space-1 0; }
+  .dq-empty-hint {
+    font-size: $text-sm;
+    color: $text-muted;
+    opacity: 0.7;
+  }
 }
 
 .dq-spinner {

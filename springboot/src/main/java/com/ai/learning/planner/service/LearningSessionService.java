@@ -1,12 +1,15 @@
 package com.ai.learning.planner.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ai.learning.planner.dto.LearningSessionDTO;
 import com.ai.learning.planner.dto.SessionPhaseDTO;
 import com.ai.learning.planner.entity.LearningSession;
+import com.ai.learning.planner.entity.Question;
 import com.ai.learning.planner.entity.SessionPhase;
 import com.ai.learning.planner.repository.LearningSessionRepository;
+import com.ai.learning.planner.repository.QuestionRepository;
 import com.ai.learning.planner.repository.SessionPhaseRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -14,8 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -28,14 +30,19 @@ public class LearningSessionService {
 
     private final LearningSessionRepository sessionRepository;
     private final SessionPhaseRepository phaseRepository;
+    private final QuestionRepository questionRepository;
     private final ModelManager modelManager;
+    private final ObjectMapper objectMapper;
 
     public LearningSessionService(LearningSessionRepository sessionRepository,
                                    SessionPhaseRepository phaseRepository,
+                                   QuestionRepository questionRepository,
                                    ModelManager modelManager) {
         this.sessionRepository = sessionRepository;
         this.phaseRepository = phaseRepository;
+        this.questionRepository = questionRepository;
         this.modelManager = modelManager;
+        this.objectMapper = new ObjectMapper();
     }
 
     /** 阶段执行顺序 */
@@ -293,9 +300,43 @@ public class LearningSessionService {
     }
 
     /**
-     * 使用 AI 模型生成诊断题目
+     * 生成诊断题目：优先从题库读取，不足则 AI 生成
      */
     public String generateDiagnosisQuestions(String goal) {
+        // 1. 尝试从题库读取
+        try {
+            // 提取可能的科目关键词
+            String subject = guessSubject(goal);
+            List<Question> existing = questionRepository.findBySubjectAndDifficulty(subject, "medium");
+            if (existing.size() >= 3) {
+                log.info("题库 {} 科目已有 {} 道题目，直接使用", subject, existing.size());
+                Collections.shuffle(existing, new Random());
+                List<Question> selected = existing.subList(0, Math.min(5, existing.size()));
+                List<Map<String, Object>> list = new ArrayList<>();
+                int id = 1;
+                for (Question q : selected) {
+                    List<String> opts;
+                    try {
+                        opts = objectMapper.readValue(q.getOptions(), new TypeReference<List<String>>() {});
+                    } catch (Exception e) {
+                        opts = List.of("选项A", "选项B", "选项C", "选项D");
+                    }
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", id++);
+                    item.put("type", "choice");
+                    item.put("content", q.getQuestionText());
+                    item.put("options", opts);
+                    item.put("correctIndex", Integer.parseInt(q.getCorrectAnswer()));
+                    item.put("explanation", q.getExplanation() != null ? q.getExplanation() : "参考答案如上");
+                    list.add(item);
+                }
+                return objectMapper.writeValueAsString(list);
+            }
+        } catch (Exception e) {
+            log.warn("从题库读取题目失败，将使用 AI 生成: {}", e.getMessage());
+        }
+
+        // 2. AI 生成
         try {
             ChatClient chatClient = ChatClient.builder(modelManager.getCurrentModel())
                     .defaultSystem("""
@@ -334,30 +375,40 @@ public class LearningSessionService {
 
             log.info("AI 生成诊断题目成功: goal={}, responseLength={}", goal, response != null ? response.length() : 0);
 
-            // 清理响应，确保是有效的 JSON
             if (response != null) {
                 response = response.trim();
-                // 移除可能的 markdown 代码块标记
                 if (response.startsWith("```")) {
                     response = response.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
                 }
-                // 验证 JSON 格式
                 try {
-                    new ObjectMapper().readTree(response);
+                    objectMapper.readTree(response);
                 } catch (JsonProcessingException e) {
-                    log.warn("AI 生成的题目不是合法 JSON，尝试修复: {}", e.getMessage());
-                    // 如果生成失败，返回默认题目
+                    log.warn("AI 生成的题目不是合法 JSON，使用默认题目: {}", e.getMessage());
                     response = getDefaultDiagnosisQuestions(goal);
                 }
             } else {
                 response = getDefaultDiagnosisQuestions(goal);
             }
-
             return response;
         } catch (Exception e) {
             log.error("AI 生成诊断题目失败: {}", e.getMessage());
             return getDefaultDiagnosisQuestions(goal);
         }
+    }
+
+    /**
+     * 从学习目标中猜测科目名称
+     */
+    private String guessSubject(String goal) {
+        String g = goal.toLowerCase();
+        if (g.contains("python")) return "python";
+        if (g.contains("java")) return "java";
+        if (g.contains("c++") || g.contains("cpp")) return "cpp";
+        if (g.contains("算法") || g.contains("algorithm")) return "algorithm";
+        if (g.contains("数据库") || g.contains("database") || g.contains("sql")) return "database";
+        if (g.contains("网络") || g.contains("network")) return "network";
+        if (g.contains("系统设计") || g.contains("system") || g.contains("架构")) return "system_design";
+        return "python"; // 默认科目
     }
 
     /**

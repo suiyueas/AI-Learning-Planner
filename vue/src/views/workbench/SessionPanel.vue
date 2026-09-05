@@ -253,6 +253,8 @@ const connectPhaseSSE = () => {
 
   // 断开旧连接
   if (sseClient.value) {
+    // ★ 标记为主动关闭，阻止 onerror 触发额外的重连
+    sseClient.value.shouldReconnect = false
     sseClient.value.close()
     sseClient.value = null
   }
@@ -582,6 +584,7 @@ const handleResumeSession = () => {
 </script>
 
 <style lang="scss" scoped>
+@use 'sass:color';
 @use '../../styles/variables' as *;
 
 .session-panel {
@@ -924,7 +927,7 @@ const handleResumeSession = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba($bg-canvas, 0.7);
+  background: rgba($bg-base, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: spPausedFadeIn 0.3s ease;
@@ -1016,8 +1019,8 @@ const handleResumeSession = () => {
   border-color: $accent-indigo;
 
   &:hover {
-    background: darken($accent-indigo, 8%);
-    border-color: darken($accent-indigo, 8%);
+    background: color.adjust($accent-indigo, $lightness: -8%);
+    border-color: color.adjust($accent-indigo, $lightness: -8%);
   }
 
   &:active {
